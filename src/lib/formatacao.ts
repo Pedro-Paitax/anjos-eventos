@@ -45,6 +45,17 @@ export function formatarValor(valor: string | null): string | null {
   }).format(Number(valor));
 }
 
+export function chaveAnoMes(data: Date): string {
+  return `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, "0")}`;
+}
+
+export function nomeMes(ano: number, mesIndice: number): string {
+  const nome = new Intl.DateTimeFormat("pt-BR", { month: "long" }).format(
+    new Date(ano, mesIndice, 1)
+  );
+  return nome.charAt(0).toUpperCase() + nome.slice(1);
+}
+
 export function paraInputDatetimeLocal(dataEvento: string): string {
   const data = new Date(dataEvento);
   const deslocamentoMs = data.getTimezoneOffset() * 60_000;

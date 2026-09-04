@@ -2,20 +2,24 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { obterUsuarioAtual } from "@/lib/usuario-atual";
 import { listarEventos } from "@/lib/eventos";
-import {
-  corEmpresa,
-  formatarData,
-  formatarHora,
-  formatarValor,
-  rotuloStatus,
-} from "@/lib/formatacao";
+import { chaveAnoMes } from "@/lib/formatacao";
 import { CabecalhoPagina } from "@/components/cabecalho-pagina";
+import { ListaEventos } from "@/components/lista-eventos";
+import { CalendarioEventos } from "@/components/calendario-eventos";
 
-export default async function AgendaPage() {
+type AgendaPageProps = {
+  searchParams: Promise<{ visao?: string; mes?: string }>;
+};
+
+export default async function AgendaPage({ searchParams }: AgendaPageProps) {
   const usuarioAtual = await obterUsuarioAtual();
   if (!usuarioAtual) {
     redirect("/login");
   }
+
+  const { visao, mes } = await searchParams;
+  const visaoAtual = visao === "calendario" ? "calendario" : "lista";
+  const mesAtual = mes ?? chaveAnoMes(new Date());
 
   const eventos = await listarEventos();
 
@@ -24,7 +28,7 @@ export default async function AgendaPage() {
       <div className="flex w-full max-w-2xl flex-col gap-8">
         <CabecalhoPagina
           titulo="Agenda"
-          subtitulo="Os eventos das três empresas, em ordem de data."
+          subtitulo="Os eventos das três empresas."
           voltarPara={{ href: "/", rotulo: "← Início" }}
           acao={
             <Link
@@ -36,55 +40,36 @@ export default async function AgendaPage() {
           }
         />
 
-        <div className="rounded-[2px] bg-paper text-paper-ink shadow-[0_20px_40px_-20px_rgba(0,0,0,0.6)]">
-          {eventos.length === 0 ? (
-            <p className="px-6 py-10 text-center text-sm text-paper-ink/70">
-              Nenhum evento ainda. Cadastre o primeiro pra começar a montar a
-              agenda.
-            </p>
-          ) : (
-            <ul className="divide-y divide-paper-ink/10">
-              {eventos.map((evento) => (
-                <li key={evento.id}>
-                  <Link
-                    href={`/agenda/${evento.id}`}
-                    className="flex flex-col gap-2 px-6 py-4 transition hover:bg-paper-dim/60 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
-                  >
-                    <div className="flex items-start gap-3">
-                      <span
-                        aria-hidden
-                        className={`mt-2 h-2.5 w-2.5 shrink-0 rounded-full ${corEmpresa(
-                          evento.empresa_nome
-                        )}`}
-                      />
-                      <div>
-                        <p className="font-display text-lg italic">
-                          {evento.cliente}
-                        </p>
-                        <p className="text-sm text-paper-ink/70">
-                          {evento.empresa_nome}
-                          {evento.tipo_evento ? `, ${evento.tipo_evento}` : ""}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex flex-col items-start gap-1 pl-6 sm:items-end sm:pl-0">
-                      <p className="text-sm">
-                        {formatarData(evento.data_evento)},{" "}
-                        {formatarHora(evento.data_evento)}
-                      </p>
-                      <div className="flex items-center gap-3 text-sm text-paper-ink/70">
-                        <span>{rotuloStatus(evento.status)}</span>
-                        {evento.valor && (
-                          <span>{formatarValor(evento.valor)}</span>
-                        )}
-                      </div>
-                    </div>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
+        <div className="inline-flex w-fit gap-1 rounded-[2px] bg-ink-soft p-1">
+          <Link
+            href="/agenda?visao=lista"
+            className={`rounded-[2px] px-4 py-1.5 text-sm transition ${
+              visaoAtual === "lista"
+                ? "bg-paper text-paper-ink"
+                : "text-paper-dim hover:text-paper"
+            }`}
+          >
+            Lista
+          </Link>
+          <Link
+            href={`/agenda?visao=calendario&mes=${mesAtual}`}
+            className={`rounded-[2px] px-4 py-1.5 text-sm transition ${
+              visaoAtual === "calendario"
+                ? "bg-paper text-paper-ink"
+                : "text-paper-dim hover:text-paper"
+            }`}
+          >
+            Calendário
+          </Link>
         </div>
+
+        {visaoAtual === "calendario" ? (
+          <CalendarioEventos eventos={eventos} mesParam={mesAtual} />
+        ) : (
+          <div className="rounded-[2px] bg-paper text-paper-ink shadow-[0_20px_40px_-20px_rgba(0,0,0,0.6)]">
+            <ListaEventos eventos={eventos} />
+          </div>
+        )}
       </div>
     </main>
   );
