@@ -18,7 +18,7 @@ export default async function AgendaPage({ searchParams }: AgendaPageProps) {
   }
 
   const { visao, mes } = await searchParams;
-  const visaoAtual = visao === "calendario" ? "calendario" : "lista";
+  const visaoAtual = visao === "sequencia" ? "sequencia" : "agenda";
   const mesAtual = mes ?? chaveAnoMes(new Date());
 
   const eventos = await listarEventos();
@@ -42,28 +42,28 @@ export default async function AgendaPage({ searchParams }: AgendaPageProps) {
 
         <div className="inline-flex w-fit gap-1 rounded-[2px] bg-ink-soft p-1">
           <Link
-            href="/agenda?visao=lista"
+            href={`/agenda?visao=agenda&mes=${mesAtual}`}
             className={`rounded-[2px] px-4 py-1.5 text-sm transition ${
-              visaoAtual === "lista"
+              visaoAtual === "agenda"
                 ? "bg-paper text-paper-ink"
                 : "text-paper-dim hover:text-paper"
             }`}
           >
-            Lista
+            Agenda
           </Link>
           <Link
-            href={`/agenda?visao=calendario&mes=${mesAtual}`}
+            href="/agenda?visao=sequencia"
             className={`rounded-[2px] px-4 py-1.5 text-sm transition ${
-              visaoAtual === "calendario"
+              visaoAtual === "sequencia"
                 ? "bg-paper text-paper-ink"
                 : "text-paper-dim hover:text-paper"
             }`}
           >
-            Calendário
+            Em sequência
           </Link>
         </div>
 
-        {visaoAtual === "calendario" ? (
+        {visaoAtual === "agenda" ? (
           <CalendarioEventos eventos={eventos} mesParam={mesAtual} />
         ) : (
           <div className="rounded-[2px] bg-paper text-paper-ink shadow-[0_20px_40px_-20px_rgba(0,0,0,0.6)]">
