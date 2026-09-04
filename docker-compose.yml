@@ -1,0 +1,36 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: anjos-eventos-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: anjos
+      POSTGRES_PASSWORD: anjos_eventos_2024
+      POSTGRES_DB: anjos_eventos
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U anjos -d anjos_eventos"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: anjos-eventos-app
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    environment:
+      DATABASE_URL: postgresql://anjos:anjos_eventos_2024@db:5432/anjos_eventos
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
