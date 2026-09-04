@@ -52,7 +52,7 @@ export function CalendarioEventos({
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between px-1">
         <Link
-          href={`/agenda?visao=calendario&mes=${mesAdjacente(ano, mesIndice, -1)}`}
+          href={`/agenda?visao=agenda&mes=${mesAdjacente(ano, mesIndice, -1)}`}
           className="rounded-[2px] px-3 py-1.5 text-sm text-paper-dim transition hover:bg-ink-soft hover:text-paper"
         >
           ← Mês anterior
@@ -61,7 +61,7 @@ export function CalendarioEventos({
           {nomeMes(ano, mesIndice)} de {ano}
         </p>
         <Link
-          href={`/agenda?visao=calendario&mes=${mesAdjacente(ano, mesIndice, 1)}`}
+          href={`/agenda?visao=agenda&mes=${mesAdjacente(ano, mesIndice, 1)}`}
           className="rounded-[2px] px-3 py-1.5 text-sm text-paper-dim transition hover:bg-ink-soft hover:text-paper"
         >
           Próximo mês →
