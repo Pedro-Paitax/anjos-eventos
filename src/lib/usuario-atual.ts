@@ -17,7 +17,10 @@ export async function definirUsuarioAtual(usuarioId: number) {
   const cookieStore = await cookies();
   cookieStore.set(COOKIE_NAME, String(usuarioId), {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    // Acesso é via Tailscale em HTTP puro (sem TLS) — um cookie "Secure"
+    // seria descartado pelo navegador e o login nunca se manteria.
+    // A rede Tailscale já criptografa o transporte por conta própria.
+    secure: false,
     sameSite: "lax",
     path: "/",
     // Sem maxAge: cookie de sessão, expira quando o navegador fecha —
