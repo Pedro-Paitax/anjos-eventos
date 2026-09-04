@@ -8,6 +8,7 @@ import {
   type StatusEvento,
   type Veiculo,
 } from "@/lib/eventos";
+import { obterUsuarioAtual } from "@/lib/usuario-atual";
 
 function paraTexto(valor: FormDataEntryValue | null): string | null {
   const texto = String(valor ?? "").trim();
@@ -34,6 +35,11 @@ function extrairDados(formData: FormData): DadosEvento {
 }
 
 export async function criarEventoAction(formData: FormData) {
+  const usuarioAtual = await obterUsuarioAtual();
+  if (!usuarioAtual) {
+    redirect("/login");
+  }
+
   const dados = extrairDados(formData);
   if (!dados.cliente || !dados.dataEvento || !dados.empresaId) {
     throw new Error("Preencha empresa, cliente e data do evento.");
@@ -43,6 +49,11 @@ export async function criarEventoAction(formData: FormData) {
 }
 
 export async function atualizarEventoAction(id: number, formData: FormData) {
+  const usuarioAtual = await obterUsuarioAtual();
+  if (!usuarioAtual) {
+    redirect("/login");
+  }
+
   const dados = extrairDados(formData);
   if (!dados.cliente || !dados.dataEvento || !dados.empresaId) {
     throw new Error("Preencha empresa, cliente e data do evento.");
