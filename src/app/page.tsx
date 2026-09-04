@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { obterUsuarioAtual } from "@/lib/usuario-atual";
 import { trocarUsuario } from "@/app/actions/usuario";
@@ -5,18 +6,20 @@ import { trocarUsuario } from "@/app/actions/usuario";
 const roteiro = [
   {
     titulo: "Agenda unificada",
-    descricao:
-      "Todos os eventos das três empresas, num só calendário. Chega em breve.",
+    descricao: "Todos os eventos das três empresas, num só calendário.",
+    href: "/agenda",
   },
   {
     titulo: "Contratos e confirmação",
     descricao:
-      "Envie o PDF, a extração preenche os dados e você só confirma. Vem logo depois da agenda.",
+      "Envie o PDF, a extração preenche os dados e você só confirma. É a próxima etapa.",
+    href: null,
   },
   {
     titulo: "Checklist de carregamento",
     descricao:
       "O que levar, onde está guardado e em qual veículo. Fica pra fase 2, depois que a central estiver rodando redondo.",
+    href: null,
   },
 ];
 
@@ -49,9 +52,18 @@ export default async function Home() {
                 aria-hidden
                 className="absolute -left-[29px] top-1.5 h-2.5 w-2.5 rounded-full border-2 border-brass bg-ink"
               />
-              <p className="font-display text-lg italic text-paper">
-                {item.titulo}
-              </p>
+              {item.href ? (
+                <Link
+                  href={item.href}
+                  className="font-display text-lg italic text-paper underline decoration-brass/50 underline-offset-4 transition hover:decoration-brass"
+                >
+                  {item.titulo}
+                </Link>
+              ) : (
+                <p className="font-display text-lg italic text-paper">
+                  {item.titulo}
+                </p>
+              )}
               <p className="mt-1 text-sm text-paper-dim">{item.descricao}</p>
             </li>
           ))}
