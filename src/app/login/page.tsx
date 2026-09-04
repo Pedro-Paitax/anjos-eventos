@@ -19,10 +19,10 @@ export default async function LoginPage() {
           Anjos Eventos
         </p>
         <h1 className="font-display text-4xl italic text-paper sm:text-5xl">
-          Quem senta à mesa?
+          Quem esta usando?
         </h1>
         <p className="max-w-xs text-sm text-paper-dim">
-          Sem senha — escolha seu nome. É só pra saber quem confirmou o quê.
+          De preferência não selecione outro usuário.
         </p>
       </div>
 
