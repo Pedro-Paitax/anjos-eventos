@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { obterUsuarioAtual } from "@/lib/usuario-atual";
 import { trocarUsuario } from "@/app/actions/usuario";
 
-const roteiro = [
+const funcionalidades = [
   {
     titulo: "Agenda unificada",
     descricao: "Todos os eventos das três empresas, num só calendário.",
@@ -31,7 +31,7 @@ export default async function Home() {
 
   return (
     <main className="venue-glow flex flex-1 flex-col items-center px-6 py-16">
-      <div className="flex w-full max-w-md flex-col items-center gap-10">
+      <div className="flex w-full max-w-2xl flex-col items-center gap-10">
         <div className="flex flex-col items-center gap-3 text-center">
           <p className="font-display text-sm italic text-brass">
             Anjos Eventos
@@ -45,29 +45,34 @@ export default async function Home() {
           </p>
         </div>
 
-        <ol className="flex w-full list-none flex-col border-l border-paper-dim/20 pl-6">
-          {roteiro.map((item) => (
-            <li key={item.titulo} className="relative pb-8 last:pb-0">
-              <span
-                aria-hidden
-                className="absolute -left-[29px] top-1.5 h-2.5 w-2.5 rounded-full border-2 border-brass bg-ink"
-              />
-              {item.href ? (
-                <Link
-                  href={item.href}
-                  className="font-display text-lg italic text-paper underline decoration-brass/50 underline-offset-4 transition hover:decoration-brass"
-                >
-                  {item.titulo}
-                </Link>
-              ) : (
-                <p className="font-display text-lg italic text-paper">
+        <div className="grid w-full grid-cols-1 gap-4 sm:grid-cols-3">
+          {funcionalidades.map((item) =>
+            item.href ? (
+              <Link
+                key={item.titulo}
+                href={item.href}
+                className="group relative flex flex-col gap-2 overflow-hidden rounded-[2px] bg-paper p-5 text-paper-ink shadow-[0_18px_28px_-16px_rgba(0,0,0,0.6)] transition hover:-translate-y-1 focus-visible:-translate-y-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brass"
+              >
+                <span
+                  aria-hidden
+                  className="absolute inset-x-0 top-0 h-1.5 bg-ember"
+                />
+                <p className="font-display text-lg italic">{item.titulo}</p>
+                <p className="text-sm text-paper-ink/70">{item.descricao}</p>
+              </Link>
+            ) : (
+              <div
+                key={item.titulo}
+                className="flex flex-col gap-2 rounded-[2px] border border-paper-dim/15 p-5"
+              >
+                <p className="font-display text-lg italic text-paper-dim">
                   {item.titulo}
                 </p>
-              )}
-              <p className="mt-1 text-sm text-paper-dim">{item.descricao}</p>
-            </li>
-          ))}
-        </ol>
+                <p className="text-sm text-paper-dim/60">{item.descricao}</p>
+              </div>
+            )
+          )}
+        </div>
 
         <form action={trocarUsuario}>
           <button
