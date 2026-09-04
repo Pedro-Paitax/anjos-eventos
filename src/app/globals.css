@@ -1,26 +1,44 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@theme {
+  --color-ink: #1e1811;
+  --color-ink-soft: #2a2118;
+  --color-ember: #c1552c;
+  --color-brass: #b8933f;
+  --color-paper: #f6efe1;
+  --color-paper-dim: #eae0cb;
+  --color-paper-ink: #2b2013;
+  --color-sage: #6e7a5c;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --font-display: var(--font-fraunces);
+  --font-sans: var(--font-archivo);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+.venue-glow {
+  background:
+    radial-gradient(60% 45% at 50% 0%, rgba(193, 85, 44, 0.18), transparent 70%),
+    radial-gradient(45% 40% at 88% 100%, rgba(184, 147, 63, 0.12), transparent 70%),
+    var(--color-ink);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .card-enter {
+    animation: card-enter 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation-delay: calc(var(--enter-order, 0) * 70ms);
+  }
+}
+
+@keyframes card-enter {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
