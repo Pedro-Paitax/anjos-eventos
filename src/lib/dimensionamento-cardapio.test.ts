@@ -9,6 +9,7 @@ import { distribuirPorcoes, type ItemResolvido } from "@/lib/dimensionamento-car
 const NUM_CONVIDADOS = 50;
 
 const vinagrete: ItemResolvido = {
+  preparoId: 2, // real
   preparoNome: "Vinagrete",
   peso: 1, // fictício
   origemPeso: "Peso_Atratividade (fictício - teste)",
@@ -20,6 +21,7 @@ const vinagrete: ItemResolvido = {
 };
 
 const arrozComHardCap: ItemResolvido = {
+  preparoId: 13, // real
   preparoNome: "Arroz Branco com Alho Crispy",
   peso: 3, // fictício
   origemPeso: "Peso_Atratividade (fictício - teste)",
@@ -31,6 +33,7 @@ const arrozComHardCap: ItemResolvido = {
 };
 
 const alcatra: ItemResolvido = {
+  preparoId: 12, // real
   preparoNome: "Alcatra Grelhada",
   peso: 2.0, // real (Hierarquia_Proteina, Carne Vermelha)
   origemPeso: "Hierarquia_Proteina (Carne Vermelha)",

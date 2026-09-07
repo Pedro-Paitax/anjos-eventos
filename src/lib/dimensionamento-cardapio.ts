@@ -69,6 +69,7 @@ type MacroCategoriaRegistro = {
 };
 
 export type ItemDimensionado = {
+  preparo_id: number;
   preparo: string;
   peso_item: number;
   origem_peso: string;
@@ -104,6 +105,7 @@ function arredondar(valor: number): number {
 }
 
 export type ItemResolvido = {
+  preparoId: number;
   preparoNome: string;
   peso: number;
   origemPeso: string;
@@ -153,6 +155,7 @@ export function distribuirPorcoes(
           : porcaoCalculada;
 
       return {
+        preparo_id: item.preparoId,
         preparo: item.preparoNome,
         peso_item: item.peso,
         origem_peso: item.origemPeso,
@@ -311,6 +314,7 @@ export async function calcularDimensionamentoOrcamento(
       }
 
       itensResolvidos.push({
+        preparoId,
         preparoNome: preparo["Nome Do Preparo"],
         peso: pesoResolvido.peso,
         origemPeso: pesoResolvido.origem,
