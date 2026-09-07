@@ -376,6 +376,30 @@ Regras de exibição no front-end:
 
 ---
 
+# Autenticação do Simulador de Orçamento (endpoint público)
+
+Status: APROVADA
+
+GET /api/orcamentos/:id/simulador não exige autenticação — é o primeiro
+endpoint verdadeiramente público do sistema (lead anônimo no site montando
+cardápio antes de virar cliente).
+
+Proteção: apenas rate limiting por IP (30 requisições/minuto, contador em
+memória no servidor). Não há chave de API, não há CORS restrito.
+
+Motivo de não ter mais que isso: caso de uso legítimo é acesso anônimo;
+qualquer token exposto no front-end público não seria segredo de verdade
+(fica visível no código do site). Rate limit em memória é aceitável hoje
+porque a aplicação roda numa única instância (ver docker-compose.yml) — se
+isso mudar para múltiplas instâncias, o contador precisa virar algo
+compartilhado (ex.: Redis), não é o caso agora.
+
+Essa rota nunca deve expor dado de custo interno nem dado de cadastro que
+não seja estritamente necessário pro cliente montar o cardápio — ver
+"Contrato do Simulador de Orçamento" acima.
+
+---
+
 # Regra para agentes
 
 Antes de implementar uma funcionalidade:
