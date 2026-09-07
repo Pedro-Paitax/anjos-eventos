@@ -6,6 +6,7 @@ import {
   atualizarCardapioModelo,
   criarCardapioModelo,
   excluirCardapioModelo,
+  obterCardapioModeloComItens,
   type DadosCardapioModelo,
 } from "@/lib/cardapios-modelo";
 import { obterUsuarioAtual } from "@/lib/usuario-atual";
@@ -92,4 +93,21 @@ export async function excluirCardapioModeloAction(
 
   await excluirCardapioModelo(id);
   revalidatePath("/cardapios-modelo");
+}
+
+/**
+ * Chamada direto do client no Criar Evento, ao escolher "Começar de um
+ * Cardápio Pré-Montado" — só lê os itens pra pré-popular o seletor, não
+ * cria nenhum vínculo permanente entre o evento e o cardápio modelo.
+ */
+export async function obterItensCardapioModeloAction(
+  id: number
+): Promise<{ preparoIds: number[] } | { erro: string }> {
+  const usuarioAtual = await obterUsuarioAtual();
+  if (!usuarioAtual) redirect("/login");
+
+  const cardapio = await obterCardapioModeloComItens(id);
+  if (!cardapio) return { erro: "Cardápio pré-montado não encontrado." };
+
+  return { preparoIds: cardapio.itens.map((item) => item.preparoId) };
 }
