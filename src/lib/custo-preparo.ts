@@ -60,6 +60,35 @@ function arredondarCentavos(valor: number): number {
   return Math.round(Number(valor.toFixed(8)) * 100) / 100;
 }
 
+export type ItemComposicaoParaCusto = {
+  quantidade: number;
+  preco: number | null;
+  fatorCorrecao: number | null;
+};
+
+/**
+ * Núcleo puro do motor de custo (sem I/O): soma quantidade x preço
+ * corrigido de cada item da composição, seguindo docs/REGRAS_NEGOCIO.md
+ * seção 4. Separado da busca no NocoDB pra poder ser validado
+ * isoladamente.
+ */
+export function calcularCustoTotalComposicao(itens: ItemComposicaoParaCusto[]): number {
+  let custoTotal = 0;
+  for (const item of itens) {
+    // Regra de borda: Preço vazio OU Fator de Correção 0 → custo R$0
+    // (nunca dividir por zero).
+    const custoCorrigido =
+      item.preco == null || !item.fatorCorrecao ? 0 : item.preco / item.fatorCorrecao;
+    const subtotal = arredondarCentavos(item.quantidade * custoCorrigido);
+    custoTotal = arredondarCentavos(custoTotal + subtotal);
+  }
+  return custoTotal;
+}
+
+export function calcularCustoPor100Unidades(custoTotal: number, rendimento: number): number {
+  return arredondarCentavos((custoTotal / rendimento) * 100);
+}
+
 export async function calcularCustoPreparo(
   preparoId: number
 ): Promise<CustoPreparoResultado | CustoPreparoErro> {
@@ -104,7 +133,7 @@ export async function calcularCustoPreparo(
     };
   }
 
-  let custoTotal = 0;
+  let custoTotal: number;
   try {
     const composicoes = await Promise.all(
       composicaoLinks.list.map((c) =>
@@ -126,22 +155,23 @@ export async function calcularCustoPreparo(
       insumos.filter((i): i is InsumoRegistro => i !== null).map((i) => [i.Id, i])
     );
 
-    for (const composicao of composicoes) {
-      if (!composicao?.Insumo) continue;
-      const insumo = insumoPorId.get(composicao.Insumo.Id);
-      const preco = insumo?.["Custo Médio"];
-      const fator = insumo?.["Rendimento (%)"];
-      // Regra de borda: Preço vazio OU Fator de Correção 0 → custo R$0
-      // (nunca dividir por zero).
-      const custoCorrigido = preco == null || !fator ? 0 : preco / fator;
-      const subtotal = arredondarCentavos(composicao.Quantidade * custoCorrigido);
-      custoTotal = arredondarCentavos(custoTotal + subtotal);
-    }
+    const itensParaCusto: ItemComposicaoParaCusto[] = composicoes
+      .filter((c): c is ComposicaoRegistro => c?.Insumo != null)
+      .map((composicao) => {
+        const insumo = insumoPorId.get(composicao.Insumo!.Id);
+        return {
+          quantidade: composicao.Quantidade,
+          preco: insumo?.["Custo Médio"] ?? null,
+          fatorCorrecao: insumo?.["Rendimento (%)"] ?? null,
+        };
+      });
+
+    custoTotal = calcularCustoTotalComposicao(itensParaCusto);
   } catch (erro) {
     return { erro: `Falha ao consultar NocoDB: ${(erro as Error).message}`, status: 502 };
   }
 
-  const custoPor100Unidades = arredondarCentavos((custoTotal / rendimento) * 100);
+  const custoPor100Unidades = calcularCustoPor100Unidades(custoTotal, rendimento);
 
   return {
     preparo: preparo["Nome Do Preparo"],
