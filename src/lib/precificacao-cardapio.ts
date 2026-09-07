@@ -15,6 +15,16 @@ function arredondar(valor: number): number {
   return Math.round(Number(valor.toFixed(8)) * 100) / 100;
 }
 
+/**
+ * TETO em centavos — arredonda pra cima só o suficiente pra não deixar
+ * fração de centavo, sem "embelezar" o preço pro Real inteiro (isso mudaria
+ * quanto o cliente paga; não é uma decisão que foi tomada). Mesma correção
+ * de ruído de ponto flutuante do `arredondar`, trocando round por ceil.
+ */
+function arredondarParaCimaCentavos(valor: number): number {
+  return Math.ceil(Number(valor.toFixed(8)) * 100) / 100;
+}
+
 function ceilDivisao(numerador: number, divisor: number): number {
   return Math.ceil(numerador / divisor);
 }
@@ -108,8 +118,7 @@ export function calcularPrecificacaoCardapio(
   }
 
   const custoCardapioPorPessoa = custoCardapioTotal / numConvidados;
-  // TETO em reais inteiros — preço "redondo" pro cliente, sem centavos.
-  const valorSugeridoPorPessoa = Math.ceil(custoCardapioPorPessoa * MARKUP_CARDAPIO);
+  const valorSugeridoPorPessoa = arredondarParaCimaCentavos(custoCardapioPorPessoa * MARKUP_CARDAPIO);
   const valorSugeridoCrianca = arredondar(valorSugeridoPorPessoa / 2);
 
   const taxaDeslocamento = calcularTaxaDeslocamento(regiaoMetropolitanaCuritiba);

@@ -107,10 +107,11 @@ describe("calcularPrecificacaoCardapio", () => {
       regiaoMetropolitanaCuritiba: false,
     });
 
-    // custo por pessoa = 1747.88 / 61 = 28.6537... * 1.4 = 40.115... -> TETO = 41
+    // custo por pessoa = 1747.88 / 61 = 28.6537... * 1.4 = 40.11527... ->
+    // TETO em centavos (não em Real inteiro) = 40.12
     expect(resultado.custo_cardapio_por_pessoa).toBeCloseTo(28.65, 1);
-    expect(resultado.valor_sugerido_por_pessoa).toBe(41);
-    expect(resultado.valor_sugerido_crianca).toBe(20.5);
+    expect(resultado.valor_sugerido_por_pessoa).toBe(40.12);
+    expect(resultado.valor_sugerido_crianca).toBe(20.06);
   });
 
   it("Valor_Sugerido_Total_Evento COM toggle de região metropolitana (soma taxa de R$250)", () => {
@@ -119,11 +120,11 @@ describe("calcularPrecificacaoCardapio", () => {
       regiaoMetropolitanaCuritiba: true,
     });
 
-    // (41 * 61) + 250 (deslocamento) + (3 garçons sugeridos * 230) = 2501 + 250 + 690
+    // (40.12 * 61) + 250 (deslocamento) + (3 garçons sugeridos * 230)
     expect(resultado.taxa_deslocamento).toBe(250);
     expect(resultado.quantidade_garcom_usada).toBe(3);
     expect(resultado.valor_garcom).toBe(230);
-    expect(resultado.valor_sugerido_total_evento).toBe(41 * 61 + 250 + 3 * 230);
+    expect(resultado.valor_sugerido_total_evento).toBeCloseTo(40.12 * 61 + 250 + 3 * 230, 2);
   });
 
   it("Valor_Sugerido_Total_Evento SEM o toggle (sem taxa de deslocamento)", () => {
@@ -133,7 +134,7 @@ describe("calcularPrecificacaoCardapio", () => {
     });
 
     expect(resultado.taxa_deslocamento).toBe(0);
-    expect(resultado.valor_sugerido_total_evento).toBe(41 * 61 + 0 + 3 * 230);
+    expect(resultado.valor_sugerido_total_evento).toBeCloseTo(40.12 * 61 + 0 + 3 * 230, 2);
   });
 
   it("quantidade de garçom e valor de garçom são editáveis, sobrepondo a sugestão/padrão", () => {
@@ -147,6 +148,6 @@ describe("calcularPrecificacaoCardapio", () => {
     expect(resultado.quantidade_garcom_sugerida).toBe(3); // sugestão não muda
     expect(resultado.quantidade_garcom_usada).toBe(5); // valor usado é o editado
     expect(resultado.valor_garcom).toBe(200);
-    expect(resultado.valor_sugerido_total_evento).toBe(41 * 61 + 0 + 5 * 200);
+    expect(resultado.valor_sugerido_total_evento).toBeCloseTo(40.12 * 61 + 0 + 5 * 200, 2);
   });
 });
