@@ -86,35 +86,12 @@ Pesos:
 - Carne Vermelha: 2,0 (Origem: Dado Operacional)
 - Suíno: 1,0 (Origem: Dado Operacional)
 - Aves: 1,0 (Origem: Dado Operacional)
-- Ovino: 1,3 (Origem: Estimativa Heurística — sem calibração real ainda)
-- Peixe: 0,9 (Origem: Estimativa Heurística — sem calibração real ainda)
+- Ovino: 1,3 (Origem: Dado Operacional — confirmado com o sócio)
+- Peixe: 0,9 (Origem: Dado Operacional — confirmado com o sócio)
 
-A tabela Hierarquia_Proteina deve ter uma coluna Origem_Dado (Dado Operacional / Estimativa Heurística), para não misturar fato com palpite na mesma estrutura.
+A tabela Hierarquia_Proteina deve ter uma coluna Origem_Dado (Dado Operacional / Estimativa Heurística). Hoje todos os 5 valores são Dado Operacional — a distinção permanece no schema para uso em futuras calibrações que venham a ser só estimadas, não para os valores atuais.
 
 Contexto da calibração: Pedro validou com o sócio que um evento típico distribui 400g de proteína como 200g Carne Vermelha + 100g Suíno + 100g Aves (proporção 2:1:1), o que corrigiu os pesos anteriores (que colocavam Suíno acima de Aves, contrariando a prática real).
-
----
-
-# Cache de Hierarquia_Proteina / Macro_Categorias (motor de dimensionamento)
-
-Status: PENDENTE
-
-Decisão de arquitetura: quando a performance exigir, cachear em memória no
-servidor Node.js o conteúdo de `Hierarquia_Proteina` e `Macro_Categorias`
-(tabelas pequenas e de baixa frequência de edição), invalidando o cache sob
-demanda via `revalidateTag` do Next.js, acionado por um webhook do NocoDB
-disparado quando essas tabelas forem editadas.
-
-Motivo de não implementar agora: o motor de dimensionamento ainda não foi
-validado. Otimizar performance antes de confirmar que o cálculo está
-correto é prematuro. Enquanto essa decisão não é implementada, o motor lê
-essas tabelas direto da API do NocoDB a cada cálculo — aceitável hoje
-porque são tabelas de 5 e 9 linhas e o volume de uso atual não gera
-latência perceptível.
-
-Pendências para implementar: endpoint de recebimento do webhook (com
-autenticação), configuração do webhook na interface do NocoDB apontando
-para esse endpoint, e a própria lógica de cache/invalidação.
 
 ---
 
@@ -151,6 +128,10 @@ Ação decorrente:
 
 Isso torna obsoletas as pendências anteriores de capacidade das Kombis e de nomenclatura de veículo — ambas removidas junto com a funcionalidade.
 
+PENDÊNCIA DE EXECUÇÃO (encontrada em auditoria posterior): o campo Veiculo
+ainda existe no schema de Eventos e/ou no formulário — a decisão foi tomada
+mas a ação decorrente não foi 100% aplicada. Precisa ser removida.
+
 ---
 
 # Picking List (Fase 2 — Checklist de Carregamento)
@@ -165,19 +146,35 @@ Não inclui dimensão de veículo/carregamento físico — isso é responsabilid
 
 # Motor de custo
 
-Status: DOCUMENTADO / EM IMPLEMENTAÇÃO
+Status: IMPLEMENTADA / VALIDADA
 
 A fórmula oficial está documentada em:
 
 docs/BRIEFING.MD
 docs/REGRAS_NEGOCIO.md
 
-Validação com dados reais (referência para teste automatizado):
+Validação com dados reais (cobertos por teste automatizado):
 - Vinagrete: custo total ≈ R$16,96
 - Alcatra Grelhada: custo total ≈ R$64,93
 - Arroz Branco com Alho Crispy: custo total ≈ R$20,07
 
-Não afirmar que o motor já existe apenas porque a regra está documentada — confirmar contra código e teste real.
+---
+
+# Motor de dimensionamento de cardápio
+
+Status: IMPLEMENTADA / VALIDADA
+
+Endpoint: GET /api/orcamentos/:id/dimensionamento
+
+Validado com teste automatizado (Vitest) usando os 3 preparos reais e cenário
+de Hard Cap. Regra de fail-fast confirmada: preparo sem Peso_Atratividade
+resolvido (manual ou via Hierarquia_Proteina) é excluído do resultado, não
+quebra o cálculo.
+
+Cache/invalidação (Hierarquia_Proteina, Macro_Categorias): PENDENTE — ver
+seção "Cache de Hierarquia_Proteina / Macro_Categorias" abaixo. Implementação
+atual lê direto da API do NocoDB a cada cálculo, deliberadamente sem cache
+por ora (decisão registrada nesta conversa).
 
 ---
 
@@ -277,6 +274,105 @@ Então não altere nada por enquanto.
 Status: APROVADA
 
 Nenhuma mudança de schema ou regra de negócio é implementada sem debate prévio de consenso técnico (formato Contexto / Decisão / Consequência, estilo ADR) antes de ser registrada aqui como APROVADA.
+
+---
+
+# Cache de Hierarquia_Proteina / Macro_Categorias
+
+Status: PENDENTE
+
+Decisão tomada em discussão de consenso técnico (Claude + Gemini), nunca
+formalizada aqui até agora — gap de processo identificado e corrigido.
+
+Direção acordada: cache em memória no servidor Node.js, invalidado via
+revalidação sob demanda (revalidateTag do Next.js), acionado por webhook
+nativo do NocoDB configurado para chamar uma rota /api/revalidate protegida
+por um segredo compartilhado (header ou query param), nunca uma rota aberta
+sem autenticação.
+
+Implementação atual: sem cache, leitura direta a cada cálculo — aceitável
+para o volume de uso atual (tabelas de 5 e 9 linhas). Cache é otimização de
+performance futura, não bloqueante.
+
+---
+
+# Arquitetura Financeira do Orçamento
+
+Status: APROVADA (schema pendente de criação)
+
+Decisão tomada em discussão de consenso técnico (Claude + Gemini), nunca
+formalizada aqui até agora — gap de processo identificado e corrigido.
+
+Colunas novas em Orcamentos:
+- Valor_Base_Por_Pessoa (Decimal)
+- Desconto_Tipo (Single select: Percentual / Valor Fixo / Nenhum)
+- Desconto_Valor (Decimal)
+
+Nova tabela Orcamento_Itens_Adicionais:
+- Orcamento (Link → Orcamentos)
+- Descricao (texto)
+- Valor (Decimal)
+
+Fórmulas (ver docs/BRIEFING.MD seção 7 para a versão completa):
+
+Receita Projetada = (Valor_Base_Por_Pessoa × Num_Convidados)
+                     + Σ Orcamento_Itens_Adicionais.Valor
+                     − Desconto_Aplicado
+Custo Projetado = motor de custo, sobre Itens_Orcamento, sempre em tempo real
+Margem Projetada = Receita Projetada − Custo Projetado (nunca armazenada)
+
+Nenhuma rota destinada ao simulador público deve expor Custo Projetado nem
+qualquer dado de custo interno — ver seção "Contrato do Simulador de
+Orçamento" abaixo.
+
+---
+
+# Contrato do Simulador de Orçamento (payload público)
+
+Status: APROVADA
+
+Decisão tomada em discussão de consenso técnico (Claude + Gemini), nunca
+formalizada aqui até agora — gap de processo identificado e corrigido.
+
+O endpoint público do simulador retorna exclusivamente preço de venda e
+informação de cardápio — nunca custo interno, nunca informação logística
+operacional (ex: veículo, já removido do escopo).
+
+Formato de referência:
+
+{
+  "orcamento_id": number,
+  "num_convidados": number,
+  "valor_total_estimado": number,
+  "itens": [
+    {
+      "preparo_id": number,
+      "preparo_nome": string,
+      "header_exibicao": string,
+      "macro_categoria": string,
+      "porcao_por_pessoa": number,
+      "unidade": "g" | "ml" | "unidade",
+      "porcao_limitada_por_cap": boolean,
+      "volume_total_necessario": number
+    }
+  ],
+  "avisos": [string]
+}
+
+Regras de exibição no front-end:
+- header_exibicao é o ÚNICO agrupamento visual mostrado ao cliente.
+- macro_categoria é metadado auxiliar, não deve virar elemento de UI visível
+  (nunca uma barra de progresso de "quanto já foi usado do teto" — decisão
+  deliberada, ver justificativa de UX na conversa original: gera percepção
+  de "dieta"/racionamento e incentiva o cliente a inflar o pedido só para
+  "preencher a barra").
+- porcao_limitada_por_cap é exposto no JSON só para uso de debug interno do
+  front-end — nunca vira texto, ícone ou tooltip visível ao cliente final
+  (evita a percepção de "estão regulando minha comida").
+- Campos NUNCA incluídos neste payload: Peso_Atratividade, Origem_Dado,
+  Custo_Unitario, Subcategoria_Proteina, qualquer dado de custo interno.
+- O array "avisos" é para avisos de negócio (ex: mínimo de convidados não
+  atingido) — nunca avisos operacionais/logísticos internos.
 
 ---
 
