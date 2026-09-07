@@ -28,6 +28,7 @@ services:
       - "3001:3000"
     environment:
       DATABASE_URL: postgresql://anjos:anjos_eventos_2024@db:5432/anjos_eventos
+      NOCODB_API_TOKEN: ${NOCODB_API_TOKEN}
     depends_on:
       db:
         condition: service_healthy
