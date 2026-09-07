@@ -8,6 +8,13 @@ import {
   type StatusEvento,
 } from "@/lib/eventos";
 import { obterUsuarioAtual } from "@/lib/usuario-atual";
+import {
+  calcularTaxaDeslocamento,
+  sugerirQuantidadeCopeira,
+  sugerirQuantidadeAssador,
+  VALOR_COPEIRA,
+  VALOR_ASSADOR,
+} from "@/lib/precificacao-constantes";
 
 function paraTexto(valor: FormDataEntryValue | null): string | null {
   const texto = String(valor ?? "").trim();
@@ -25,6 +32,18 @@ function paraListaTexto(formData: FormData, nome: string): string | null {
 }
 
 function extrairDados(formData: FormData): DadosEvento {
+  // Num_Convidados pra fins de precificação (docs/DECISOES.md,
+  // "Precificação por Cardápio Selecionado...") = todo mundo que come,
+  // adultos + crianças de qualquer faixa.
+  const numConvidados =
+    (paraNumero(formData.get("qtdAdultos")) ?? 0) +
+    (paraNumero(formData.get("qtdCriancasAte5")) ?? 0) +
+    (paraNumero(formData.get("qtdCriancas5a10")) ?? 0);
+
+  const regiaoMetropolitanaCuritiba = formData.get("regiaoMetropolitanaCuritiba") === "true";
+  const quantidadeCopeiraSugerida = sugerirQuantidadeCopeira(numConvidados);
+  const quantidadeAssadorSugerida = sugerirQuantidadeAssador(numConvidados);
+
   return {
     empresaId: Number(formData.get("empresaId")),
     cliente: String(formData.get("cliente") ?? "").trim(),
@@ -50,10 +69,18 @@ function extrairDados(formData: FormData): DadosEvento {
     precoPessoa: paraNumero(formData.get("precoPessoa")),
     precoCriancaMeia: paraNumero(formData.get("precoCriancaMeia")),
     valorGarcom: paraNumero(formData.get("valorGarcom")),
-    taxaDeslocamento: paraNumero(formData.get("taxaDeslocamento")),
+    // Taxa_Deslocamento nunca é digitada — vem só do toggle de região
+    // metropolitana (docs/DECISOES.md).
+    taxaDeslocamento: calcularTaxaDeslocamento(regiaoMetropolitanaCuritiba),
     qtdGarcons: paraNumero(formData.get("qtdGarcons")),
-    qtdChurrasqueiros: paraNumero(formData.get("qtdChurrasqueiros")),
+    // qtd_churrasqueiros ("Assador" na doc) deixou de ser digitado — é
+    // sempre a sugestão calculada (CETO(Num_Convidados/100)).
+    qtdChurrasqueiros: quantidadeAssadorSugerida,
     qtdCopeiras: paraNumero(formData.get("qtdCopeiras")),
+    regiaoMetropolitanaCuritiba,
+    quantidadeCopeiraSugerida,
+    custoCopeiraTotal: quantidadeCopeiraSugerida * VALOR_COPEIRA,
+    custoAssadorTotal: quantidadeAssadorSugerida * VALOR_ASSADOR,
     prazoPagamento: paraTexto(formData.get("prazoPagamento")),
     chavePix: paraTexto(formData.get("chavePix")),
     caminhoContrato: paraTexto(formData.get("caminhoContrato")),

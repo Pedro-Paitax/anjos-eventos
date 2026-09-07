@@ -1,15 +1,17 @@
 import { distribuirPorcoes, type ItemResolvido } from "@/lib/dimensionamento-cardapio";
+import {
+  MARKUP_CARDAPIO,
+  VALOR_GARCOM_PADRAO,
+  VALOR_COPEIRA,
+  VALOR_ASSADOR,
+  CONVIDADOS_POR_GARCOM,
+  CONVIDADOS_POR_COPEIRA,
+  CONVIDADOS_POR_ASSADOR,
+  ceilDivisao,
+  calcularTaxaDeslocamento,
+} from "@/lib/precificacao-constantes";
 
-// Constantes de docs/DECISOES.md, seção "Precificação por Cardápio
-// Selecionado + Custo de Equipe Fixa".
-const MARKUP_CARDAPIO = 1.4;
-const TAXA_DESLOCAMENTO_METROPOLITANA = 250;
-const VALOR_GARCOM_PADRAO = 230;
-const VALOR_COPEIRA = 250;
-const VALOR_ASSADOR = 250;
-const CONVIDADOS_POR_GARCOM = 30;
-const CONVIDADOS_POR_COPEIRA = 50;
-const CONVIDADOS_POR_ASSADOR = 100;
+export { calcularTaxaDeslocamento };
 
 function arredondar(valor: number): number {
   return Math.round(Number(valor.toFixed(8)) * 100) / 100;
@@ -23,10 +25,6 @@ function arredondar(valor: number): number {
  */
 function arredondarParaCimaCentavos(valor: number): number {
   return Math.ceil(Number(valor.toFixed(8)) * 100) / 100;
-}
-
-function ceilDivisao(numerador: number, divisor: number): number {
-  return Math.ceil(numerador / divisor);
 }
 
 export type ItemCardapioPrecificacao = {
@@ -68,10 +66,6 @@ export type PrecificacaoResultado = {
   custo_assador_total: number;
   valor_sugerido_total_evento: number;
 };
-
-export function calcularTaxaDeslocamento(regiaoMetropolitanaCuritiba: boolean): number {
-  return regiaoMetropolitanaCuritiba ? TAXA_DESLOCAMENTO_METROPOLITANA : 0;
-}
 
 /**
  * Núcleo puro da precificação por cardápio selecionado (sem I/O). Reaproveita

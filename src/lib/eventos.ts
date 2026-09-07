@@ -34,6 +34,10 @@ export type Evento = {
   qtd_garcons: number | null;
   qtd_churrasqueiros: number | null;
   qtd_copeiras: number | null;
+  regiao_metropolitana_curitiba: boolean | null;
+  quantidade_copeira_sugerida: number | null;
+  custo_copeira_total: string | null;
+  custo_assador_total: string | null;
   prazo_pagamento: string | null;
   chave_pix: string | null;
   caminho_contrato: string | null;
@@ -71,6 +75,11 @@ export type DadosEvento = {
   qtdGarcons: number | null;
   qtdChurrasqueiros: number | null;
   qtdCopeiras: number | null;
+  /** Calculados no Server Action a partir de qtdAdultos+criancas — não vêm direto do usuário (docs/DECISOES.md, "Precificação por Cardápio..."). */
+  regiaoMetropolitanaCuritiba: boolean;
+  quantidadeCopeiraSugerida: number;
+  custoCopeiraTotal: number;
+  custoAssadorTotal: number;
   prazoPagamento: string | null;
   chavePix: string | null;
   caminhoContrato: string | null;
@@ -89,6 +98,8 @@ const SELECT_BASE = `
     e.cardapio_saladas, e.cardapio_bebidas, e.cardapio_sobremesa,
     e.preco_pessoa, e.preco_crianca_meia, e.valor_garcom, e.taxa_deslocamento,
     e.qtd_garcons, e.qtd_churrasqueiros, e.qtd_copeiras,
+    e.regiao_metropolitana_curitiba, e.quantidade_copeira_sugerida,
+    e.custo_copeira_total, e.custo_assador_total,
     e.prazo_pagamento, e.chave_pix, e.caminho_contrato,
     e.status, e.valor, e.observacoes
   FROM eventos e
@@ -139,6 +150,10 @@ const COLUNAS = [
   "qtd_garcons",
   "qtd_churrasqueiros",
   "qtd_copeiras",
+  "regiao_metropolitana_curitiba",
+  "quantidade_copeira_sugerida",
+  "custo_copeira_total",
+  "custo_assador_total",
   "prazo_pagamento",
   "chave_pix",
   "caminho_contrato",
@@ -177,6 +192,10 @@ function valoresNaOrdem(dados: DadosEvento): unknown[] {
     dados.qtdGarcons,
     dados.qtdChurrasqueiros,
     dados.qtdCopeiras,
+    dados.regiaoMetropolitanaCuritiba,
+    dados.quantidadeCopeiraSugerida,
+    dados.custoCopeiraTotal,
+    dados.custoAssadorTotal,
     dados.prazoPagamento,
     dados.chavePix,
     dados.caminhoContrato,

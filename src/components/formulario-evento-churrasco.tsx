@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Evento } from "@/lib/eventos";
 import type { Preparo, CategoriaCardapio } from "@/lib/cardapio";
 import {
@@ -10,6 +10,15 @@ import {
 } from "@/lib/formatacao";
 import { campoClasse, rotuloClasse, secaoTituloClasse } from "@/components/formulario-evento";
 import { SeletorCardapio } from "@/components/seletor-cardapio";
+import { calcularPrecificacaoAction } from "@/app/actions/precificacao";
+import {
+  calcularTaxaDeslocamento,
+  sugerirQuantidadeGarcom,
+  sugerirQuantidadeAssador,
+  VALOR_GARCOM_PADRAO,
+} from "@/lib/precificacao-constantes";
+
+const DEBOUNCE_MS = 600;
 
 type FormularioEventoChurrascoProps = {
   empresaId: number;
@@ -50,18 +59,61 @@ export function FormularioEventoChurrasco({
     valoresIniciais?.preco_crianca_meia?.toString() ?? ""
   );
   const [valorGarcom, setValorGarcom] = useState(
-    valoresIniciais?.valor_garcom?.toString() ?? ""
+    valoresIniciais?.valor_garcom?.toString() ?? String(VALOR_GARCOM_PADRAO)
   );
-  const [taxaDeslocamento, setTaxaDeslocamento] = useState(
-    valoresIniciais?.taxa_deslocamento?.toString() ?? ""
+  const [regiaoMetropolitana, setRegiaoMetropolitana] = useState(
+    valoresIniciais?.regiao_metropolitana_curitiba ?? false
   );
+  const [preparoIdsSelecionados, setPreparoIdsSelecionados] = useState<number[]>([]);
+
+  const numConvidados =
+    paraNumero(qtdAdultos) + paraNumero(qtdCriancasAte5) + paraNumero(qtdCriancas5a10);
+  const quantidadeGarcomSugerida = numConvidados > 0 ? sugerirQuantidadeGarcom(numConvidados) : 0;
+  const taxaDeslocamento = calcularTaxaDeslocamento(regiaoMetropolitana);
+
+  // Valor Sugerido por Pessoa/Criança vêm do cálculo do servidor (motor de
+  // dimensionamento + motor de custo, com debounce — docs/DECISOES.md,
+  // "Precificação por Cardápio..."). Custo_Cardapio, Copeira e Assador NUNCA
+  // aparecem aqui, são internos ao Motor de Margem.
+  const [calculandoPrecificacao, setCalculandoPrecificacao] = useState(false);
+  const [erroPrecificacao, setErroPrecificacao] = useState<string | null>(null);
+
+  const precificacaoAtiva = preparoIdsSelecionados.length > 0 && numConvidados > 0;
+
+  useEffect(() => {
+    if (!precificacaoAtiva) return;
+
+    const timer = setTimeout(() => {
+      setCalculandoPrecificacao(true);
+      setErroPrecificacao(null);
+      calcularPrecificacaoAction({
+        preparoIds: preparoIdsSelecionados,
+        numConvidados,
+        regiaoMetropolitanaCuritiba: regiaoMetropolitana,
+        quantidadeGarcom: paraNumero(qtdGarcons) || undefined,
+        valorGarcom: paraNumero(valorGarcom) || undefined,
+      })
+        .then((resposta) => {
+          if ("erro" in resposta) {
+            setErroPrecificacao(resposta.erro);
+            return;
+          }
+          setPrecoPessoa(String(resposta.resultado.valor_sugerido_por_pessoa));
+          setPrecoCriancaMeia(String(resposta.resultado.valor_sugerido_crianca));
+        })
+        .catch(() => setErroPrecificacao("Falha ao calcular o valor sugerido."))
+        .finally(() => setCalculandoPrecificacao(false));
+    }, DEBOUNCE_MS);
+
+    return () => clearTimeout(timer);
+  }, [precificacaoAtiva, preparoIdsSelecionados, numConvidados, regiaoMetropolitana, qtdGarcons, valorGarcom]);
 
   const valorSugerido =
     paraNumero(qtdAdultos) * paraNumero(precoPessoa) +
     (paraNumero(qtdCriancasAte5) + paraNumero(qtdCriancas5a10)) *
       paraNumero(precoCriancaMeia) +
     paraNumero(qtdGarcons) * paraNumero(valorGarcom) +
-    paraNumero(taxaDeslocamento);
+    taxaDeslocamento;
 
   const valorSugeridoFormatado = valorSugerido.toLocaleString("pt-BR", {
     style: "currency",
@@ -312,17 +364,45 @@ export function FormularioEventoChurrasco({
         <SeletorCardapio
           preparosPorCategoria={preparosPorCategoria}
           valoresIniciais={valoresIniciais}
+          onSelecaoIdsChange={setPreparoIdsSelecionados}
         />
+      </section>
+
+      {/* Região / deslocamento */}
+      <section className="flex flex-col gap-5">
+        <h3 className={secaoTituloClasse}>Deslocamento</h3>
+
+        <label className="flex items-center gap-2 text-sm text-paper">
+          <input
+            type="checkbox"
+            checked={regiaoMetropolitana}
+            onChange={(e) => setRegiaoMetropolitana(e.target.checked)}
+          />
+          Região Metropolitana de Curitiba?
+        </label>
+        <input type="hidden" name="regiaoMetropolitanaCuritiba" value={String(regiaoMetropolitana)} />
+        <p className="text-sm text-paper-dim">
+          Taxa de deslocamento:{" "}
+          {taxaDeslocamento.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+        </p>
       </section>
 
       {/* Valores */}
       <section className="flex flex-col gap-5">
         <h3 className={secaoTituloClasse}>Valores</h3>
+        <p className="text-sm text-paper-dim">
+          {calculandoPrecificacao
+            ? "Calculando valor sugerido a partir do cardápio…"
+            : "Preço por pessoa e preço criança meia vêm do custo real do cardápio selecionado (+ 40%) — pré-preenchidos, mas editáveis."}
+        </p>
+        {precificacaoAtiva && erroPrecificacao && (
+          <p className="text-sm text-ember">{erroPrecificacao}</p>
+        )}
 
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
           <div className="flex flex-col gap-1.5">
             <label htmlFor="precoPessoa" className={rotuloClasse}>
-              Preço por pessoa (R$)
+              Preço por pessoa (R$) — Valor Sugerido
             </label>
             <input
               id="precoPessoa"
@@ -367,28 +447,12 @@ export function FormularioEventoChurrasco({
               className={campoClasse}
             />
           </div>
-
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="taxaDeslocamento" className={rotuloClasse}>
-              Taxa de deslocamento (R$)
-            </label>
-            <input
-              id="taxaDeslocamento"
-              name="taxaDeslocamento"
-              type="number"
-              min={0}
-              step="0.01"
-              value={taxaDeslocamento}
-              onChange={(e) => setTaxaDeslocamento(e.target.value)}
-              className={campoClasse}
-            />
-          </div>
         </div>
 
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
           <div className="flex flex-col gap-1.5">
             <label htmlFor="valorSugerido" className={rotuloClasse}>
-              Valor sugerido (R$)
+              Valor Sugerido Total (R$)
             </label>
             <input
               id="valorSugerido"
@@ -396,7 +460,7 @@ export function FormularioEventoChurrasco({
               readOnly
               disabled
               value={valorSugeridoFormatado}
-              title="Calculado automaticamente a partir de convidados, garçons e taxa de deslocamento. Apenas referência."
+              title="Calculado automaticamente a partir de convidados, preço sugerido por pessoa, garçons e taxa de deslocamento. Apenas referência."
               className={`${campoClasse} cursor-not-allowed text-paper-dim`}
             />
           </div>
@@ -432,6 +496,7 @@ export function FormularioEventoChurrasco({
               name="qtdGarcons"
               type="number"
               min={0}
+              placeholder={numConvidados > 0 ? String(quantidadeGarcomSugerida) : ""}
               value={qtdGarcons}
               onChange={(e) => setQtdGarcons(e.target.value)}
               className={campoClasse}
@@ -439,15 +504,20 @@ export function FormularioEventoChurrasco({
           </div>
           <div className="flex flex-col gap-1.5">
             <label htmlFor="qtdChurrasqueiros" className={rotuloClasse}>
-              Quantidade de churrasqueiros
+              Quantidade de churrasqueiros (Assador)
             </label>
             <input
               id="qtdChurrasqueiros"
-              name="qtdChurrasqueiros"
-              type="number"
-              min={0}
-              defaultValue={valoresIniciais?.qtd_churrasqueiros ?? ""}
-              className={campoClasse}
+              type="text"
+              readOnly
+              disabled
+              value={
+                numConvidados > 0
+                  ? `${sugerirQuantidadeAssador(numConvidados)} (calculado — uso interno)`
+                  : "—"
+              }
+              title="Calculado automaticamente (1 a cada 100 convidados) — uso exclusivo no cálculo de Margem Real, não editável."
+              className={`${campoClasse} cursor-not-allowed text-paper-dim`}
             />
           </div>
           <div className="flex flex-col gap-1.5">

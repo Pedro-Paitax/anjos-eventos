@@ -233,6 +233,77 @@ async function resolverHeaderEMacroCategoria(
   return { headerExibicao: headerUi.Nome_Exibicao ?? "", macroCategoria };
 }
 
+/**
+ * Resolve peso, header e macro-categoria de uma lista de preparos — mesma
+ * lógica usada pelo motor de dimensionamento sobre Itens_Orcamento, mas
+ * reaproveitável por qualquer chamador que já tenha os preparo_id em mãos
+ * (ex.: seleção de cardápio direto num formulário, sem Orçamento
+ * persistido — ver src/lib/precificacao-cardapio.ts).
+ */
+export async function resolverItensPorPreparoIds(
+  preparoIds: number[],
+  token: string
+): Promise<{ itensResolvidos: ItemResolvido[]; itensExcluidos: ItemExcluido[] }> {
+  const itensExcluidos: ItemExcluido[] = [];
+  const itensResolvidos: ItemResolvido[] = [];
+
+  const pesosPadrao = await buscarPesosPadraoPorSubcategoria(token);
+
+  const preparos = await Promise.all(
+    preparoIds.map((id) => nocodbGet<PreparoRegistro>(`/tables/${TABELA_PREPAROS}/records/${id}`, token))
+  );
+  const preparoPorId = new Map(
+    preparos.filter((p): p is PreparoRegistro => p !== null).map((p) => [p.Id, p])
+  );
+
+  const headerEMacroPorPreparoId = new Map<number, HeaderEMacroCategoria | null>();
+  await Promise.all(
+    preparoIds.map(async (id) => {
+      headerEMacroPorPreparoId.set(id, await resolverHeaderEMacroCategoria(id, token));
+    })
+  );
+
+  for (const preparoId of preparoIds) {
+    const preparo = preparoPorId.get(preparoId);
+    if (!preparo) continue;
+
+    const pesoResolvido = resolverPesoItem(preparo, pesosPadrao);
+    if (!pesoResolvido) {
+      itensExcluidos.push({
+        preparo: preparo["Nome Do Preparo"],
+        motivo:
+          "Peso não resolvido: sem Peso_Atratividade definido e sem Subcategoria_Proteina (ou categoria diferente de Carnes).",
+      });
+      continue;
+    }
+
+    const headerEMacro = headerEMacroPorPreparoId.get(preparoId);
+    const macroCategoria = headerEMacro?.macroCategoria;
+    if (!macroCategoria || macroCategoria.Capacidade_Categoria == null || !macroCategoria.UOM) {
+      itensExcluidos.push({
+        preparo: preparo["Nome Do Preparo"],
+        motivo: "Macro-categoria não resolvida (preparo sem Header_UI vinculado ou Header_UI sem Macro_Categoria).",
+      });
+      continue;
+    }
+
+    itensResolvidos.push({
+      preparoId,
+      preparoNome: preparo["Nome Do Preparo"],
+      headerExibicao: headerEMacro.headerExibicao,
+      peso: pesoResolvido.peso,
+      origemPeso: pesoResolvido.origem,
+      porcaoMaximaIndividual: preparo.Porcao_Maxima_Individual,
+      macroCategoriaChave: macroCategoria.Id,
+      macroCategoriaNome: macroCategoria.Nome_Macro,
+      capacidadeTeto: macroCategoria.Capacidade_Categoria,
+      unidade: macroCategoria.UOM,
+    });
+  }
+
+  return { itensResolvidos, itensExcluidos };
+}
+
 export async function calcularDimensionamentoOrcamento(
   orcamentoId: number
 ): Promise<DimensionamentoResultado | DimensionamentoErro> {
@@ -267,12 +338,9 @@ export async function calcularDimensionamentoOrcamento(
     return { erro: "Orçamento está sem Num_Convidados válido cadastrado.", status: 422 };
   }
 
-  const itensExcluidos: ItemExcluido[] = [];
-  const itensResolvidos: ItemResolvido[] = [];
-
+  let itensResolvidos: ItemResolvido[];
+  let itensExcluidos: ItemExcluido[];
   try {
-    const pesosPadrao = await buscarPesosPadraoPorSubcategoria(token);
-
     const itensOrcamento = await Promise.all(
       itensLink.map((item) =>
         nocodbGet<ItemOrcamentoRegistro>(`/tables/${TABELA_ITENS_ORCAMENTO}/records/${item.Id}`, token)
@@ -287,59 +355,7 @@ export async function calcularDimensionamentoOrcamento(
       ),
     ];
 
-    const preparos = await Promise.all(
-      preparoIds.map((id) => nocodbGet<PreparoRegistro>(`/tables/${TABELA_PREPAROS}/records/${id}`, token))
-    );
-    const preparoPorId = new Map(
-      preparos.filter((p): p is PreparoRegistro => p !== null).map((p) => [p.Id, p])
-    );
-
-    const headerEMacroPorPreparoId = new Map<number, HeaderEMacroCategoria | null>();
-    await Promise.all(
-      preparoIds.map(async (id) => {
-        headerEMacroPorPreparoId.set(id, await resolverHeaderEMacroCategoria(id, token));
-      })
-    );
-
-    for (const item of itensOrcamento) {
-      const preparoId = item?.Preparo?.Id;
-      if (!preparoId) continue;
-      const preparo = preparoPorId.get(preparoId);
-      if (!preparo) continue;
-
-      const pesoResolvido = resolverPesoItem(preparo, pesosPadrao);
-      if (!pesoResolvido) {
-        itensExcluidos.push({
-          preparo: preparo["Nome Do Preparo"],
-          motivo:
-            "Peso não resolvido: sem Peso_Atratividade definido e sem Subcategoria_Proteina (ou categoria diferente de Carnes).",
-        });
-        continue;
-      }
-
-      const headerEMacro = headerEMacroPorPreparoId.get(preparoId);
-      const macroCategoria = headerEMacro?.macroCategoria;
-      if (!macroCategoria || macroCategoria.Capacidade_Categoria == null || !macroCategoria.UOM) {
-        itensExcluidos.push({
-          preparo: preparo["Nome Do Preparo"],
-          motivo: "Macro-categoria não resolvida (preparo sem Header_UI vinculado ou Header_UI sem Macro_Categoria).",
-        });
-        continue;
-      }
-
-      itensResolvidos.push({
-        preparoId,
-        preparoNome: preparo["Nome Do Preparo"],
-        headerExibicao: headerEMacro.headerExibicao,
-        peso: pesoResolvido.peso,
-        origemPeso: pesoResolvido.origem,
-        porcaoMaximaIndividual: preparo.Porcao_Maxima_Individual,
-        macroCategoriaChave: macroCategoria.Id,
-        macroCategoriaNome: macroCategoria.Nome_Macro,
-        capacidadeTeto: macroCategoria.Capacidade_Categoria,
-        unidade: macroCategoria.UOM,
-      });
-    }
+    ({ itensResolvidos, itensExcluidos } = await resolverItensPorPreparoIds(preparoIds, token));
   } catch (erro) {
     return { erro: `Falha ao consultar NocoDB: ${(erro as Error).message}`, status: 502 };
   }
