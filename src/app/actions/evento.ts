@@ -6,7 +6,6 @@ import {
   atualizarEvento,
   type DadosEvento,
   type StatusEvento,
-  type Veiculo,
 } from "@/lib/eventos";
 import { obterUsuarioAtual } from "@/lib/usuario-atual";
 
@@ -20,16 +19,46 @@ function paraNumero(valor: FormDataEntryValue | null): number | null {
   return texto === "" ? null : Number(texto);
 }
 
+function paraListaTexto(formData: FormData, nome: string): string | null {
+  const selecionados = formData.getAll(nome).map(String).filter(Boolean);
+  return selecionados.length === 0 ? null : selecionados.join(", ");
+}
+
 function extrairDados(formData: FormData): DadosEvento {
   return {
     empresaId: Number(formData.get("empresaId")),
     cliente: String(formData.get("cliente") ?? "").trim(),
+    contato: paraTexto(formData.get("contato")),
+    telefone: paraTexto(formData.get("telefone")),
+    enderecoEvento: paraTexto(formData.get("enderecoEvento")),
     dataEvento: String(formData.get("dataEvento") ?? ""),
     tipoEvento: paraTexto(formData.get("tipoEvento")),
-    numConvidados: paraNumero(formData.get("numConvidados")),
+    horaChegadaEquipe: paraTexto(formData.get("horaChegadaEquipe")),
+    horaAperitivo: paraTexto(formData.get("horaAperitivo")),
+    horaAlmoco: paraTexto(formData.get("horaAlmoco")),
+    horaEncerramento: paraTexto(formData.get("horaEncerramento")),
+    qtdAdultos: paraNumero(formData.get("qtdAdultos")),
+    qtdCriancasAte5: paraNumero(formData.get("qtdCriancasAte5")),
+    qtdCriancas5a10: paraNumero(formData.get("qtdCriancas5a10")),
+    qtdFornecedores: paraNumero(formData.get("qtdFornecedores")),
+    cardapioEntrada: paraListaTexto(formData, "cardapioEntrada"),
+    cardapioCarnes: paraListaTexto(formData, "cardapioCarnes"),
+    cardapioAcompanhamentos: paraListaTexto(formData, "cardapioAcompanhamentos"),
+    cardapioSaladas: paraListaTexto(formData, "cardapioSaladas"),
+    cardapioBebidas: paraListaTexto(formData, "cardapioBebidas"),
+    cardapioSobremesa: paraListaTexto(formData, "cardapioSobremesa"),
+    precoPessoa: paraNumero(formData.get("precoPessoa")),
+    precoCriancaMeia: paraNumero(formData.get("precoCriancaMeia")),
+    valorGarcom: paraNumero(formData.get("valorGarcom")),
+    taxaDeslocamento: paraNumero(formData.get("taxaDeslocamento")),
+    qtdGarcons: paraNumero(formData.get("qtdGarcons")),
+    qtdChurrasqueiros: paraNumero(formData.get("qtdChurrasqueiros")),
+    qtdCopeiras: paraNumero(formData.get("qtdCopeiras")),
+    prazoPagamento: paraTexto(formData.get("prazoPagamento")),
+    chavePix: paraTexto(formData.get("chavePix")),
+    caminhoContrato: paraTexto(formData.get("caminhoContrato")),
     status: String(formData.get("status")) as StatusEvento,
     valor: paraNumero(formData.get("valor")),
-    veiculo: paraTexto(formData.get("veiculo")) as Veiculo | null,
     observacoes: paraTexto(formData.get("observacoes")),
   };
 }
