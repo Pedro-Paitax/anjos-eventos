@@ -400,6 +400,54 @@ não seja estritamente necessário pro cliente montar o cardápio — ver
 
 ---
 
+# Precificação por Cardápio Selecionado + Custo de Equipe Fixa
+
+Status: APROVADA
+
+Valor Sugerido nasce do custo real do cardápio escolhido (via motor de
+dimensionamento + motor de custo), não mais de um preço fixo por pessoa
+pré-definido. Aplica-se em duas telas com a mesma lógica de cálculo, UI
+diferente: Criar Evento (Senhor Churrasco) e a página dedicada do
+Simulador de Cardápio.
+
+Fórmulas:
+
+Valor_Sugerido_Por_Pessoa = TETO(Custo_Cardapio_Por_Pessoa × 1,40)
+
+Valor_Sugerido_Total_Evento (o que o CLIENTE paga) =
+(Valor_Sugerido_Por_Pessoa × Num_Convidados) + Taxa_Deslocamento +
+(Quantidade_Garcom × Valor_Garcom)
+
+Taxa_Deslocamento = R$250 se toggle "Região Metropolitana de Curitiba?" =
+Sim, senão R$0 (toggle manual em Criar Evento e no Simulador, sem
+geolocalização automática).
+
+Criança paga meia sobre Valor_Sugerido_Por_Pessoa (não sobre o custo).
+
+Garçom: R$230/profissional, sugestão de 1 a cada 30 convidados
+(arredondado para cima), cobrado À PARTE do valor por pessoa. Campo de
+quantidade exibe essa sugestão como placeholder, editável.
+
+Copeira: R$250/profissional, 1 a cada 50 convidados (arredondado para
+cima). Assador: R$250/profissional, 1 a cada 100 convidados (arredondado
+para cima). Ambos NÃO são cobrados à parte do cliente — estão absorvidos
+pelo markup de 40% sobre o custo do cardápio. Ainda assim, devem ser
+rastreados obrigatoriamente (Quantidade_Copeira, Quantidade_Assador,
+Custo_Copeira_Total, Custo_Assador_Total) em Eventos_Detalhes_SC, para uso
+exclusivo no cálculo de Margem Real — nunca exibidos ou cobrados no Valor
+Sugerido apresentado ao cliente.
+
+Margem_Real_Evento (uso interno, nunca visível ao cliente) =
+Receita_Total − Custo_Cardapio_Total − Custo_Garcom − Custo_Copeira_Total
+− Custo_Assador_Total
+
+Motivo da exigência de rastrear Copeira/Assador mesmo não sendo cobrados à
+parte: sem isso, a Margem Real calculada pelo sistema fica estruturalmente
+inflada — dois custos de mão de obra reais nunca apareceriam em lugar
+nenhum do cálculo, mesmo estando presentes na operação de verdade.
+
+---
+
 # Regra para agentes
 
 Antes de implementar uma funcionalidade:
