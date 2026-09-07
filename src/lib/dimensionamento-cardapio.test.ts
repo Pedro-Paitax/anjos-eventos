@@ -11,6 +11,7 @@ const NUM_CONVIDADOS = 50;
 const vinagrete: ItemResolvido = {
   preparoId: 2, // real
   preparoNome: "Vinagrete",
+  headerExibicao: "Acompanhamentos Rústicos", // real
   peso: 1, // fictício
   origemPeso: "Peso_Atratividade (fictício - teste)",
   porcaoMaximaIndividual: null,
@@ -23,6 +24,7 @@ const vinagrete: ItemResolvido = {
 const arrozComHardCap: ItemResolvido = {
   preparoId: 13, // real
   preparoNome: "Arroz Branco com Alho Crispy",
+  headerExibicao: "Arroz e Risotos", // real
   peso: 3, // fictício
   origemPeso: "Peso_Atratividade (fictício - teste)",
   porcaoMaximaIndividual: 80, // fictício — força o Hard Cap (calculado seria 112.5g)
@@ -35,6 +37,7 @@ const arrozComHardCap: ItemResolvido = {
 const alcatra: ItemResolvido = {
   preparoId: 12, // real
   preparoNome: "Alcatra Grelhada",
+  headerExibicao: "Carnes Vermelhas", // real
   peso: 2.0, // real (Hierarquia_Proteina, Carne Vermelha)
   origemPeso: "Hierarquia_Proteina (Carne Vermelha)",
   porcaoMaximaIndividual: null,
@@ -68,11 +71,13 @@ describe("distribuirPorcoes", () => {
     expect(arroz?.porcao_calculada).toBe(112.5);
     expect(arroz?.porcao_final).toBe(80);
     expect(arroz?.volume_necessario_total).toBe(80 * NUM_CONVIDADOS);
+    expect(arroz?.porcao_limitada_por_cap).toBe(true);
 
     // limitação conhecida e aceita (REGRAS_NEGOCIO.md seção 8): o excedente
     // do Hard Cap NÃO é realocado — Vinagrete continua com a mesma porção
     // que teria se o Arroz não tivesse Hard Cap nenhum.
     expect(vinagreteResultado?.porcao_final).toBe(37.5);
+    expect(vinagreteResultado?.porcao_limitada_por_cap).toBe(false);
   });
 
   it("um item sozinho na macro-categoria consome 100% do teto, independentemente do peso", () => {
@@ -84,6 +89,7 @@ describe("distribuirPorcoes", () => {
     expect(item?.porcao_calculada).toBe(400);
     expect(item?.porcao_final).toBe(400);
     expect(item?.volume_necessario_total).toBe(400 * NUM_CONVIDADOS);
+    expect(item?.header_exibicao).toBe("Carnes Vermelhas");
   });
 
   it("agrupa itens de macro-categorias diferentes de forma independente", () => {

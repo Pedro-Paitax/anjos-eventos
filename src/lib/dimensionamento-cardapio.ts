@@ -71,11 +71,13 @@ type MacroCategoriaRegistro = {
 export type ItemDimensionado = {
   preparo_id: number;
   preparo: string;
+  header_exibicao: string;
   peso_item: number;
   origem_peso: string;
   porcao_calculada: number;
   porcao_maxima_individual: number | null;
   porcao_final: number;
+  porcao_limitada_por_cap: boolean;
   volume_necessario_total: number;
 };
 
@@ -107,6 +109,7 @@ function arredondar(valor: number): number {
 export type ItemResolvido = {
   preparoId: number;
   preparoNome: string;
+  headerExibicao: string;
   peso: number;
   origemPeso: string;
   porcaoMaximaIndividual: number | null;
@@ -157,11 +160,13 @@ export function distribuirPorcoes(
       return {
         preparo_id: item.preparoId,
         preparo: item.preparoNome,
+        header_exibicao: item.headerExibicao,
         peso_item: item.peso,
         origem_peso: item.origemPeso,
         porcao_calculada: porcaoCalculada,
         porcao_maxima_individual: item.porcaoMaximaIndividual,
         porcao_final: arredondar(porcaoFinal),
+        porcao_limitada_por_cap: porcaoFinal < porcaoCalculada,
         volume_necessario_total: arredondar(porcaoFinal * numConvidados),
       };
     });
@@ -196,28 +201,36 @@ function resolverPesoItem(
   return null;
 }
 
-async function resolverMacroCategoria(
+type HeaderEMacroCategoria = {
+  headerExibicao: string;
+  macroCategoria: MacroCategoriaRegistro;
+};
+
+async function resolverHeaderEMacroCategoria(
   preparoId: number,
   token: string
-): Promise<MacroCategoriaRegistro | null> {
+): Promise<HeaderEMacroCategoria | null> {
   const headersUiResposta = await nocodbGet<RespostaLink<HeaderUiLinkRegistro>>(
     `/tables/${TABELA_PREPAROS}/links/${CAMPO_LINK_PREPARO_HEADERS_UI}/records/${preparoId}?limit=10`,
     token
   );
-  const headerUiId = primeiroDoLink(headersUiResposta)?.Id;
-  if (!headerUiId) return null;
+  const headerUi = primeiroDoLink(headersUiResposta);
+  if (!headerUi?.Id) return null;
 
   const macroCategoriasResposta = await nocodbGet<RespostaLink<MacroCategoriaRegistro>>(
-    `/tables/${TABELA_HEADERS_UI}/links/${CAMPO_LINK_HEADER_UI_MACRO}/records/${headerUiId}?limit=10`,
+    `/tables/${TABELA_HEADERS_UI}/links/${CAMPO_LINK_HEADER_UI_MACRO}/records/${headerUi.Id}?limit=10`,
     token
   );
   const macroCategoriaId = primeiroDoLink(macroCategoriasResposta)?.Id;
   if (!macroCategoriaId) return null;
 
-  return nocodbGet<MacroCategoriaRegistro>(
+  const macroCategoria = await nocodbGet<MacroCategoriaRegistro>(
     `/tables/${TABELA_MACRO_CATEGORIAS}/records/${macroCategoriaId}`,
     token
   );
+  if (!macroCategoria) return null;
+
+  return { headerExibicao: headerUi.Nome_Exibicao ?? "", macroCategoria };
 }
 
 export async function calcularDimensionamentoOrcamento(
@@ -281,10 +294,10 @@ export async function calcularDimensionamentoOrcamento(
       preparos.filter((p): p is PreparoRegistro => p !== null).map((p) => [p.Id, p])
     );
 
-    const macroCategoriaPorPreparoId = new Map<number, MacroCategoriaRegistro | null>();
+    const headerEMacroPorPreparoId = new Map<number, HeaderEMacroCategoria | null>();
     await Promise.all(
       preparoIds.map(async (id) => {
-        macroCategoriaPorPreparoId.set(id, await resolverMacroCategoria(id, token));
+        headerEMacroPorPreparoId.set(id, await resolverHeaderEMacroCategoria(id, token));
       })
     );
 
@@ -304,7 +317,8 @@ export async function calcularDimensionamentoOrcamento(
         continue;
       }
 
-      const macroCategoria = macroCategoriaPorPreparoId.get(preparoId);
+      const headerEMacro = headerEMacroPorPreparoId.get(preparoId);
+      const macroCategoria = headerEMacro?.macroCategoria;
       if (!macroCategoria || macroCategoria.Capacidade_Categoria == null || !macroCategoria.UOM) {
         itensExcluidos.push({
           preparo: preparo["Nome Do Preparo"],
@@ -316,6 +330,7 @@ export async function calcularDimensionamentoOrcamento(
       itensResolvidos.push({
         preparoId,
         preparoNome: preparo["Nome Do Preparo"],
+        headerExibicao: headerEMacro.headerExibicao,
         peso: pesoResolvido.peso,
         origemPeso: pesoResolvido.origem,
         porcaoMaximaIndividual: preparo.Porcao_Maxima_Individual,
