@@ -1,10 +1,11 @@
 import { notFound, redirect } from "next/navigation";
 import { obterUsuarioAtual } from "@/lib/usuario-atual";
-import { listarEmpresas } from "@/lib/empresas";
 import { obterEvento } from "@/lib/eventos";
+import { listarPreparosPorCategoria } from "@/lib/preparos";
 import { atualizarEventoAction } from "@/app/actions/evento";
 import { CabecalhoPagina } from "@/components/cabecalho-pagina";
-import { FormularioEvento } from "@/components/formulario-evento";
+import { FormularioEventoChurrasco } from "@/components/formulario-evento-churrasco";
+import { FormularioEventoGenerico } from "@/components/formulario-evento-generico";
 
 type PaginaEventoProps = {
   params: Promise<{ id: string }>;
@@ -22,10 +23,7 @@ export default async function EventoPage({ params }: PaginaEventoProps) {
     notFound();
   }
 
-  const [empresas, evento] = await Promise.all([
-    listarEmpresas(),
-    obterEvento(idNumero),
-  ]);
+  const evento = await obterEvento(idNumero);
 
   if (!evento) {
     notFound();
@@ -43,12 +41,22 @@ export default async function EventoPage({ params }: PaginaEventoProps) {
         />
 
         <div className="rounded-[2px] bg-ink-soft/60 p-6 shadow-[0_20px_40px_-24px_rgba(0,0,0,0.6)]">
-          <FormularioEvento
-            empresas={empresas}
-            valoresIniciais={evento}
-            action={atualizarComId}
-            rotuloEnvio="Salvar alterações"
-          />
+          {evento.empresa_nome === "Buffet Senhor Churrasco" ? (
+            <FormularioEventoChurrasco
+              empresaId={evento.empresa_id}
+              valoresIniciais={evento}
+              preparosPorCategoria={await listarPreparosPorCategoria()}
+              action={atualizarComId}
+              rotuloEnvio="Salvar alterações"
+            />
+          ) : (
+            <FormularioEventoGenerico
+              empresaId={evento.empresa_id}
+              valoresIniciais={evento}
+              action={atualizarComId}
+              rotuloEnvio="Salvar alterações"
+            />
+          )}
         </div>
       </div>
     </main>
