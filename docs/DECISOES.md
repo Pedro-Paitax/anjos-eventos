@@ -219,13 +219,69 @@ Motivo: sem isso, colunas de desconto ficam sempre vazias e a análise futura de
 
 # Exclusão de Orçamentos
 
-Status: PENDENTE (parcialmente decidido)
+Status: PENDENTE (parcialmente decidido — investigação técnica do cascade
+delete concluída, decisão de negócio sobre aplicar ou não a constraint via
+SQL direto ainda em aberto)
 
 Fluxo normal do produto: exclusão de orçamento é sempre SOFT DELETE (Status = Recusado). Preserva histórico de simulações para análise futura. Hard delete não deve existir como opção normal de uso.
 
 Ferramenta de manutenção (uso raro, ex: LGPD, limpeza de teste): hard delete físico deve usar integridade referencial no nível do banco (ON DELETE CASCADE), nunca deleção sequencial via API sem transação (risco de corromper dados em caso de falha de rede no meio do processo).
 
-PENDENTE: verificar se o NocoDB expõe toggle nativo de cascade delete na configuração do campo Link to Another Record. Se sim, usar essa opção. Se não, aplicar CASCADE via SQL direto no Postgres é aceitável, mas deve ser registrado como RISCO NÍVEL 1: qualquer edição futura da relação pela interface do NocoDB exige revalidação manual dessa constraint, pois o NocoDB pode recriar a estrutura interna e descartar a regra silenciosamente.
+## Investigação: cascade delete nativo do NocoDB (respondida, nada aplicado)
+
+Pergunta original: o NocoDB expõe um toggle nativo de cascade delete na
+configuração do campo "Link to Another Record"? Investigação só de
+leitura (API do NocoDB + documentação pública oficial + issues do
+GitHub), nenhuma mudança aplicada na base viva.
+
+**Resposta: não, para bases internas do NocoDB (o nosso caso) não existe
+toggle de cascade delete, nem na UI nem via API — e nem poderia existir da
+forma pedida, porque não há constraint de FK de verdade por baixo pra
+configurar.**
+
+Achados:
+
+- Nos metadados de coluna de um Link (`GET /api/v2/meta/tables/.../columns`),
+  o `colOptions` de fato tem campos `ur` (update rule) e `dr` (delete
+  rule) — nomenclatura padrão de FK de SQL. Em todo Link criado nesta
+  sessão (`Cardapio_Modelo_Itens.Cardapio_Modelo`,
+  `Cardapio_Modelo_Itens.Preparo`, e os de `Orcamento_Itens_Adicionais`
+  numa sessão anterior), ambos vêm sempre `"NO ACTION"` — nunca configurado
+  para outra coisa, e não achei nenhum endpoint documentado nem opção de
+  UI (docs oficiais do NocoDB, `docs.nocodb.com` e `nocodb.com/docs`) que
+  permita mudar esse valor pra `CASCADE` numa base interna.
+- A documentação oficial de "Link to Another Record"/"Links" (product
+  docs do NocoDB) não menciona nenhuma opção de comportamento de exclusão
+  — só cobre criação do link, seleção de registro e valor de exibição.
+- O achado mais decisivo veio de uma issue do próprio repositório do
+  NocoDB no GitHub (nocodb/nocodb#11437, "Missing Foreign Key on bases
+  within nocodb"): pra bases internas do NocoDB (exatamente o nosso caso —
+  Senhor_Churrasco_DB não é uma conexão a um banco externo pré-existente),
+  o NocoDB **não cria uma constraint de FK de verdade no Postgres** por
+  trás de um Link — a relação só existe na camada de aplicação do NocoDB.
+  Um mantenedor confirma: "on the database the foreign key reference is
+  not set but on Noco you can see the relation as correctly set". Ou
+  seja, não existe FK real pra anexar um `ON DELETE CASCADE`.
+- O termo "cascade on delete" que aparece em outras issues do NocoDB
+  (ex.: nocodb/nocodb#9583) se refere a um cenário diferente: quando o
+  NocoDB se conecta a um banco EXTERNO que já tem suas próprias
+  constraints de FK com `ON DELETE CASCADE` definidas de antemão, o
+  NocoDB reflete/lê esse comportamento existente — não é uma opção que o
+  usuário liga/desliga dentro do NocoDB pra uma base interna seguindo
+  isso.
+
+Conclusão prática pra "Exclusão de Orçamentos": como não há alternativa
+nativa, a única forma de ter cascade delete real continua sendo aplicar a
+constraint diretamente no Postgres via SQL (bypassando o NocoDB), com o
+RISCO NÍVEL 1 já registrado abaixo mantido integralmente — o NocoDB pode
+recriar a estrutura da coluna e descartar essa constraint silenciosamente
+se a relação for editada pela UI dele depois. Isso é decisão de negócio
+(vale o risco?) que ainda não foi tomada — não decidi nada aqui, só
+respondi a pergunta técnica levantada.
+
+Fontes consultadas: docs.nocodb.com/0.109.7/setup-and-usages/link-to-another-record/,
+nocodb.com/docs/product/tables/fields/field-types/links-based/link-to-another-record,
+github.com/nocodb/nocodb/issues/11437, github.com/nocodb/nocodb/issues/9583.
 
 ---
 
