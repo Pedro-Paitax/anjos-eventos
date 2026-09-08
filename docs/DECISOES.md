@@ -502,23 +502,60 @@ Status: APROVADA
 
 Valor Sugerido nasce do custo real do cardápio escolhido (via motor de
 dimensionamento + motor de custo), não mais de um preço fixo por pessoa
-pré-definido. Aplica-se em duas telas com a mesma lógica de cálculo, UI
-diferente: Criar Evento (Senhor Churrasco) e a página dedicada do
-Simulador de Cardápio.
+pré-definido. Aplica-se em duas telas com a mesma lógica de cálculo pra
+Valor_Sugerido_Por_Pessoa/Criança, mas com fórmulas DIFERENTES pro Valor
+Sugerido Total — ver "Valor_Sugerido_Total_Evento diverge por tela"
+abaixo. Decisão do Pedro, 2026-09-08.
 
 Fórmulas:
 
 Valor_Sugerido_Por_Pessoa = TETO(Custo_Cardapio_Por_Pessoa × 1,40)
 
-Valor_Sugerido_Total_Evento (o que o CLIENTE paga) =
-(Valor_Sugerido_Por_Pessoa × Num_Convidados) + Taxa_Deslocamento +
-(Quantidade_Garcom × Valor_Garcom)
+Criança paga meia sobre Valor_Sugerido_Por_Pessoa (não sobre o custo) —
+esse valor de referência (Valor_Sugerido_Crianca) é calculado e exibido
+nas duas telas, mas só é efetivamente usado no Total em uma delas (ver
+abaixo).
 
 Taxa_Deslocamento = R$250 se toggle "Região Metropolitana de Curitiba?" =
 Sim, senão R$0 (toggle manual em Criar Evento e no Simulador, sem
 geolocalização automática).
 
-Criança paga meia sobre Valor_Sugerido_Por_Pessoa (não sobre o custo).
+## Valor_Sugerido_Total_Evento diverge por tela — NÃO UNIFICAR
+
+As duas telas usam funções puras DIFERENTES pra calcular o Total, de
+propósito — nunca "corrija" uma achando que deveria ser igual à outra:
+
+- **Simulador de Cardápio isolado** (`/simulador-cardapio`) — só tem
+  "Número de convidados" total, sem distinguir adulto/criança. Usa
+  `calcularPrecificacaoCardapio` (`src/lib/precificacao-cardapio.ts`):
+  `Valor_Sugerido_Total_Evento = (Valor_Sugerido_Por_Pessoa × Num_Convidados)
+  + Taxa_Deslocamento + (Quantidade_Garcom × Valor_Garcom)` — preço cheio
+  para todos os convidados, criança incluída. Comportamento intencional,
+  não é bug: essa tela não coleta a faixa etária, então não tem como
+  aplicar o desconto.
+- **Criar Evento** (Senhor Churrasco) — tem Qtd_Adultos, Qtd_Criancas_Ate_5
+  e Qtd_Criancas_5_a_10 separados. Usa `calcularPrecificacaoParaEvento`
+  (mesmo arquivo, chama `calcularPrecificacaoCardapio` por dentro pra tudo
+  que é comum, e recalcula só o Total):
+  `Valor_Sugerido_Total_Evento = (Adultos × Valor_Sugerido_Por_Pessoa) +
+  ((Criancas_Ate_5 + Criancas_5_a_10) × Valor_Sugerido_Crianca) +
+  Taxa_Deslocamento + (Quantidade_Garcom × Valor_Garcom)` — aplica a
+  meia-entrada de fato.
+
+Cadeia de chamada de cada uma (Server Action → I/O → núcleo puro), pra
+achar rápido se for mexer:
+- Simulador: `calcularPrecificacaoAction` → `calcularPrecificacaoParaPreparos`
+  → `calcularPrecificacaoCardapio`.
+- Criar Evento: `calcularPrecificacaoEventoAction` →
+  `calcularPrecificacaoEventoParaPreparos` → `calcularPrecificacaoParaEvento`.
+
+Antes desta decisão, o Criar Evento tinha uma DUPLICAÇÃO: o valor
+"oficial" vinha de `calcularPrecificacaoCardapio` (sem desconto de
+criança, igual ao Simulador), mas a tela mostrava um preview calculado
+separadamente no client que aplicava o desconto — os dois nunca batiam.
+Eliminado: agora o único cálculo do Total pro Criar Evento é o retorno de
+`calcularPrecificacaoEventoAction`, exibido direto, sem recomputar nada no
+client.
 
 Garçom: R$230/profissional, sugestão de 1 a cada 30 convidados
 (arredondado para cima), cobrado À PARTE do valor por pessoa. Campo de

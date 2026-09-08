@@ -14,7 +14,7 @@ aberto, com prioridade.
   de "Contratos e confirmação") foi escolha minha, não especificada.
   Arquivo: `src/app/page.tsx`.
 
-### PRECISA DE DECISÃO DO PEDRO (prioridade alta)
+### RESOLVIDO — decisão do Pedro em 2026-09-08
 
 **Inconsistência no desconto de criança no Valor Sugerido Total** —
 encontrada ao construir a página do Simulador de Cardápio (item 2 desta
@@ -61,8 +61,15 @@ Etapa 4). Não decidi nada sozinho, só documentei e segui:
   preview client-side do Criar Evento que está errado e deveria ser
   removido/trocado pelo valor do motor).
 
-Não alterei nenhum dos dois lados até essa decisão — cada um continua
-fazendo o que já fazia antes desta sessão.
+**Decisão do Pedro**: o desconto de meia-entrada de criança se aplica
+SOMENTE no fluxo de Criar Evento — o Simulador de Cardápio isolado
+continua sem distinção de idade, por design, e não deve ser "corrigido"
+numa sessão futura. Implementado via função separada
+`calcularPrecificacaoParaEvento` (em vez de parâmetro opcional na função
+existente), pra não haver risco de o Simulador herdar o comportamento por
+engano. Detalhes completos da divergência entre as duas telas registrados
+em docs/DECISOES.md, seção "Precificação por Cardápio Selecionado...",
+subseção "Valor_Sugerido_Total_Evento diverge por tela — NÃO UNIFICAR".
 
 ### Resolvido e executado
 

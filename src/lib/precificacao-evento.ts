@@ -4,6 +4,8 @@ import { resolverItensPorPreparoIds } from "@/lib/dimensionamento-cardapio";
 import { calcularCustoPreparo } from "@/lib/custo-preparo";
 import {
   calcularPrecificacaoCardapio,
+  calcularPrecificacaoParaEvento,
+  type DistribuicaoConvidados,
   type ItemCardapioPrecificacao,
   type OpcoesPrecificacao,
   type PrecificacaoResultado,
@@ -18,26 +20,19 @@ export type PrecificacaoEventoResultado = {
 };
 
 /**
- * Orquestra o cálculo de precificação pra uma seleção de cardápio ad-hoc
- * (sem Orçamento persistido) — usado pelo formulário de Criar Evento
- * (Senhor Churrasco) e pela página do Simulador de Cardápio. Busca peso/
- * macro-categoria (motor de dimensionamento) e custo (motor de custo) de
- * cada preparo, depois delega a matemática pra calcularPrecificacaoCardapio
- * (núcleo puro, já testado).
+ * Resolve peso/macro-categoria (motor de dimensionamento) e custo (motor de
+ * custo) de uma seleção de preparo_id ad-hoc — parte 100% compartilhada
+ * entre calcularPrecificacaoParaPreparos (Simulador de Cardápio) e
+ * calcularPrecificacaoEventoParaPreparos (Criar Evento). Nenhuma das duas
+ * altera esta resolução; só divergem na fórmula final aplicada depois.
  */
-export async function calcularPrecificacaoParaPreparos(
+async function resolverItensParaPrecificacao(
   preparoIds: number[],
-  opcoes: OpcoesPrecificacao
-): Promise<PrecificacaoEventoResultado | PrecificacaoEventoErro> {
-  if (preparoIds.length === 0) {
-    return { erro: "Selecione ao menos um item do cardápio.", status: 422 };
-  }
-  if (!opcoes.numConvidados || opcoes.numConvidados <= 0) {
-    return { erro: "Informe a quantidade de convidados.", status: 422 };
-  }
-
-  const token = exigirToken();
-
+  token: string
+): Promise<
+  | { itensParaPrecificacao: ItemCardapioPrecificacao[]; itensExcluidos: { preparo: string; motivo: string }[] }
+  | PrecificacaoEventoErro
+> {
   const { itensResolvidos, itensExcluidos } = await resolverItensPorPreparoIds(preparoIds, token);
 
   const custosPorPreparoId = new Map<number, { custoTotalPreparo: number; rendimento: number }>();
@@ -84,7 +79,60 @@ export async function calcularPrecificacaoParaPreparos(
     };
   }
 
-  const resultado = calcularPrecificacaoCardapio(itensParaPrecificacao, opcoes);
+  return { itensParaPrecificacao, itensExcluidos: [...itensExcluidos, ...semCusto] };
+}
 
-  return { resultado, itensExcluidos: [...itensExcluidos, ...semCusto] };
+/**
+ * Orquestra o cálculo de precificação pra uma seleção de cardápio ad-hoc
+ * (sem Orçamento persistido) — usado EXCLUSIVAMENTE pela página do
+ * Simulador de Cardápio (número de convidados total, sem faixa etária).
+ * Comportamento e assinatura inalterados desde antes da extração do
+ * helper acima — só delega pra calcularPrecificacaoCardapio (núcleo puro,
+ * já testado), igual sempre fez.
+ */
+export async function calcularPrecificacaoParaPreparos(
+  preparoIds: number[],
+  opcoes: OpcoesPrecificacao
+): Promise<PrecificacaoEventoResultado | PrecificacaoEventoErro> {
+  if (preparoIds.length === 0) {
+    return { erro: "Selecione ao menos um item do cardápio.", status: 422 };
+  }
+  if (!opcoes.numConvidados || opcoes.numConvidados <= 0) {
+    return { erro: "Informe a quantidade de convidados.", status: 422 };
+  }
+
+  const token = exigirToken();
+  const resolvido = await resolverItensParaPrecificacao(preparoIds, token);
+  if ("erro" in resolvido) return resolvido;
+
+  const resultado = calcularPrecificacaoCardapio(resolvido.itensParaPrecificacao, opcoes);
+
+  return { resultado, itensExcluidos: resolvido.itensExcluidos };
+}
+
+/**
+ * Variante EXCLUSIVA do fluxo de Criar Evento (Senhor Churrasco) — mesma
+ * resolução de itens que calcularPrecificacaoParaPreparos, mas delega pra
+ * calcularPrecificacaoParaEvento (aplica meia-entrada de criança no Valor
+ * Sugerido Total). Ver docs/DECISOES.md, decisão do Pedro de 2026-09-08.
+ */
+export async function calcularPrecificacaoEventoParaPreparos(
+  preparoIds: number[],
+  opcoes: OpcoesPrecificacao,
+  distribuicao: DistribuicaoConvidados
+): Promise<PrecificacaoEventoResultado | PrecificacaoEventoErro> {
+  if (preparoIds.length === 0) {
+    return { erro: "Selecione ao menos um item do cardápio.", status: 422 };
+  }
+  if (!opcoes.numConvidados || opcoes.numConvidados <= 0) {
+    return { erro: "Informe a quantidade de convidados.", status: 422 };
+  }
+
+  const token = exigirToken();
+  const resolvido = await resolverItensParaPrecificacao(preparoIds, token);
+  if ("erro" in resolvido) return resolvido;
+
+  const resultado = calcularPrecificacaoParaEvento(resolvido.itensParaPrecificacao, opcoes, distribuicao);
+
+  return { resultado, itensExcluidos: resolvido.itensExcluidos };
 }

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   calcularPrecificacaoCardapio,
+  calcularPrecificacaoParaEvento,
   calcularTaxaDeslocamento,
   type ItemCardapioPrecificacao,
 } from "@/lib/precificacao-cardapio";
@@ -149,5 +150,55 @@ describe("calcularPrecificacaoCardapio", () => {
     expect(resultado.quantidade_garcom_usada).toBe(5); // valor usado é o editado
     expect(resultado.valor_garcom).toBe(200);
     expect(resultado.valor_sugerido_total_evento).toBeCloseTo(40.12 * 61 + 0 + 5 * 200, 2);
+  });
+});
+
+// calcularPrecificacaoParaEvento é EXCLUSIVA do fluxo de Criar Evento
+// (decisão do Pedro, 2026-09-08, docs/DECISOES.md) — aplica meia-entrada
+// de criança no Total. calcularPrecificacaoCardapio (acima) continua
+// intacta e sem esse desconto, usada sozinha pelo Simulador de Cardápio.
+describe("calcularPrecificacaoParaEvento", () => {
+  it("com todos os convidados como adultos, bate exatamente com calcularPrecificacaoCardapio (caso de fronteira)", () => {
+    const opcoes = { numConvidados: NUM_CONVIDADOS, regiaoMetropolitanaCuritiba: false };
+
+    const resultadoBase = calcularPrecificacaoCardapio(CARDAPIO, opcoes);
+    const resultadoEvento = calcularPrecificacaoParaEvento(CARDAPIO, opcoes, {
+      adultos: NUM_CONVIDADOS,
+      criancasAte5: 0,
+      criancas5a10: 0,
+    });
+
+    expect(resultadoEvento.valor_sugerido_total_evento).toBe(
+      resultadoBase.valor_sugerido_total_evento
+    );
+    // Todo o resto do resultado (por pessoa, criança, garçom/copeira/assador,
+    // taxa) é idêntico — só o Total é recalculado.
+    expect(resultadoEvento.valor_sugerido_por_pessoa).toBe(resultadoBase.valor_sugerido_por_pessoa);
+    expect(resultadoEvento.valor_sugerido_crianca).toBe(resultadoBase.valor_sugerido_crianca);
+  });
+
+  it("com convidados mistos, aplica meia-entrada de criança e diverge de calcularPrecificacaoCardapio", () => {
+    const opcoes = { numConvidados: NUM_CONVIDADOS, regiaoMetropolitanaCuritiba: false };
+
+    // 50 adultos + 6 crianças até 5 + 5 crianças de 5 a 10 = 61 (mesmo
+    // NUM_CONVIDADOS usado pro dimensionamento/custo do cardápio).
+    const resultadoEvento = calcularPrecificacaoParaEvento(CARDAPIO, opcoes, {
+      adultos: 50,
+      criancasAte5: 6,
+      criancas5a10: 5,
+    });
+    const resultadoBase = calcularPrecificacaoCardapio(CARDAPIO, opcoes);
+
+    // 50*40.12 + 11*20.06 + 0 + 3*230 = 2006.00 + 220.66 + 0 + 690 = 2916.66
+    expect(resultadoEvento.valor_sugerido_total_evento).toBeCloseTo(
+      50 * 40.12 + 11 * 20.06 + 0 + 3 * 230,
+      2
+    );
+    // Confirma que diverge do valor "preço cheio para todos" do Simulador
+    // (61*40.12 + 0 + 690 = 3137.32) — é exatamente a diferença que motivou
+    // a decisão do Pedro.
+    expect(resultadoEvento.valor_sugerido_total_evento).not.toBe(
+      resultadoBase.valor_sugerido_total_evento
+    );
   });
 });

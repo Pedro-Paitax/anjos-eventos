@@ -1,7 +1,10 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { calcularPrecificacaoParaPreparos } from "@/lib/precificacao-evento";
+import {
+  calcularPrecificacaoEventoParaPreparos,
+  calcularPrecificacaoParaPreparos,
+} from "@/lib/precificacao-evento";
 import { obterUsuarioAtual } from "@/lib/usuario-atual";
 
 export type EntradaPrecificacao = {
@@ -13,9 +16,11 @@ export type EntradaPrecificacao = {
 };
 
 /**
- * Chamada direto do client (recálculo com debounce, ver
- * formulario-evento-churrasco.tsx) — não é uma form action de submit.
- * Usada tanto no Criar Evento quanto na página do Simulador de Cardápio.
+ * Chamada direto do client pela página do Simulador de Cardápio (recálculo
+ * com debounce) — não é uma form action de submit. EXCLUSIVA do Simulador
+ * isolado (número de convidados total, sem faixa etária, sem meia-entrada
+ * de criança no Total) — não usar no Criar Evento, ver
+ * calcularPrecificacaoEventoAction.
  */
 export async function calcularPrecificacaoAction(entrada: EntradaPrecificacao) {
   const usuarioAtual = await obterUsuarioAtual();
@@ -27,4 +32,34 @@ export async function calcularPrecificacaoAction(entrada: EntradaPrecificacao) {
     quantidadeGarcom: entrada.quantidadeGarcom,
     valorGarcom: entrada.valorGarcom,
   });
+}
+
+export type EntradaPrecificacaoEvento = EntradaPrecificacao & {
+  distribuicaoConvidados: {
+    adultos: number;
+    criancasAte5: number;
+    criancas5a10: number;
+  };
+};
+
+/**
+ * Variante EXCLUSIVA do Criar Evento (Senhor Churrasco, ver
+ * formulario-evento-churrasco.tsx) — aplica meia-entrada de criança no
+ * Valor Sugerido Total, decisão do Pedro de 2026-09-08 (docs/DECISOES.md).
+ * Não usar na página do Simulador de Cardápio isolado.
+ */
+export async function calcularPrecificacaoEventoAction(entrada: EntradaPrecificacaoEvento) {
+  const usuarioAtual = await obterUsuarioAtual();
+  if (!usuarioAtual) redirect("/login");
+
+  return calcularPrecificacaoEventoParaPreparos(
+    entrada.preparoIds,
+    {
+      numConvidados: entrada.numConvidados,
+      regiaoMetropolitanaCuritiba: entrada.regiaoMetropolitanaCuritiba,
+      quantidadeGarcom: entrada.quantidadeGarcom,
+      valorGarcom: entrada.valorGarcom,
+    },
+    entrada.distribuicaoConvidados
+  );
 }

@@ -143,3 +143,40 @@ export function calcularPrecificacaoCardapio(
     valor_sugerido_total_evento: valorSugeridoTotalEvento,
   };
 }
+
+export type DistribuicaoConvidados = {
+  adultos: number;
+  criancasAte5: number;
+  criancas5a10: number;
+};
+
+/**
+ * Variante de calcularPrecificacaoCardapio EXCLUSIVA do fluxo de Criar
+ * Evento (Senhor Churrasco) — decisão do Pedro de 2026-09-08, registrada
+ * em docs/DECISOES.md: a meia-entrada de criança só se aplica no Valor
+ * Sugerido Total AQUI, nunca em calcularPrecificacaoCardapio/
+ * valor_sugerido_total_evento (usado sozinho pelo Simulador de Cardápio
+ * isolado, que só tem Número de Convidados total, sem faixa etária, e não
+ * deve ser alterado).
+ *
+ * Reaproveita calcularPrecificacaoCardapio pra tudo que é compartilhado
+ * (por pessoa, criança, garçom/copeira/assador, taxa) e recalcula só o
+ * Valor_Sugerido_Total_Evento, com adultos pagando cheio e crianças
+ * pagando meia — em vez de preço cheio × todos os convidados.
+ */
+export function calcularPrecificacaoParaEvento(
+  itens: ItemCardapioPrecificacao[],
+  opcoes: OpcoesPrecificacao,
+  distribuicao: DistribuicaoConvidados
+): PrecificacaoResultado {
+  const base = calcularPrecificacaoCardapio(itens, opcoes);
+
+  const valorSugeridoTotalEvento = arredondar(
+    distribuicao.adultos * base.valor_sugerido_por_pessoa +
+      (distribuicao.criancasAte5 + distribuicao.criancas5a10) * base.valor_sugerido_crianca +
+      base.taxa_deslocamento +
+      base.quantidade_garcom_usada * base.valor_garcom
+  );
+
+  return { ...base, valor_sugerido_total_evento: valorSugeridoTotalEvento };
+}
