@@ -20,6 +20,11 @@ const funcionalidades = [
     href: "/cardapios-modelo",
   },
   {
+    titulo: "Simulador de Cardápio",
+    descricao: "Monte um cardápio e veja o valor sugerido, sem criar um evento.",
+    href: "/simulador-cardapio",
+  },
+  {
     titulo: "Contratos e confirmação",
     descricao:
       "Envie o PDF, a extração preenche os dados e você só confirma. É a próxima etapa.",

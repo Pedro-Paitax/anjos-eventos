@@ -4,6 +4,82 @@ Histórico das sessões autônomas. Pendências de sessões já revisadas pelo
 Pedro ficam marcadas como resolvidas; o que ainda depende dele fica em
 aberto, com prioridade.
 
+## Sessão 2026-09-07 (noite, continuação) — fila: PR base correta + Simulador de Cardápio + cache + investigação cascade delete
+
+### PRECISA DE DECISÃO DO PEDRO (prioridade alta)
+
+**Inconsistência no desconto de criança no Valor Sugerido Total** —
+encontrada ao construir a página do Simulador de Cardápio (item 2 desta
+fila), reaproveitando `calcularPrecificacaoCardapio` (já validado na
+Etapa 4). Não decidi nada sozinho, só documentei e segui:
+
+- A fórmula documentada em docs/DECISOES.md ("Precificação por Cardápio
+  Selecionado...") diz: `Valor_Sugerido_Total_Evento =
+  (Valor_Sugerido_Por_Pessoa × Num_Convidados) + Taxa_Deslocamento +
+  (Quantidade_Garcom × Valor_Garcom)` — usando Num_Convidados (todo mundo,
+  adulto ou criança) multiplicado pelo preço cheio.
+- A mesma seção também diz "Criança paga meia sobre
+  Valor_Sugerido_Por_Pessoa" — mas essa meia-entrada NÃO aparece em lugar
+  nenhum da fórmula do Total acima. Ou seja, pela fórmula escrita, uma
+  criança "conta" no Total como se pagasse o valor cheio de um adulto.
+- Isso já está implementado de dois jeitos DIFERENTES no código hoje,
+  ambos "corretos" à sua própria maneira:
+  - `src/lib/precificacao-cardapio.ts`
+    (`calcularPrecificacaoCardapio.valor_sugerido_total_evento`, usado
+    pelo motor/Server Action): segue a fórmula escrita ao pé da letra —
+    preço cheio × todos os convidados, sem desconto de criança.
+  - `src/components/formulario-evento-churrasco.tsx` (variável
+    `valorSugerido`, só um preview client-side no Criar Evento, não
+    gravado no banco): calcula separado —
+    `qtdAdultos × precoPessoa + (criancas) × precoCriancaMeia + garçom + taxa`
+    — esse SIM aplica o desconto de criança.
+  - Isso significa que hoje, com convidados mistos (adultos + crianças), o
+    "Valor Sugerido Total" que aparece pro usuário em Criar Evento é
+    DIFERENTE do `valor_sugerido_total_evento` que o motor retornaria pro
+    mesmo cardápio/convidados.
+- Pra construir o Simulador de Cardápio (que só tem "Número de
+  convidados" total, sem separar adulto/criança — não recebi pedido pra
+  adicionar esse detalhamento), usei o `valor_sugerido_total_evento` do
+  motor tal como ele vem, sem tentar "consertar" ou duplicar a lógica do
+  Criar Evento. Isso significa que o Simulador mostra o Total sem desconto
+  de criança, enquanto Criar Evento mostra o Total com desconto de
+  criança — os dois nunca vão bater se houver criança na conta.
+
+**Pergunta**: qual das duas é a regra correta?
+- (a) O Total deve aplicar meia-entrada de criança (aí a fórmula escrita
+  em DECISOES.md está incompleta e o motor server-side precisa ser
+  corrigido pra receber a quantidade de crianças separadamente); ou
+- (b) O Total realmente ignora a idade pro cálculo agregado (aí é o
+  preview client-side do Criar Evento que está errado e deveria ser
+  removido/trocado pelo valor do motor).
+
+Não alterei nenhum dos dois lados até essa decisão — cada um continua
+fazendo o que já fazia antes desta sessão.
+
+### Resolvido e executado
+
+1. **PR de `feature/cardapios-pre-montados`**: aberto com a base correta
+   (`feature/motores-precificacao-e-preparos`, não `master`), evitando
+   duplicar os 18 commits da primeira branch. `gh` CLI ainda não
+   disponível neste ambiente — link de criação manual:
+   `github.com/Pedro-Paitax/anjos-eventos/compare/feature/motores-precificacao-e-preparos...feature/cardapios-pre-montados?quick_pull=1`.
+   Nenhum PR foi mergeado.
+2. **Página dedicada do Simulador de Cardápio** (`/simulador-cardapio`):
+   reaproveita `calcularPrecificacaoAction` sem duplicar lógica (mesma
+   Server Action da Etapa 4). UI: número de convidados, seletor de
+   cardápio por categoria (reusa `SeletorCardapio`), toggle de Região
+   Metropolitana de Curitiba, quantidade/valor de garçom (mesmo padrão do
+   Criar Evento), e exibição de Valor Sugerido por Pessoa / Criança
+   (meia) / Total — nenhum custo interno exposto (`custo_cardapio_total`,
+   copeira, assador nunca aparecem). Testado manualmente no browser:
+   convidados=40, Pão de Alho (Entrada) + Alcatra Grelhada (Carnes),
+   toggle de região funcionando (R$250,00). Bloqueia corretamente com o
+   mesmo erro de "peso/macro-categoria não configurados" já conhecido —
+   não é bug novo. Nenhum dado foi gravado em banco (página não persiste
+   nada), então não houve necessidade de limpeza de dado de teste.
+   Link de navegação adicionado na Home, junto aos de Agenda/Preparos/
+   Cardápios Feitos, como pedido explicitamente.
+
 ## Sessão 2026-09-07 (tarde/noite) — fila: PR + TETO + Etapa 4 + Cardápios Pré-Montados
 
 ### Resolvido e executado
