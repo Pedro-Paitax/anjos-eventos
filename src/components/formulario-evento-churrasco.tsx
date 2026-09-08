@@ -137,6 +137,12 @@ export function FormularioEventoChurrasco({
   // aparecem aqui, são internos ao Motor de Margem.
   const [calculandoPrecificacao, setCalculandoPrecificacao] = useState(false);
   const [erroPrecificacao, setErroPrecificacao] = useState<string | null>(null);
+  // Itens que o motor descartou do cálculo (peso/macro-categoria/custo não
+  // configurados) — precisa ficar visível, nunca só silenciosamente sumir
+  // do preço. Achado em 2026-09-09 (docs/PENDENCIAS_NOTURNAS.md): um
+  // cardápio de teste teve mais da metade dos itens excluídos sem nenhum
+  // aviso, o que mascarou um valor sugerido completamente errado.
+  const [itensExcluidos, setItensExcluidos] = useState<{ preparo: string; motivo: string }[]>([]);
 
   const precificacaoAtiva = preparoIdsSelecionados.length > 0 && numConvidados > 0;
 
@@ -161,11 +167,13 @@ export function FormularioEventoChurrasco({
         .then((resposta) => {
           if ("erro" in resposta) {
             setErroPrecificacao(resposta.erro);
+            setItensExcluidos([]);
             return;
           }
           setPrecoPessoa(String(resposta.resultado.valor_sugerido_por_pessoa));
           setPrecoCriancaMeia(String(resposta.resultado.valor_sugerido_crianca));
           setValorSugeridoTotal(resposta.resultado.valor_sugerido_total_evento);
+          setItensExcluidos(resposta.itensExcluidos);
         })
         .catch(() => setErroPrecificacao("Falha ao calcular o valor sugerido."))
         .finally(() => setCalculandoPrecificacao(false));
@@ -494,6 +502,22 @@ export function FormularioEventoChurrasco({
         </p>
         {precificacaoAtiva && erroPrecificacao && (
           <p className="text-sm text-ember">{erroPrecificacao}</p>
+        )}
+        {precificacaoAtiva && itensExcluidos.length > 0 && (
+          <div className="rounded-[2px] border border-ember/40 bg-ember/10 p-3 text-sm text-ember">
+            <p className="font-medium">
+              Atenção: {itensExcluidos.length}{" "}
+              {itensExcluidos.length === 1 ? "item selecionado não entrou" : "itens selecionados não entraram"}{" "}
+              no cálculo do Valor Sugerido — o preço acima NÃO reflete o cardápio inteiro:
+            </p>
+            <ul className="mt-1 list-disc pl-5">
+              {itensExcluidos.map((item) => (
+                <li key={item.preparo}>
+                  {item.preparo} — {item.motivo}
+                </li>
+              ))}
+            </ul>
+          </div>
         )}
 
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">

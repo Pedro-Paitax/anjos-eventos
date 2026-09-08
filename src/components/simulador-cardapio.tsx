@@ -33,6 +33,10 @@ export function SimuladorCardapio({
   const [resultado, setResultado] = useState<PrecificacaoResultado | null>(null);
   const [calculando, setCalculando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
+  // Itens que o motor descartou do cálculo — precisa ficar visível, nunca
+  // só silenciosamente sumir do preço (docs/PENDENCIAS_NOTURNAS.md,
+  // achado de 2026-09-09).
+  const [itensExcluidos, setItensExcluidos] = useState<{ preparo: string; motivo: string }[]>([]);
 
   const numConvidadosNumero = paraNumero(numConvidados);
   const quantidadeGarcomSugerida =
@@ -58,9 +62,11 @@ export function SimuladorCardapio({
           if ("erro" in resposta) {
             setErro(resposta.erro);
             setResultado(null);
+            setItensExcluidos([]);
             return;
           }
           setResultado(resposta.resultado);
+          setItensExcluidos(resposta.itensExcluidos);
         })
         .catch(() => setErro("Falha ao calcular o valor sugerido."))
         .finally(() => setCalculando(false));
@@ -166,6 +172,22 @@ export function SimuladorCardapio({
           <p className="text-sm text-paper-dim">Calculando…</p>
         )}
         {erro && <p className="text-sm text-ember">{erro}</p>}
+        {simulacaoAtiva && itensExcluidos.length > 0 && (
+          <div className="rounded-[2px] border border-ember/40 bg-ember/10 p-3 text-sm text-ember">
+            <p className="font-medium">
+              Atenção: {itensExcluidos.length}{" "}
+              {itensExcluidos.length === 1 ? "item selecionado não entrou" : "itens selecionados não entraram"}{" "}
+              no cálculo — o valor acima NÃO reflete o cardápio inteiro:
+            </p>
+            <ul className="mt-1 list-disc pl-5">
+              {itensExcluidos.map((item) => (
+                <li key={item.preparo}>
+                  {item.preparo} — {item.motivo}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         {simulacaoAtiva && resultado && (
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
