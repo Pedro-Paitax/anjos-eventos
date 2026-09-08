@@ -583,7 +583,8 @@ nenhum do cálculo, mesmo estando presentes na operação de verdade.
 
 # Motor de Pacotes Fixos e Tolerância de Substituição
 
-Status: APROVADA
+Status: APROVADA (schema criado no NocoDB; lógica de cálculo e integração
+com as telas pendentes)
 
 Descoberta a partir de dado real (planilha comercial "Cardápio_2025_2.xlsx"):
 a operação vende pacotes com preço FIXO por pessoa (Cardápio 01 a 05 +
@@ -608,6 +609,12 @@ nenhuma mudança necessária além desta nota).
   (Decimal). Linha única inicial com valor `1.99`. Existe para permitir
   ajuste futuro da tolerância direto pelo NocoDB, sem alteração de
   código/deploy.
+
+IDs confirmados via `/api/v2/meta` (base Senhor_Churrasco_DB), pra quem
+for integrar depois: `Cardapios_Modelo` = `muwzzmniceu6umv` (coluna
+`Preco_Fixo_Por_Pessoa` = `cph2rdnd6ldc44s`), `Orcamentos` =
+`mpobqls8ibt3ay3` (coluna `Usar_Preco_Fixo_Modelo` = `cxmxqsk4if74u96`),
+`Configuracoes_Globais` = `mizfsy3ecpoj50i` (linha única `Id=1`).
 
 ## Regra — Simulador Público (proteção estrita, sem exceção)
 
