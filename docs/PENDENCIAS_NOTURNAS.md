@@ -4,6 +4,107 @@ Histórico das sessões autônomas. Pendências de sessões já revisadas pelo
 Pedro ficam marcadas como resolvidas; o que ainda depende dele fica em
 aberto, com prioridade.
 
+## 🔴 PRIORIDADE MÁXIMA — Bug financeiro confirmado: mistura de unidades no motor de dimensionamento (2026-09-09)
+
+**Isso é dinheiro real — todo cardápio com item por Unidade misturado com
+itens por grama na mesma macro-categoria está com o Valor Sugerido
+inflado, hoje, em produção.**
+
+### O que o Pedro reportou
+
+Testou um cardápio (Entrada: Linguiça Toscana + Canudinho de Batatonese;
+Acompanhamentos: Arroz Branco com Alho Crispy + Farofa Simples + Farofa
+de Bacon; Carnes: Fraldinha na Mostarda + Coxinha da Asa de Frango;
+Saladas: Tomate e Pepino com Cebola + Tomate com Cebola) e obteve Valor
+Sugerido de R$157,10/pessoa, suspeitando estar errado.
+
+### Investigação — CONFIRMADO com dados 100% reais
+
+Escrevi `src/lib/precificacao-cardapio.mistura-unidades.test.ts`,
+reproduzindo os 4 preparos que sobreviviam ao cálculo (ver achado
+separado abaixo sobre os outros 5), com custo real via
+`GET /api/preparos/:id/custo` e pesos/tetos reais do NocoDB:
+
+- Macro "Entradas e Petiscos" tem teto de **120g**. `distribuirPorcoes`
+  divide esse teto proporcionalmente ao peso entre Linguiça Toscana e
+  Canudinho de Batatonese (ambos Peso_Atratividade=1) → **60 "unidades do
+  teto" pra cada um**. Semanticamente isso é 60 GRAMAS (a unidade da
+  macro), mas:
+- Linguiça Toscana tem `Rendimento=10` com `UOM Rendimento=Unidade`
+  (10 salsichas, não 10 gramas). Canudinho de Batatonese tem
+  `Rendimento=1 Unidade`.
+- Em `calcularPrecificacaoCardapio`
+  (`src/lib/precificacao-cardapio.ts`), o custo por item é
+  `custo_total_preparo / rendimento` (isso vira **custo POR UNIDADE
+  VENDIDA** pra esses dois) **multiplicado direto pelos "60"** vindos do
+  dimensionamento — **sem nenhuma conversão de unidade em lugar nenhum do
+  código**. O motor trata "60 gramas de teto" como "60 salsichas" e "60
+  canudinhos".
+- Resultado: `custo_cardapio_por_pessoa` ≈ R$112,79, sendo **97% disso**
+  vindo só desses 2 itens pequenos de entrada. `valor_sugerido_por_pessoa`
+  ≈ R$157,92 — bate com o R$157,10 reportado (diferença de centavos
+  esperada por arredondamentos de outras etapas).
+- Depois de eu corrigir o achado separado abaixo (Header_UI faltando),
+  testei de novo no Simulador de Cardápio com os 9 itens reais do Pedro:
+  **R$156,17/pessoa** — praticamente igual, confirmando que a mistura de
+  unidades é a causa DOMINANTE (não a exclusão silenciosa, que era um
+  problema real mas secundário).
+
+O teste trava os números exatos que o código produz HOJE — é documentação
+viva do bug, não uma trava "correta". Rodar
+`npx vitest run src/lib/precificacao-cardapio.mistura-unidades.test.ts`
+pra ver a reconstituição completa comentada no teste.
+
+### NÃO CORRIGIDO — decisão de negócio pendente do Pedro
+
+Não decidi como converter. Não é trivial: pra Linguiça Toscana dá pra
+derivar um "peso médio por unidade" (0,6kg de insumo / 10 unidades =
+60g/salsicha) e converter os "60g de teto" em "1 unidade equivalente"
+antes de multiplicar pelo custo por unidade. Mas **Canudinho de
+Batatonese é um item MONTADO** (a composição inteira — Batatonese,
+Canudo Romanha, Cebola Crispy, Cheiro Verde — produz "1 unidade"; não há
+peso-por-unidade natural derivável dela). Ou seja, "converter unidade →
+grama pelo peso médio do rendimento" funciona pra alguns casos e não pra
+outros — não dá pra aplicar uma regra genérica sem decisão explícita.
+
+Perguntas que precisam da sua decisão antes de eu tocar em
+`distribuirPorcoes` ou `calcularPrecificacaoCardapio`:
+
+1. Pra preparos com `UOM Rendimento = Unidade` dentro de uma macro medida
+   em grama/ml, como o motor deve interpretar a "porção calculada" (que
+   sai em g/ml) — arredondar pra cima pro número inteiro de unidades mais
+   próximo? Sempre 1 unidade fixa por pessoa, ignorando o teto da macro?
+   Outra regra?
+2. Pra itens "montados" tipo Canudinho de Batatonese, sem peso-por-unidade
+   natural, precisa de um campo novo no schema (ex.: `Peso_Por_Unidade`
+   manual em Preparos) pra esse caso específico, já que não dá pra
+   derivar da composição?
+3. Isso deveria ser uma validação de CADASTRO (bloquear/avisar ao criar
+   um Preparo com `UOM Rendimento=Unidade` sem informar como ele se
+   comporta dentro de uma macro em gramas), em vez de só uma correção no
+   motor de cálculo?
+
+### Achado complementar — CORRIGIDO (não era decisão de negócio, só dado faltando)
+
+Dos 9 preparos do cardápio de teste, **5 não tinham nenhum Header_UI
+vinculado** (Farofa Simples, Farofa de Bacon, Fraldinha na Mostarda,
+Coxinha da Asa de Frango, Tomate com Cebola — todos os 39 preparos
+criados na sessão de cardápios comerciais, na verdade, incluindo Costela).
+Sem Header_UI, `resolverItensPorPreparoIds` exclui o preparo do cálculo
+inteiro, silenciosamente. Corrigido: vinculei os 38 preparos afetados aos
+Headers_UI corretos (Carnes Vermelhas/Suínas/Aves conforme
+Subcategoria_Proteina, Saladas Frescas, Arroz e Risotos, Acompanhamentos
+Rústicos, Massas, Entradas Quentes/Frias, Sobremesas, Guarnições Leves e
+Legumes pra Maionese Tradicional) — são categorias já existentes no
+sistema, não uma decisão nova. Verificado: os 9 preparos do teste do
+Pedro agora entram todos no cálculo.
+
+Também corrigido (não é decisão de negócio, é visibilidade de um dado que
+já existia): `itensExcluidos` era computado pelo backend mas nunca
+aparecia em nenhuma tela — agora Criar Evento e Simulador de Cardápio
+mostram um aviso destacado sempre que algum item selecionado foi
+descartado do cálculo, listando qual e por quê.
+
 ## AGUARDANDO RETOMADA — Etapa 3 do Motor de Pacotes Fixos (pausada em 2026-09-08)
 
 Pausada a pedido do Pedro pra priorizar a tarefa de cadastro dos cardápios
