@@ -1,9 +1,13 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import type { PreparoResumo } from "@/lib/preparos";
 import { excluirPreparoAction } from "@/app/actions/preparo";
+import { CATEGORIAS_PREPARO } from "@/lib/preparos-opcoes";
+
+const campoFiltroClasse =
+  "rounded-[2px] border border-paper-ink/20 bg-transparent px-3 py-2 text-sm text-paper-ink placeholder:text-paper-ink/40 focus:border-brass focus:outline-none";
 
 function rotuloRendimento(preparo: PreparoResumo): string {
   if (preparo.rendimento == null) return "—";
@@ -98,6 +102,18 @@ function LinhaPreparo({ preparo }: { preparo: PreparoResumo }) {
 }
 
 export function ListaPreparos({ preparos }: { preparos: PreparoResumo[] }) {
+  const [categoriaFiltro, setCategoriaFiltro] = useState("");
+  const [buscaNome, setBuscaNome] = useState("");
+
+  const preparosFiltrados = useMemo(() => {
+    const buscaNormalizada = buscaNome.trim().toLowerCase();
+    return preparos.filter((preparo) => {
+      if (categoriaFiltro && preparo.categoria !== categoriaFiltro) return false;
+      if (buscaNormalizada && !preparo.nome.toLowerCase().includes(buscaNormalizada)) return false;
+      return true;
+    });
+  }, [preparos, categoriaFiltro, buscaNome]);
+
   if (preparos.length === 0) {
     return (
       <p className="px-6 py-10 text-center text-sm text-paper-ink/70">
@@ -108,10 +124,40 @@ export function ListaPreparos({ preparos }: { preparos: PreparoResumo[] }) {
   }
 
   return (
-    <ul className="divide-y divide-paper-ink/10">
-      {preparos.map((preparo) => (
-        <LinhaPreparo key={preparo.id} preparo={preparo} />
-      ))}
-    </ul>
+    <div>
+      <div className="flex flex-col gap-3 border-b border-paper-ink/10 p-4 sm:flex-row sm:items-center">
+        <input
+          type="text"
+          value={buscaNome}
+          onChange={(e) => setBuscaNome(e.target.value)}
+          placeholder="Buscar por nome…"
+          className={`${campoFiltroClasse} sm:flex-1`}
+        />
+        <select
+          value={categoriaFiltro}
+          onChange={(e) => setCategoriaFiltro(e.target.value)}
+          className={`${campoFiltroClasse} sm:w-52`}
+        >
+          <option value="">Todas as categorias</option>
+          {CATEGORIAS_PREPARO.map((categoria) => (
+            <option key={categoria} value={categoria}>
+              {categoria}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {preparosFiltrados.length === 0 ? (
+        <p className="px-6 py-10 text-center text-sm text-paper-ink/70">
+          Nenhum preparo encontrado com esse filtro.
+        </p>
+      ) : (
+        <ul className="divide-y divide-paper-ink/10">
+          {preparosFiltrados.map((preparo) => (
+            <LinhaPreparo key={preparo.id} preparo={preparo} />
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }

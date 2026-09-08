@@ -105,6 +105,29 @@ aparecia em nenhuma tela — agora Criar Evento e Simulador de Cardápio
 mostram um aviso destacado sempre que algum item selecionado foi
 descartado do cálculo, listando qual e por quê.
 
+## Sessão 2026-09-09 (fila autônoma) — filtros, layout de cards, hub de navegação
+
+### Posicionamento não especificado — pra revisar (regra de trabalho autônomo)
+
+- **Filtros de Preparos**: coloquei o campo de busca por nome e o select
+  de Categoria juntos, numa faixa horizontal no topo da lista (dentro do
+  mesmo card branco, acima da primeira linha), busca ocupando mais
+  espaço (`flex-1`) e o select com largura fixa menor. Não foi
+  especificado onde exatamente; escolhi manter tudo dentro do card já
+  existente em vez de um bloco separado, pra não mudar a estrutura da
+  página. `src/components/lista-preparos.tsx`.
+
+### Resolvido e executado
+
+1. **Filtro por Categoria + busca por nome em Preparos**: implementado em
+   `src/components/lista-preparos.tsx`, filtragem 100% client-side (a
+   lista de preparos já vem inteira do servidor; não há paginação, então
+   não fazia sentido ida-e-volta ao servidor pra filtrar). Categoria usa
+   as mesmas 8 opções já existentes em `CATEGORIAS_PREPARO`
+   (`src/lib/preparos-opcoes.ts`). Testado manualmente no browser: busca
+   por "arroz" reduziu corretamente pros 4 preparos com esse nome; filtro
+   "Carnes" mostrou só os preparos dessa categoria.
+
 ## AGUARDANDO RETOMADA — Etapa 3 do Motor de Pacotes Fixos (pausada em 2026-09-08)
 
 Pausada a pedido do Pedro pra priorizar a tarefa de cadastro dos cardápios
