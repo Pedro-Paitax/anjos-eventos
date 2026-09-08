@@ -4,6 +4,47 @@ Histórico das sessões autônomas. Pendências de sessões já revisadas pelo
 Pedro ficam marcadas como resolvidas; o que ainda depende dele fica em
 aberto, com prioridade.
 
+## AGUARDANDO RETOMADA — Etapa 3 do Motor de Pacotes Fixos (pausada em 2026-09-08)
+
+Pausada a pedido do Pedro pra priorizar a tarefa de cadastro dos cardápios
+comerciais (ver `docs/referencia-cardapios-comerciais.md`). Etapas 1
+(schema) e 2 (núcleo puro + testes) já estão prontas e commitadas —
+`src/lib/pacote-fixo.ts` (`avaliarTrocaPacoteFixoCriarEvento`,
+`quebrarPacoteFixoSimuladorPublico`). Falta só a Etapa 3: integração com
+as telas (Criar Evento e Simulador Público).
+
+**Pergunta em aberto que travava o início da Etapa 3** (registrar aqui pra
+não se perder, retomar quando a Etapa 3 voltar à fila): como resolver
+`Custo_Por_Pessoa_Cardapio_Modelo_Original` — o custo por pessoa do
+Cardápio Modelo ORIGINAL completo, usado como referência fixa pra
+`avaliarTrocaPacoteFixoCriarEvento` calcular a diferença a cada edição.
+Não é óbvio de onde esse valor deve vir nem quando deve ser "congelado":
+
+- Ele precisa ser calculado uma vez, no momento em que o Cardápio Modelo
+  é carregado no Criar Evento (antes de qualquer edição do usuário), e
+  guardado em algum lugar pelo resto da sessão de edição daquele
+  orçamento/evento — mas onde? Não existe hoje nenhum campo em
+  `Orcamentos` ou `Eventos` pra guardar esse "custo por pessoa original
+  congelado do template". Precisaria de uma nova coluna (schema
+  adicional, fora do que já foi aprovado nesta feature) ou dá pra
+  recalcular sob demanda a partir do `Cardapio_Modelo` vinculado (supondo
+  que o vínculo com o template original seja preservado em algum lugar,
+  o que também não está claro que hoje é o caso — o fluxo atual de
+  "Começar de um Cardápio Pré-Montado" no Criar Evento é só um
+  pré-preenchimento que NÃO cria vínculo permanente, conforme decisão
+  registrada anteriormente. Isso pode entrar em conflito direto com essa
+  feature nova, que parece precisar de um vínculo rastreável com o
+  template original pra sempre poder recalcular contra ele).
+- Se o Cardápio Modelo original em si for editado depois (alguém muda o
+  `Preco_Fixo_Por_Pessoa` ou a composição dele na tela "Cardápios
+  Feitos"), o "original" usado como referência no evento já criado deve
+  continuar sendo o que existia no momento em que o evento foi criado, ou
+  deve seguir o template ao vivo? Isso é uma decisão de negócio, não
+  técnica — não decidir sozinho quando a Etapa 3 for retomada.
+
+Não decidi nada disso sozinho — só documentei a pergunta antes de pausar,
+conforme pedido.
+
 ## Sessão 2026-09-07 (noite, continuação) — fila: PR base correta + Simulador de Cardápio + cache + investigação cascade delete
 
 ### Posicionamento de UI não pedido explicitamente (regra 8 — pra revisar)
