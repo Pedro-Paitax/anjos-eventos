@@ -6,6 +6,14 @@ aberto, com prioridade.
 
 ## Sessão 2026-09-07 (noite, continuação) — fila: PR base correta + Simulador de Cardápio + cache + investigação cascade delete
 
+### Posicionamento de UI não pedido explicitamente (regra 8 — pra revisar)
+
+- Link de navegação "Simulador de Cardápio" na Home: foi pedido
+  explicitamente "junto aos de Agenda/Preparos/Cardápios Feitos", mas a
+  posição exata dentro da grade (logo depois de "Cardápios Feitos", antes
+  de "Contratos e confirmação") foi escolha minha, não especificada.
+  Arquivo: `src/app/page.tsx`.
+
 ### PRECISA DE DECISÃO DO PEDRO (prioridade alta)
 
 **Inconsistência no desconto de criança no Valor Sugerido Total** —
