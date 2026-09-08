@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { obterUsuarioAtual } from "@/lib/usuario-atual";
 import { obterEvento } from "@/lib/eventos";
 import { listarPreparosPorCategoria } from "@/lib/preparos";
+import { listarCardapiosModelo } from "@/lib/cardapios-modelo";
 import { atualizarEventoAction } from "@/app/actions/evento";
 import { CabecalhoPagina } from "@/components/cabecalho-pagina";
 import { FormularioEventoChurrasco } from "@/components/formulario-evento-churrasco";
@@ -46,6 +47,7 @@ export default async function EventoPage({ params }: PaginaEventoProps) {
               empresaId={evento.empresa_id}
               valoresIniciais={evento}
               preparosPorCategoria={await listarPreparosPorCategoria()}
+              cardapiosModelo={await listarCardapiosModelo()}
               action={atualizarComId}
               rotuloEnvio="Salvar alterações"
             />

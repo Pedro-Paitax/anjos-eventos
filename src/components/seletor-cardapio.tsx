@@ -16,20 +16,28 @@ const NOME_CAMPO: Record<CategoriaCardapio, string> = {
   Sobremesa: "cardapioSobremesa",
 };
 
-const VALOR_SALVO: Record<CategoriaCardapio, keyof Evento> = {
+export const VALOR_SALVO = {
   Entrada: "cardapio_entrada",
   Acompanhamentos: "cardapio_acompanhamentos",
   Carnes: "cardapio_carnes",
   Saladas: "cardapio_saladas",
   Bebidas: "cardapio_bebidas",
   Sobremesa: "cardapio_sobremesa",
-};
+} satisfies Record<CategoriaCardapio, keyof Evento>;
 
 function dividir(valor: string | null | undefined): string[] {
   return valor ? valor.split(", ") : [];
 }
 
-function selecaoInicial(valoresIniciais?: Evento): SelecaoCardapio {
+// Subconjunto de Evento que o seletor realmente usa — permite montar um
+// valoresIniciais sintético (ex.: a partir de um Cardápio Pré-Montado) sem
+// precisar de um Evento completo.
+type ValoresIniciaisCardapio = Pick<
+  Evento,
+  (typeof VALOR_SALVO)[CategoriaCardapio]
+>;
+
+function selecaoInicial(valoresIniciais?: ValoresIniciaisCardapio): SelecaoCardapio {
   return Object.fromEntries(
     CATEGORIAS_CARDAPIO.map((categoria) => [
       categoria,
@@ -44,7 +52,7 @@ export function SeletorCardapio({
   onSelecaoIdsChange,
 }: {
   preparosPorCategoria: Record<CategoriaCardapio, Preparo[]>;
-  valoresIniciais?: Evento;
+  valoresIniciais?: ValoresIniciaisCardapio;
   /** Notifica os preparo_id atualmente selecionados (ex.: pra recalcular o Valor Sugerido) — não afeta os hidden inputs de nome já salvos no evento. */
   onSelecaoIdsChange?: (idsSelecionados: number[]) => void;
 }) {

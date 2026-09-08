@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { obterUsuarioAtual } from "@/lib/usuario-atual";
 import { listarEmpresas } from "@/lib/empresas";
 import { listarPreparosPorCategoria } from "@/lib/preparos";
+import { listarCardapiosModelo } from "@/lib/cardapios-modelo";
 import { criarEventoAction } from "@/app/actions/evento";
 import { CabecalhoPagina } from "@/components/cabecalho-pagina";
 import { FormularioEventoChurrasco } from "@/components/formulario-evento-churrasco";
@@ -64,6 +65,7 @@ export default async function NovoEventoPage({
               <FormularioEventoChurrasco
                 empresaId={empresaEscolhida.id}
                 preparosPorCategoria={await listarPreparosPorCategoria()}
+                cardapiosModelo={await listarCardapiosModelo()}
                 action={criarEventoAction}
                 rotuloEnvio="Cadastrar evento"
               />
