@@ -171,10 +171,8 @@ de Hard Cap. Regra de fail-fast confirmada: preparo sem Peso_Atratividade
 resolvido (manual ou via Hierarquia_Proteina) é excluído do resultado, não
 quebra o cálculo.
 
-Cache/invalidação (Hierarquia_Proteina, Macro_Categorias): PENDENTE — ver
-seção "Cache de Hierarquia_Proteina / Macro_Categorias" abaixo. Implementação
-atual lê direto da API do NocoDB a cada cálculo, deliberadamente sem cache
-por ora (decisão registrada nesta conversa).
+Cache/invalidação (Hierarquia_Proteina, Macro_Categorias): IMPLEMENTADA —
+ver seção "Cache de Hierarquia_Proteina / Macro_Categorias" abaixo.
 
 ---
 
@@ -279,20 +277,62 @@ Nenhuma mudança de schema ou regra de negócio é implementada sem debate prév
 
 # Cache de Hierarquia_Proteina / Macro_Categorias
 
-Status: PENDENTE
+Status: IMPLEMENTADA
 
-Decisão tomada em discussão de consenso técnico (Claude + Gemini), nunca
-formalizada aqui até agora — gap de processo identificado e corrigido.
+Decisão original tomada em discussão de consenso técnico (Claude + Gemini):
+cache em memória no servidor Node.js, invalidado via revalidação sob demanda
+(revalidateTag do Next.js), acionado por webhook nativo do NocoDB configurado
+para chamar uma rota /api/revalidate protegida por um segredo compartilhado
+(header ou query param), nunca uma rota aberta sem autenticação.
 
-Direção acordada: cache em memória no servidor Node.js, invalidado via
-revalidação sob demanda (revalidateTag do Next.js), acionado por webhook
-nativo do NocoDB configurado para chamar uma rota /api/revalidate protegida
-por um segredo compartilhado (header ou query param), nunca uma rota aberta
-sem autenticação.
+## Implementação
 
-Implementação atual: sem cache, leitura direta a cada cálculo — aceitável
-para o volume de uso atual (tabelas de 5 e 9 linhas). Cache é otimização de
-performance futura, não bloqueante.
+- `src/lib/hierarquia-proteina.ts`: leitura da tabela Hierarquia_Proteina
+  cacheada via `unstable_cache` do Next.js, tag `hierarquia-proteina`
+  (constante `TAG_HIERARQUIA_PROTEINA` em `src/lib/cache-tags.ts`).
+- `src/lib/dimensionamento-cardapio.ts`: leitura de um registro de
+  Macro_Categorias por id cacheada da mesma forma, tag `macro-categorias`
+  (`TAG_MACRO_CATEGORIAS`).
+- `POST /api/revalidate` (`src/app/api/revalidate/route.ts`): invalida uma
+  ou ambas as tags. Protegida por `REVALIDATE_SECRET` (variável de
+  ambiente, nunca hardcoded) — aceita o segredo no header
+  `x-revalidate-secret` OU no query param `?secret=`, comparação em tempo
+  constante (`crypto.timingSafeEqual`). Sem o segredo certo: `401`. Sem
+  `REVALIDATE_SECRET` configurado no servidor: `500` (nunca cai pra rota
+  aberta). `?tag=hierarquia-proteina` ou `?tag=macro-categorias` invalida
+  só uma tag; sem o parâmetro, invalida as duas. Tag desconhecida: `400`.
+- Nota técnica: o Next.js 16 passou a exigir um segundo argumento
+  (`profile`) em `revalidateTag`; usamos `"max"`, valor recomendado pela
+  própria mensagem de depreciação do framework para quem só quer invalidar
+  a tag sob demanda (não é um "cacheLife" de verdade pros nossos
+  `unstable_cache`, só satisfaz a nova assinatura preservando o
+  comportamento de invalidação imediata).
+
+## Como configurar o webhook do lado do NocoDB (passo manual do Pedro)
+
+1. Gerar um segredo forte (ex.: `openssl rand -hex 32`) e configurar
+   `REVALIDATE_SECRET` no `.env`/`.env.local` do servidor onde a aplicação
+   roda (nunca commitar o valor real — `.env.example` só documenta a
+   variável, vazia).
+2. No NocoDB, abrir a tabela **Hierarquia_Proteina** → aba de automações/
+   webhooks → criar um webhook do tipo "After Insert/Update/Delete"
+   (nome exato do menu pode variar por versão do NocoDB).
+3. Método: `POST`. URL: `https://<host-da-aplicacao>/api/revalidate?tag=hierarquia-proteina`.
+   Adicionar o header `x-revalidate-secret: <o segredo gerado no passo 1>`
+   (ou usar `&secret=<segredo>` na URL, se o NocoDB não permitir headers
+   customizados na versão instalada).
+4. Repetir os passos 2-3 pra tabela **Macro_Categorias**, trocando a URL
+   pra `?tag=macro-categorias`.
+5. Testar disparando uma edição de teste em qualquer linha da tabela e
+   conferindo que a resposta do webhook (visível no log de automações do
+   NocoDB) veio com status `200` e corpo `{"revalidado":["..."]}`.
+
+Sem esse passo manual, o cache nunca é invalidado — ele só vai refletir uma
+mudança feita em Hierarquia_Proteina/Macro_Categorias depois que o processo
+Node.js for reiniciado. Enquanto o webhook não for configurado, isso é
+equivalente ao comportamento anterior (sem cache automático), só que com um
+risco a mais de dado desatualizado até o próximo deploy/restart — vale a
+pena configurar o webhook logo após revisar esta entrega.
 
 ---
 

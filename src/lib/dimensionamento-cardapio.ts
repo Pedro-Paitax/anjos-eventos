@@ -1,6 +1,8 @@
 import "server-only";
+import { unstable_cache } from "next/cache";
 import { nocodbGet } from "@/lib/nocodb";
 import { buscarPesosPadraoPorSubcategoria } from "@/lib/hierarquia-proteina";
+import { TAG_MACRO_CATEGORIAS } from "@/lib/cache-tags";
 
 // IDs de tabela do NocoDB (base Senhor_Churrasco_DB), confirmados via
 // /api/v2/meta/bases/.../tables — não inventar, checar o schema real antes
@@ -206,6 +208,22 @@ type HeaderEMacroCategoria = {
   macroCategoria: MacroCategoriaRegistro;
 };
 
+/**
+ * Cacheada por macroCategoriaId — invalidação via
+ * revalidateTag(TAG_MACRO_CATEGORIAS) (ver /api/revalidate e
+ * docs/DECISOES.md, seção "Cache de Hierarquia_Proteina/Macro_Categorias").
+ */
+const buscarMacroCategoriaPorIdCached = unstable_cache(
+  async (macroCategoriaId: number, token: string): Promise<MacroCategoriaRegistro | null> => {
+    return nocodbGet<MacroCategoriaRegistro>(
+      `/tables/${TABELA_MACRO_CATEGORIAS}/records/${macroCategoriaId}`,
+      token
+    );
+  },
+  ["macro-categoria-por-id"],
+  { tags: [TAG_MACRO_CATEGORIAS] }
+);
+
 async function resolverHeaderEMacroCategoria(
   preparoId: number,
   token: string
@@ -224,10 +242,7 @@ async function resolverHeaderEMacroCategoria(
   const macroCategoriaId = primeiroDoLink(macroCategoriasResposta)?.Id;
   if (!macroCategoriaId) return null;
 
-  const macroCategoria = await nocodbGet<MacroCategoriaRegistro>(
-    `/tables/${TABELA_MACRO_CATEGORIAS}/records/${macroCategoriaId}`,
-    token
-  );
+  const macroCategoria = await buscarMacroCategoriaPorIdCached(macroCategoriaId, token);
   if (!macroCategoria) return null;
 
   return { headerExibicao: headerUi.Nome_Exibicao ?? "", macroCategoria };
