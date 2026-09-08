@@ -61,3 +61,13 @@ export function paraInputDatetimeLocal(dataEvento: string): string {
   const deslocamentoMs = data.getTimezoneOffset() * 60_000;
   return new Date(data.getTime() - deslocamentoMs).toISOString().slice(0, 16);
 }
+
+export function paraInputDate(data: string): string {
+  const dataObj = new Date(data);
+  const deslocamentoMs = dataObj.getTimezoneOffset() * 60_000;
+  return new Date(dataObj.getTime() - deslocamentoMs).toISOString().slice(0, 10);
+}
+
+export function paraInputTime(hora: string): string {
+  return hora.slice(0, 5);
+}

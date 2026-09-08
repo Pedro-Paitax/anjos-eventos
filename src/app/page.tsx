@@ -10,6 +10,16 @@ const funcionalidades = [
     href: "/agenda",
   },
   {
+    titulo: "Preparos",
+    descricao: "Fichas técnicas: preparos, composição e insumos.",
+    href: "/preparos",
+  },
+  {
+    titulo: "Cardápios Feitos",
+    descricao: "Cardápios pré-montados pra agilizar o Criar Evento.",
+    href: "/cardapios-modelo",
+  },
+  {
     titulo: "Contratos e confirmação",
     descricao:
       "Envie o PDF, a extração preenche os dados e você só confirma. É a próxima etapa.",

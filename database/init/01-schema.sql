@@ -25,7 +25,6 @@ CREATE TABLE eventos (
     num_convidados INTEGER,
     status TEXT NOT NULL DEFAULT 'orcado' CHECK (status IN ('orcado', 'confirmado', 'realizado', 'cancelado')),
     valor NUMERIC(10, 2),
-    veiculo TEXT CHECK (veiculo IS NULL OR veiculo IN ('Master', 'Kombi nova', 'Kombi velha')),
     observacoes TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -53,5 +52,4 @@ COMMENT ON TABLE empresas IS 'Empresas do grupo: Buffet Senhor Churrasco, Anjos 
 COMMENT ON TABLE usuarios IS 'Usuários do sistema - login por seleção de nome, sem senha';
 COMMENT ON TABLE eventos IS 'Eventos das 3 empresas - agenda unificada';
 COMMENT ON TABLE contratos IS 'Contratos PDF vinculados aos eventos, com dados extraídos';
-COMMENT ON COLUMN eventos.veiculo IS 'Veículo de carga - apenas relevante para Buffet Senhor Churrasco';
 COMMENT ON COLUMN contratos.dados_extraidos_raw IS 'JSON com resultado bruto da extração automática do PDF';
