@@ -581,6 +581,72 @@ nenhum do cálculo, mesmo estando presentes na operação de verdade.
 
 ---
 
+# Motor de Pacotes Fixos e Tolerância de Substituição
+
+Status: APROVADA
+
+Descoberta a partir de dado real (planilha comercial "Cardápio_2025_2.xlsx"):
+a operação vende pacotes com preço FIXO por pessoa (Cardápio 01 a 05 +
+Costela Fogo de Chão), independente de qual carne/salada específica o
+cliente escolhe dentro do pacote. Isso coexiste com o modelo dinâmico já
+implementado (custo × 1,40), sem substituí-lo.
+
+Taxa de deslocamento: corrigida para R$250 (valor único, substituindo
+qualquer menção anterior a R$300 encontrada em documento comercial
+desatualizado — já é R$250 em todo o resto deste documento e no código,
+nenhuma mudança necessária além desta nota).
+
+## Schema
+
+- `Cardapios_Modelo`: nova coluna `Preco_Fixo_Por_Pessoa` (Decimal,
+  nullable). Quando preenchido, esse Cardápio Modelo tem preço fechado.
+  Quando vazio, continua sob o cálculo dinâmico já existente.
+- `Orcamentos`: nova coluna `Usar_Preco_Fixo_Modelo` (Boolean). Só é
+  `true` quando um `Cardapio_Modelo` com `Preco_Fixo_Por_Pessoa`
+  preenchido foi carregado — nunca `true` para templates sem preço fixo.
+- Nova tabela `Configuracoes_Globais`: coluna `Tolerancia_Troca_Preco_Fixo`
+  (Decimal). Linha única inicial com valor `1.99`. Existe para permitir
+  ajuste futuro da tolerância direto pelo NocoDB, sem alteração de
+  código/deploy.
+
+## Regra — Simulador Público (proteção estrita, sem exceção)
+
+Qualquer edição de item (adicionar, remover, trocar) dentro de um Cardápio
+Modelo com preço fixo QUEBRA o pacote imediatamente. `Usar_Preco_Fixo_Modelo`
+vira `false`, o sistema exibe: "Você está personalizando um pacote fechado.
+O valor agora será calculado sob medida", e o preço passa a ser dinâmico
+(Custo_Real_Por_Pessoa × 1,40). Não existe tolerância no Simulador Público
+— zero risco de o cliente manipular a margem do combo sozinho.
+
+## Regra — Painel Administrativo / Criar Evento (tolerância paramétrica)
+
+Ao editar itens dentro de um Cardápio Modelo com preço fixo, o back-end
+recalcula, a CADA mudança, do zero (nunca soma incremental de aprovações
+anteriores):
+
+```
+Diferença_Custo_Por_Pessoa = Custo_Por_Pessoa_Selecao_Atual_Total
+                              − Custo_Por_Pessoa_Cardapio_Modelo_Original_Total
+```
+
+- Se `Diferença_Custo_Por_Pessoa ≤ Tolerancia_Troca_Preco_Fixo` (lido de
+  `Configuracoes_Globais`, hoje 1,99) — incluindo diferenças negativas
+  (custo caiu): mantém `Usar_Preco_Fixo_Modelo = true` automaticamente,
+  sem nenhum alerta.
+- Se `Diferença_Custo_Por_Pessoa > Tolerancia_Troca_Preco_Fixo`: NÃO
+  bloqueia a ação, exibe aviso não-bloqueante: "Essa troca aumenta o
+  custo em R$X — o preço fixo do pacote pode não cobrir mais a margem
+  esperada." com dois botões: "Manter preço do pacote (R$X) mesmo assim"
+  (mantém `Usar_Preco_Fixo_Modelo = true`, Pedro aceita absorver a
+  diferença) ou "Recalcular pelo custo real" (`Usar_Preco_Fixo_Modelo =
+  false`, aplica Custo × 1,40).
+
+O Motor de Margem (`Margem_Real_Evento`) continua rodando por trás de tudo
+isso, silenciosamente, refletindo o resultado financeiro real de qualquer
+decisão tomada nas duas regras acima.
+
+---
+
 # Regra para agentes
 
 Antes de implementar uma funcionalidade:
