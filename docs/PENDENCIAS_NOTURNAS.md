@@ -107,7 +107,16 @@ descartado do cálculo, listando qual e por quê.
 
 ## Sessão 2026-09-09 (fila autônoma) — filtros, layout de cards, hub de navegação
 
-### Posicionamento não especificado — pra revisar (regra de trabalho autônomo)
+**Resumo da fila** (ordem de execução): Prioridade 0 (investigação do bug
+financeiro, ver seção no topo deste arquivo — NÃO corrigido, decisão
+pendente) → Prioridade 1 (filtros em Preparos) → Prioridade 2 (Cardápios
+Feitos em cards) → Prioridade 3 (hub de navegação "Senhor Churrasco").
+Todas as Prioridades 1-3 foram implementadas, testadas (tsc/eslint/vitest
++ browser) e commitadas, uma por commit. A Prioridade 0 ficou só
+investigada e documentada, conforme instruído — nenhuma alteração na
+regra de negócio de precificação foi feita.
+
+### Posicionamento/nome não especificado — pra revisar (regra de trabalho autônomo)
 
 - **Filtros de Preparos**: coloquei o campo de busca por nome e o select
   de Categoria juntos, numa faixa horizontal no topo da lista (dentro do
@@ -130,6 +139,13 @@ descartado do cálculo, listando qual e por quê.
   a página de `max-w-2xl` pra `max-w-4xl` pra caber 2 colunas
   confortavelmente. Preço fixo aparece como badge no canto superior
   direito do card (laranja se tiver preço, cinza "Sem preço fixo" se não).
+- **Nome do botão/hub de navegação**: escolhi **"Senhor Churrasco"** em vez
+  de "Buffet" (a outra opção sugerida no pedido). Razão: "Buffet" é
+  ambíguo porque o sistema também atende Anjos Cerimonial e Em Plena
+  Natureza — "Senhor Churrasco" identifica sem ambiguidade a qual das três
+  empresas aquelas funcionalidades pertencem. Rota escolhida:
+  `/senhor-churrasco`. **Pedro, confirme se o nome serve ou se prefere
+  outro.**
 
 ### Resolvido e executado
 
@@ -151,6 +167,16 @@ descartado do cálculo, listando qual e por quê.
    corretas (14, 14, 16, 21, 11, 14 itens) e o filtro "Sem preço fixo"
    corretamente mostra "Nenhum cardápio encontrado" (os 6 atuais têm
    preço fixo).
+3. **Hub de navegação "Senhor Churrasco"**: criada `/senhor-churrasco`
+   (`src/app/senhor-churrasco/page.tsx`) com links pra Preparos, Cardápios
+   Feitos e Simulador de Cardápio (mesmo estilo de card usado na Home). A
+   Home (`src/app/page.tsx`) teve as 3 entradas soltas removidas do array
+   `funcionalidades`, ficando só com Agenda unificada + o novo bloco
+   "Senhor Churrasco" — grid mudado de 3 pra 2 colunas (6→4 blocos,
+   3 colunas deixava um bloco sozinho na segunda linha). Testado
+   manualmente no browser: Home mostra só 2 blocos ativos + os 2
+   desabilitados de sempre; hub mostra os 3 links; cada um navega pra
+   sua página; "← Início" do hub volta corretamente pra Home.
 
 ## AGUARDANDO RETOMADA — Etapa 3 do Motor de Pacotes Fixos (pausada em 2026-09-08)
 
