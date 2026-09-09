@@ -15,7 +15,7 @@ export default async function CardapiosModeloPage() {
 
   return (
     <main className="venue-glow flex flex-1 flex-col items-center px-6 py-16">
-      <div className="flex w-full max-w-2xl flex-col gap-8">
+      <div className="flex w-full max-w-4xl flex-col gap-8">
         <CabecalhoPagina
           titulo="Cardápios Feitos"
           subtitulo="Cardápios pré-montados pra agilizar o Criar Evento (Senhor Churrasco)."
@@ -30,9 +30,7 @@ export default async function CardapiosModeloPage() {
           }
         />
 
-        <div className="rounded-[2px] bg-paper text-paper-ink shadow-[0_20px_40px_-20px_rgba(0,0,0,0.6)]">
-          <ListaCardapiosModelo cardapios={cardapios} />
-        </div>
+        <ListaCardapiosModelo cardapios={cardapios} />
       </div>
     </main>
   );

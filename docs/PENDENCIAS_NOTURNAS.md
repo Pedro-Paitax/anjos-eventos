@@ -116,6 +116,20 @@ descartado do cálculo, listando qual e por quê.
   especificado onde exatamente; escolhi manter tudo dentro do card já
   existente em vez de um bloco separado, pra não mudar a estrutura da
   página. `src/components/lista-preparos.tsx`.
+- **Cardápios Feitos — critério do filtro**: você deixou em aberto ("por
+  faixa de preço, ou por ter/não ter preço fixo"). Escolhi **ter/não ter
+  preço fixo** (3 opções: Todos/Com preço fixo/Sem preço fixo) em vez de
+  faixa de preço, porque é a distinção que já existe no schema
+  (`Preco_Fixo_Por_Pessoa` nullable) e é a mais imediatamente útil pra
+  quem administra os cardápios — uma faixa de R$ exigiria inventar
+  intervalos arbitrários sem pedido explícito de quais. Se preferir por
+  faixa também, me avise que eu adiciono.
+- **Cardápios Feitos — layout**: troquei a lista de linhas por grid de
+  cards (`grid-cols-1 sm:grid-cols-2`), removi o container "card único"
+  que envolvia a lista (cada cardápio agora é seu próprio card) e alarguei
+  a página de `max-w-2xl` pra `max-w-4xl` pra caber 2 colunas
+  confortavelmente. Preço fixo aparece como badge no canto superior
+  direito do card (laranja se tiver preço, cinza "Sem preço fixo" se não).
 
 ### Resolvido e executado
 
@@ -127,6 +141,16 @@ descartado do cálculo, listando qual e por quê.
    (`src/lib/preparos-opcoes.ts`). Testado manualmente no browser: busca
    por "arroz" reduziu corretamente pros 4 preparos com esse nome; filtro
    "Carnes" mostrou só os preparos dessa categoria.
+2. **Cardápios Feitos em layout de cards**: `src/lib/cardapios-modelo.ts`
+   passou a expor `precoFixoPorPessoa` e `quantidadeItens` (o count de
+   `Cardapio_Modelo_Itens` já vem de graça no registro básico do NocoDB,
+   sem round-trip extra) em `CardapioModeloResumo`. Grid de cards com
+   preço e contagem visíveis sem precisar abrir/editar, badge de preço
+   fixo, e filtro Todos/Com preço fixo/Sem preço fixo. Testado
+   manualmente no browser: os 6 cardápios aparecem com as contagens
+   corretas (14, 14, 16, 21, 11, 14 itens) e o filtro "Sem preço fixo"
+   corretamente mostra "Nenhum cardápio encontrado" (os 6 atuais têm
+   preço fixo).
 
 ## AGUARDANDO RETOMADA — Etapa 3 do Motor de Pacotes Fixos (pausada em 2026-09-08)
 

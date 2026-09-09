@@ -10,7 +10,13 @@ const TABELA_CARDAPIO_MODELO_ITENS = "mv4p70wqf1iihe8";
 // Cardapios_Modelo.Cardapio_Modelo_Itens (hm, pra listar os itens de um cardápio).
 const CAMPO_LINK_ITENS = "c4zoyckd0saty1z";
 
-type CardapioModeloRegistro = { Id: number; Nome: string; Descricao: string | null };
+type CardapioModeloRegistro = {
+  Id: number;
+  Nome: string;
+  Descricao: string | null;
+  Preco_Fixo_Por_Pessoa: number | null;
+  Cardapio_Modelo_Itens: number;
+};
 type ItemLinkRegistro = { Id: number };
 type ItemRegistroCompleto = {
   Id: number;
@@ -21,6 +27,8 @@ export type CardapioModeloResumo = {
   id: number;
   nome: string;
   descricao: string | null;
+  precoFixoPorPessoa: number | null;
+  quantidadeItens: number;
 };
 
 export type CardapioModeloItemExistente = {
@@ -45,7 +53,13 @@ export async function listarCardapiosModelo(): Promise<CardapioModeloResumo[]> {
     token
   );
   return (resposta?.list ?? [])
-    .map((r) => ({ id: r.Id, nome: r.Nome, descricao: r.Descricao }))
+    .map((r) => ({
+      id: r.Id,
+      nome: r.Nome,
+      descricao: r.Descricao,
+      precoFixoPorPessoa: r.Preco_Fixo_Por_Pessoa,
+      quantidadeItens: r.Cardapio_Modelo_Itens,
+    }))
     .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
 }
 
@@ -84,6 +98,8 @@ export async function obterCardapioModeloComItens(
     id: cardapio.Id,
     nome: cardapio.Nome,
     descricao: cardapio.Descricao,
+    precoFixoPorPessoa: cardapio.Preco_Fixo_Por_Pessoa,
+    quantidadeItens: cardapio.Cardapio_Modelo_Itens,
     itens: itens.filter((i): i is CardapioModeloItemExistente => i !== null),
   };
 }
