@@ -5,8 +5,10 @@ import type { CategoriaCardapio, Preparo } from "@/lib/cardapio";
 import type { PrecificacaoResultado } from "@/lib/precificacao-cardapio";
 import { campoClasse, rotuloClasse, secaoTituloClasse } from "@/components/formulario-evento";
 import { SeletorCardapio } from "@/components/seletor-cardapio";
-import { calcularPrecificacaoAction } from "@/app/actions/precificacao";
+import { calcularDebugCardapioAction, calcularPrecificacaoAction } from "@/app/actions/precificacao";
 import { calcularTaxaDeslocamento, sugerirQuantidadeGarcom, VALOR_GARCOM_PADRAO } from "@/lib/precificacao-constantes";
+
+type ResultadoDebug = Awaited<ReturnType<typeof calcularDebugCardapioAction>>;
 
 const DEBOUNCE_MS = 600;
 
@@ -37,6 +39,13 @@ export function SimuladorCardapio({
   // só silenciosamente sumir do preço (docs/PENDENCIAS_NOTURNAS.md,
   // achado de 2026-09-09).
   const [itensExcluidos, setItensExcluidos] = useState<{ preparo: string; motivo: string }[]>([]);
+
+  // "Ver cálculos" — diagnóstico do que está selecionado agora na tela
+  // (docs/PENDENCIAS_NOTURNAS.md, bug de mistura de unidades). Recalculado
+  // no clique, não fica preso ao resultado do debounce anterior.
+  const [mostrarCalculos, setMostrarCalculos] = useState(false);
+  const [debugResultado, setDebugResultado] = useState<ResultadoDebug | null>(null);
+  const [calculandoDebug, setCalculandoDebug] = useState(false);
 
   const numConvidadosNumero = paraNumero(numConvidados);
   const quantidadeGarcomSugerida =
@@ -74,6 +83,28 @@ export function SimuladorCardapio({
 
     return () => clearTimeout(timer);
   }, [simulacaoAtiva, preparoIdsSelecionados, numConvidadosNumero, regiaoMetropolitana, qtdGarcons, valorGarcom]);
+
+  async function alternarCalculos() {
+    if (mostrarCalculos) {
+      setMostrarCalculos(false);
+      return;
+    }
+
+    setMostrarCalculos(true);
+    setCalculandoDebug(true);
+    try {
+      const resposta = await calcularDebugCardapioAction({
+        preparoIds: preparoIdsSelecionados,
+        numConvidados: numConvidadosNumero,
+        regiaoMetropolitanaCuritiba: regiaoMetropolitana,
+        quantidadeGarcom: paraNumero(qtdGarcons) || undefined,
+        valorGarcom: paraNumero(valorGarcom) || undefined,
+      });
+      setDebugResultado(resposta);
+    } finally {
+      setCalculandoDebug(false);
+    }
+  }
 
   return (
     <div className="flex flex-col gap-8">
@@ -211,7 +242,132 @@ export function SimuladorCardapio({
             </div>
           </div>
         )}
+
+        {simulacaoAtiva && resultado && (
+          <div className="flex flex-col gap-4">
+            <button
+              type="button"
+              onClick={alternarCalculos}
+              className="self-start rounded-[2px] border border-paper-dim/30 px-4 py-2 text-sm text-paper-dim transition hover:border-paper-dim hover:text-paper"
+            >
+              {mostrarCalculos ? "Ocultar cálculos" : "Ver cálculos"}
+            </button>
+
+            {mostrarCalculos && (
+              <PainelCalculos resultado={debugResultado} carregando={calculandoDebug} />
+            )}
+          </div>
+        )}
       </section>
+    </div>
+  );
+}
+
+function PainelCalculos({
+  resultado,
+  carregando,
+}: {
+  resultado: ResultadoDebug | null;
+  carregando: boolean;
+}) {
+  if (carregando) {
+    return <p className="text-sm text-paper-dim">Calculando o passo a passo…</p>;
+  }
+  if (!resultado) return null;
+  if ("erro" in resultado) {
+    return (
+      <p className="rounded-[2px] border border-red-500/50 bg-red-950/30 px-4 py-3 text-sm text-red-200">
+        Erro ({resultado.status}): {resultado.erro}
+      </p>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
+      <p className="text-sm text-paper-dim">
+        Passo a passo do que <code className="text-paper">distribuirPorcoes</code> e{" "}
+        <code className="text-paper">calcularPrecificacaoCardapio</code> calculam pra cada item
+        selecionado acima — nenhuma fórmula diferente da usada no valor sugerido.
+      </p>
+
+      <div className="overflow-x-auto rounded-[2px] bg-paper text-paper-ink shadow-[0_20px_40px_-20px_rgba(0,0,0,0.6)]">
+        <table className="w-full min-w-[1100px] border-collapse text-sm">
+          <thead>
+            <tr className="border-b border-paper-ink/15 text-left text-paper-ink/60">
+              <th className="px-3 py-2 font-normal">Preparo</th>
+              <th className="px-3 py-2 font-normal">Macro (unidade)</th>
+              <th className="px-3 py-2 font-normal">Unid. rendimento preparo</th>
+              <th className="px-3 py-2 font-normal">Peso (origem)</th>
+              <th className="px-3 py-2 font-normal">Soma pesos grupo</th>
+              <th className="px-3 py-2 font-normal">Porção calc. → final</th>
+              <th className="px-3 py-2 font-normal">Volume total</th>
+              <th className="px-3 py-2 font-normal">Rendimento</th>
+              <th className="px-3 py-2 font-normal">Custo/unid. rend.</th>
+              <th className="px-3 py-2 font-normal">Custo total item</th>
+            </tr>
+          </thead>
+          <tbody>
+            {resultado.linhas.map((linha) => (
+              <tr
+                key={linha.preparoId}
+                className={
+                  linha.unidadeDivergente
+                    ? "border-b border-paper-ink/10 bg-red-600/15 text-red-900"
+                    : "border-b border-paper-ink/10"
+                }
+              >
+                <td className="px-3 py-2 font-medium">{linha.preparoNome}</td>
+                <td className="px-3 py-2">
+                  {linha.macroCategoriaNome} ({linha.unidadeMacro})
+                </td>
+                <td className="px-3 py-2">
+                  {linha.unidadeRendimentoPreparo}
+                  {linha.unidadeDivergente && (
+                    <span className="ml-1 font-semibold text-red-700">≠ unidade da macro</span>
+                  )}
+                </td>
+                <td className="px-3 py-2">
+                  {linha.peso} <span className="text-paper-ink/60">({linha.origemPeso})</span>
+                </td>
+                <td className="px-3 py-2">{linha.somaPesosGrupo}</td>
+                <td className="px-3 py-2">
+                  {linha.porcaoCalculada} → {linha.porcaoFinal}
+                  {linha.limitadaPorHardCap && (
+                    <span className="ml-1 text-paper-ink/60">
+                      (Hard Cap {linha.porcaoMaximaIndividual})
+                    </span>
+                  )}
+                </td>
+                <td className="px-3 py-2">
+                  {linha.volumeNecessarioTotal} {linha.unidadeMacro}
+                  {linha.quantidadeParaCusto !== linha.volumeNecessarioTotal && (
+                    <span className="text-paper-ink/60">
+                      {" "}
+                      → {linha.quantidadeParaCusto} un (convertido)
+                    </span>
+                  )}
+                </td>
+                <td className="px-3 py-2">{linha.rendimento}</td>
+                <td className="px-3 py-2">R$ {linha.custoPorUnidadeRendimento.toFixed(2)}</td>
+                <td className="px-3 py-2 font-medium">R$ {linha.custoTotalItem.toFixed(2)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {resultado.itensExcluidos.length > 0 && (
+        <div className="rounded-[2px] border border-paper-dim/20 bg-ink-soft/60 p-4">
+          <p className="mb-2 text-sm text-paper-dim">Itens excluídos do cálculo</p>
+          <ul className="flex flex-col gap-1 text-sm text-paper">
+            {resultado.itensExcluidos.map((item) => (
+              <li key={item.preparo}>
+                <span className="font-medium">{item.preparo}</span> — {item.motivo}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }

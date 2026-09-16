@@ -5,6 +5,7 @@ import {
   calcularPrecificacaoEventoParaPreparos,
   calcularPrecificacaoParaPreparos,
 } from "@/lib/precificacao-evento";
+import { calcularDebugCardapio } from "@/lib/debug-calculo-cardapio";
 import { obterUsuarioAtual } from "@/lib/usuario-atual";
 
 export type EntradaPrecificacao = {
@@ -62,4 +63,25 @@ export async function calcularPrecificacaoEventoAction(entrada: EntradaPrecifica
     },
     entrada.distribuicaoConvidados
   );
+}
+
+/**
+ * "Ver cálculos" no Simulador de Cardápio — recebe exatamente a mesma
+ * seleção/opções em uso na tela no momento do clique (não uma cópia
+ * separada) e devolve o passo a passo por item, pra investigar o bug de
+ * mistura de unidades (docs/PENDENCIAS_NOTURNAS.md) sem sair do fluxo
+ * normal de simulação. Reaproveita distribuirPorcoes/
+ * calcularPrecificacaoCardapio sem alteração — ver
+ * src/lib/debug-calculo-cardapio.ts.
+ */
+export async function calcularDebugCardapioAction(entrada: EntradaPrecificacao) {
+  const usuarioAtual = await obterUsuarioAtual();
+  if (!usuarioAtual) redirect("/login");
+
+  return calcularDebugCardapio(entrada.preparoIds, {
+    numConvidados: entrada.numConvidados,
+    regiaoMetropolitanaCuritiba: entrada.regiaoMetropolitanaCuritiba,
+    quantidadeGarcom: entrada.quantidadeGarcom,
+    valorGarcom: entrada.valorGarcom,
+  });
 }
