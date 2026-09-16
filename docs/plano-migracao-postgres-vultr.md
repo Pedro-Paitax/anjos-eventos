@@ -1,6 +1,15 @@
 # Migração de Infraestrutura e Remoção do NocoDB — Plano Consolidado
 
-Status: APROVADA (arquitetura); execução pendente
+Status: APROVADA (arquitetura); execução em andamento — VPS Oracle Cloud
+já provisionada e reachable via Tailscale (`100.121.229.81:5432`).
+Identidade do provedor **verificada de forma independente em 16/09**
+(SSH `opc@100.121.229.81` — usuário padrão de imagens Oracle —,
+`/etc/os-release` = Oracle Linux Server 9.8, kernel Unbreakable
+Enterprise Kernel aarch64, e resposta real do endpoint de metadata da
+OCI em `169.254.169.254/opc/v2/instance/`); a reachability via Tailscale
+por si só, confirmada em 15/09, não provava o provedor (endereço
+100.64.0.0/10 é CGNAT/Tailscale, não identifica quem está por trás).
+Schema e migração de dado ainda pendentes.
 
 ## Nota de governança (ADR formal)
 
@@ -30,23 +39,42 @@ Dois problemas convergindo na mesma decisão:
 
 **Decisão:** abandonar o NocoDB por completo, migrar para PostgreSQL puro,
 acessado via Drizzle ORM — simultaneamente à migração de infraestrutura
-para uma VPS dedicada (Vultr, 2GB RAM, região definida por custo — ver
-nota abaixo).
+para uma VPS dedicada na Oracle Cloud, camada Always Free Tier (2 vCPU,
+12GB RAM — instância ARM Ampere, IP Tailscale `100.121.229.81`),
+substituindo o plano original de contratar na Vultr.
 
-NOTA SOBRE REGIÃO E DIMENSIONAMENTO (correção pós-provisionamento inicial):
-a primeira tentativa de provisionamento (8GB, São Paulo) saiu a $60/mês —
-muito acima do orçamento-alvo. Dois ajustes, validados em consenso técnico:
-(1) o dimensionamento de 8GB foi calculado em cima do consumo do NocoDB
-(principal consumidor de RAM da arquitetura antiga); com PostgreSQL puro
-+ Next.js compilado fora do servidor, 2GB é suficiente com margem de
-segurança (não 1GB — decisão deliberada de manter folga, dado que
-subdimensionamento já causou problema real nesta mesma migração). (2) O
-Pedro decidiu que presença física no Brasil deixou de ser requisito
-obrigatório — 100ms de latência adicional (região dos EUA vs. São Paulo)
-é imperceptível para um painel administrativo de preenchimento de
-formulário, não uma aplicação sensível a tempo real. Região final: a mais
-barata disponível (tipicamente EUA-Leste, ex: Miami), mantendo backup
-automático habilitado.
+NOTA SOBRE A TROCA DE PROVEDOR (Vultr → Oracle Cloud) — CONFIRMADO com o
+Pedro: a avaliação original (ver histórico abaixo) comparou Hetzner,
+Vultr e AWS, chegando à Vultr como recomendação por custo-benefício com
+presença no Brasil, culminando numa configuração de $60/mês corrigida
+para ~2GB. A escolha final foi Oracle Cloud pelo Always Free Tier —
+custo R$0/mês, com 2 vCPU e 12GB de RAM, superando em recursos qualquer
+plano pago que havíamos avaliado na Vultr. Isso satisfaz melhor do que
+qualquer alternativa anterior o critério original do Pedro ("gostaria de
+algo que não cobrasse ou cobre pouco").
+
+Com 12GB de RAM disponível (6x mais do que os 2GB planejados
+originalmente para a Vultr), a margem de segurança contra o tipo de OOM
+que motivou toda essa migração deixa de ser uma preocupação de
+dimensionamento apertado — folga generosa mesmo com NocoDB, dois Postgres
+e qualquer carga futura de tráfego público do Simulador.
+
+NOTA SOBRE DIMENSIONAMENTO (correção pós-avaliação inicial, contexto que
+motivou a decisão de tamanho, independente do provedor final): a primeira
+tentativa de provisionamento no plano original (8GB, Vultr São Paulo)
+saiu a $60/mês — muito acima do orçamento-alvo. Dois ajustes, validados
+em consenso técnico: (1) o dimensionamento de 8GB foi calculado em cima
+do consumo do NocoDB (principal consumidor de RAM da arquitetura antiga);
+com PostgreSQL puro + Next.js compilado fora do servidor, 2GB é
+suficiente com margem de segurança (não 1GB — decisão deliberada de
+manter folga, dado que subdimensionamento já causou problema real nesta
+mesma migração). (2) O Pedro decidiu que presença física no Brasil
+deixou de ser requisito obrigatório — 100ms de latência adicional
+(região dos EUA vs. São Paulo) é imperceptível para um painel
+administrativo de preenchimento de formulário, não uma aplicação
+sensível a tempo real. Região final: a mais barata disponível
+(tipicamente EUA-Leste, ex: Miami), mantendo backup automático
+habilitado.
 
 ## Ordem de execução (invertida da proposta original — corrigida)
 
@@ -56,7 +84,9 @@ mascararia erros de migração (timeouts de gravação) atrás de problemas de
 memória, tornando impossível distinguir bug de lógica de limitação de
 hardware.
 
-1. Provisionar a VPS nova (Vultr, São Paulo, 8GB RAM, Debian) limpa.
+1. Provisionar a VPS nova (Oracle Cloud Always Free Tier, IP Tailscale
+   `100.121.229.81`, 2 vCPU, 12GB RAM, Debian) limpa — já feita, conforme
+   sessões anteriores.
 2. Desenhar o schema nativo do Postgres diretamente na VPS nova (sem
    herdar a estrutura suja do NocoDB — prefixos `nc_`, tabelas de
    metadado e junções abstratas que ele cria internamente).
@@ -94,8 +124,14 @@ reais, ao contrário do NocoDB, que não garante isso na mesma medida).
 
 ## Disaster Recovery (requisito inegociável da migração)
 
-1. **Nível de hardware:** ativar Automated Snapshots diários da Vultr —
-   restauração da máquina inteira com um clique, se necessário.
+1. **Nível de hardware:** ativar o mecanismo de backup/snapshot
+   automático disponível na Oracle Cloud para a instância — restauração
+   da máquina inteira, se necessário. **Pendente de confirmação:** não
+   está registrado nesta conversa se isso já foi configurado na Oracle (o
+   requisito era originalmente descrito para a Vultr "Automated
+   Snapshots"; a Oracle tem mecanismo equivalente, mas configurado de
+   forma diferente — verificar e confirmar antes de considerar este item
+   cumprido).
 2. **Nível de dado:** cron job diário (madrugada) rodando `pg_dump`,
    comprimindo e enviando o arquivo para armazenamento fora da VPS (ex:
    Google Drive, S3, Cloudflare R2). Snapshot de hardware não substitui
