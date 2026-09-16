@@ -159,7 +159,7 @@ ou não estar vinculada a um Evento confirmado.
 | Cliente_Nome | Preenchido em simulações/leads antes de existir Evento formal | TEXT | nullable |
 | Num_Convidados | Base de cálculo de porção × convidados | INTEGER | NOT NULL |
 | Status | Enum fechado: Simulação, Enviado, Aceito, Recusado | TEXT com CHECK, ou ENUM | NOT NULL |
-| Valor_Base_Por_Pessoa | Ver **Lacuna 1** — status deste campo é ambíguo frente a decisões posteriores | NUMERIC(10,2) | nullable |
+| ~~Valor_Base_Por_Pessoa~~ | **REMOVIDO — ver Lacuna 1, RESOLVIDA** | — | — |
 | Desconto_Tipo | Enum: Percentual, Valor Fixo, Nenhum | TEXT com CHECK, ou ENUM | nullable |
 | Desconto_Valor | Valor ou percentual do desconto, interpretado conforme Desconto_Tipo | NUMERIC(10,2) | nullable |
 | Usar_Preco_Fixo_Modelo | Indica se a simulação mantém o preço fechado de um Cardápio Modelo | BOOLEAN | **sem DEFAULT true incondicional** — só true quando um Cardápio Modelo com preço fixo foi carregado (nunca true para template sem preço fixo) |
@@ -175,16 +175,20 @@ ou não estar vinculada a um Evento confirmado.
 
 ## Lacunas e Incertezas — Explícitas, Não Preenchidas por Suposição
 
-1. **`Orcamentos.Valor_Base_Por_Pessoa` tem status ambíguo.** Foi criado
-   junto com a "Arquitetura Financeira do Orçamento" (receita = valor
-   base manual × convidados). Depois disso, a decisão "Precificação por
-   Cardápio Selecionado" mudou o modelo para o Valor Sugerido nascer
-   **dinamicamente** do custo dos itens × 1,40 — não de um valor base
-   inserido manualmente. As duas decisões nunca foram explicitamente
-   reconciliadas nesta conversa: o campo continua existindo no schema, mas
-   não está claro se ele ainda é usado (ex: como override manual do
-   vendedor) ou se ficou órfão. **Precisa de decisão do Pedro antes da
-   migração**, não vou presumir qual dos dois modelos prevalece.
+1. **`Orcamentos.Valor_Base_Por_Pessoa` — RESOLVIDA (consenso técnico
+   Claude+Gemini, decisão do Pedro).** Havia ambiguidade entre o modelo
+   antigo (preço manual base × convidados) e o modelo dinâmico atual
+   (custo × 1,40). Resolvido: **campo removido do schema.**
+   `Valor_Sugerido_Por_Pessoa` nunca é uma coluna persistida — é sempre
+   calculado em tempo real (mesmo princípio já aplicado a Custo Projetado
+   e Margem Projetada, nunca armazenados). O Pedro confirmou que negocia
+   descontos sobre o **valor total do pacote**, nunca ajustando o valor
+   por pessoa diretamente — as colunas `Desconto_Tipo`/`Desconto_Valor`
+   (já existentes) continuam sendo o único mecanismo de negociação,
+   aplicadas sobre `Valor_Sugerido_Total_Evento`. Confirmado também: Garçom
+   e Taxa de Deslocamento nunca entram no valor por pessoa — são somados
+   separadamente ao total, como já era o comportamento do resto do
+   sistema.
 
 2. **Tipo de chave primária não decidido formalmente.** Todo o histórico
    desta conversa referencia IDs como inteiros pequenos (ex: "Alcatra
