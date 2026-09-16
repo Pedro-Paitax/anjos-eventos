@@ -803,3 +803,29 @@ item.
 
 Sem segredos hardcoded, sem chamadas ao NocoDB do lado do cliente, sem
 TODO/FIXME em `src/`.
+
+## Sessão 2026-09-16 (tarde) — drizzle-kit push executado contra Oracle Cloud (autorizado)
+
+Autorizado explicitamente pelo Pedro ("Autorizado: rode npx drizzle-kit
+push"). Antes de rodar, confirmei de novo que `app_db` (Oracle Cloud,
+100.121.229.81) estava vazio: `information_schema.tables` fora dos
+schemas de sistema retornou 0 linhas.
+
+`npx drizzle-kit push` → "Changes applied". Estrutura conferida depois
+via `information_schema.tables`/`columns`: **11 tabelas criadas**,
+todas batendo exatamente com o DDL revisado em
+`drizzle/0000_hot_madame_hydra.sql` (mesmos nomes de coluna, tipos,
+enums, nullability).
+
+Validação pós-push: `tsc --noEmit` 0 erros, `eslint` 0 erros/warnings,
+`vitest run` 35/35 — sem regressão com o banco real já populado.
+
+**NÃO iniciado**: nenhum script de ETL escrito ou executado. Nenhuma
+leitura em massa do NocoDB de produção. Isso fica pra próxima etapa,
+com o script de extração revisado pelo Pedro antes de rodar contra
+produção — mesmo sendo só leitura, é o primeiro contato real com o
+dado de produção nesta migração.
+
+O NocoDB/Postgres de produção do "ender" não foi tocado em nenhum
+momento desta sessão — nenhum comando rodou contra a porta do NocoDB
+nem contra o Postgres dele.
