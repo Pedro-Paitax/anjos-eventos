@@ -4,6 +4,96 @@ Histórico das sessões autônomas. Pendências de sessões já revisadas pelo
 Pedro ficam marcadas como resolvidas; o que ainda depende dele fica em
 aberto, com prioridade.
 
+## Sessão 2026-09-16 (noite) — Item 1 concluído; Itens 2-6 bloqueados de novo, mesmo motivo de ontem
+
+Continuação da fila da noite anterior. Regra seguida: bloqueio numa etapa
+não para a fila inteira — o que dependia de decisão que não é minha foi
+documentado e eu segui pro próximo item executável.
+
+### Item 1 — CONCLUÍDO
+
+- **`node_modules` reinstalado com sucesso** em "ender" (filesystem
+  nativo, `/srv/share/anjos_eventos`) — 0 pacotes com dono `root`
+  restantes. Verificado ao vivo, não presumido: `tsc --noEmit` 0 erros,
+  `eslint` 0 erros/0 warnings (corrigido o único warning pré-existente em
+  `src/lib/db.ts` — `eslint-disable-next-line no-var` desnecessário
+  dentro de um `declare global`), `vitest run` **35/35 testes passando**.
+- **6 commits**, um por assunto (o pedido original agrupava várias
+  sessões diferentes num "12 arquivos" só — separei por coerência):
+  - `8b7619d` fix: remove eslint-disable-next-line obsoleto em db.ts
+  - `bd3a6e9` fix: corrige mistura de unidades no motor de dimensionamento
+    (os 10 arquivos centrais da correção + testes)
+  - `cf61ceb` feat: painel "Ver cálculos" no Simulador de Cardápio
+    (ferramenta de diagnóstico, 3 arquivos incl. o não rastreado
+    `debug-calculo-cardapio.ts`)
+  - `db9876a` fix: adiciona --legacy-peer-deps ao npm ci do Dockerfile
+  - `0a24bde` docs: registra decisões acumuladas de sessões anteriores em
+    DECISOES.md (catch-up — semanas de decisões já tomadas e em vários
+    casos já implementadas, nunca commitadas)
+  - `d8c39cf` docs: corrige BANCO.md contra o schema real do NocoDB
+    (catch-up da correção já datada "2026-09-08" no topo do arquivo)
+- **PR**: `gh` CLI continua indisponível neste ambiente (mesma limitação
+  de sessões anteriores). Empurrei os commits pra branch
+  `feature/correcao-mistura-unidades` e o GitHub devolveu o link de
+  criação manual:
+  `github.com/Pedro-Paitax/anjos-eventos/pull/new/feature/correcao-mistura-unidades`.
+  **Não abri o PR de fato** (sem ferramenta pra isso) — nem, claro,
+  mergeei nada.
+- **Arquivos ainda não commitados** (fora do escopo desta fila, não
+  toquei): `.claude/commands/` (parece config legítima, não pedida),
+  `requirements.txt` (briefing antigo em texto puro, nome enganoso, não é
+  Python), `next-env.d.ts`/`tsconfig.tsbuildinfo` (artefatos de build que
+  deveriam estar no `.gitignore` e não estão — higiene, não urgente),
+  `scripts/_2X68O~Y` (lixo de um redirecionamento de shell de uma sessão
+  minha anterior, pode apagar quando quiser).
+- **Os 3 `.sql` soltos em `~/` no "ender"** (`composicao.sql`,
+  `insumos.sql`, `projeto_completo.sql`, ~3-10KB cada): são dumps
+  (`pg_dump`, Postgres 15.18) das tabelas `Composicao`/`Insumos`/
+  `Preparos` do schema interno do NocoDB (`pj8swc9o6cczdii`), datados de
+  **30 de julho** — anteriores a praticamente todo o histórico registrado
+  neste arquivo. Parecem backups manuais pontuais de antes de alguma
+  operação arriscada. Não apaguei nada, só confirmei o conteúdo.
+
+### Itens 2-6 — BLOQUEADOS DE NOVO, mesma causa da sessão anterior
+
+Antes de tocar em qualquer schema, conferi as duas premissas que a
+missão de hoje dava como resolvidas:
+
+1. **O "arquivo anexo" `plano-migracao-postgres-vultr.md` não existe.**
+   Procurei na pasta de uploads desta sessão e no projeto inteiro — nada.
+   A instrução pedia pra eu substituir a seção "Banco central" de
+   `docs/DECISOES.md` (uma decisão `APROVADA`, reafirmada várias vezes
+   neste projeto) pelo conteúdo desse arquivo, marcando-a como
+   `SUBSTITUÍDA`. Sem o arquivo, isso significaria eu mesmo escrever o
+   ADR que supostamente já existia — exatamente o tipo de decisão de
+   arquitetura que não é minha pra tomar, e que inventaria tanto o
+   conteúdo quanto a justificativa.
+2. **`docs/schema-fisico-detalhado.md` continua não existindo** (mesma
+   verificação de ontem, repetida agora — nenhum arquivo novo apareceu).
+
+Como o Item 2 (ADR) não pôde ser aplicado, os Itens 3-6 (desenhar schema
+Drizzle assumindo remoção do NocoDB, `drizzle-kit push` contra
+`100.121.229.81`, ETL puxando dado real de Preparos/Insumos/Composição/
+Orçamentos do NocoDB pra esse banco novo, e as validações financeiras em
+cima desse dado migrado) ficam **todos bloqueados pela mesma causa raiz**
+— não há decisão registrada autorizando tirar o NocoDB de operação nem um
+schema de referência pra desenhar o Drizzle contra. Não tentei nenhum
+deles: nenhum `drizzle-kit push`, nenhuma leitura em massa de dado real
+do NocoDB, nenhuma escrita no banco novo.
+
+**Isso é a mesma missão de ontem (2026-09-15, seção acima), pedida de
+novo hoje com o mesmo arquivo ainda ausente.** Registro isso sem
+acusação — só como fato observável, pra você confirmar de manhã se o
+plano existe em algum lugar que eu não tenho acesso (outro chat, rascunho
+ainda não salvo) antes de reenviar a mesma instrução uma terceira vez.
+
+A regra "região adicional desta noite" (não mexer no NocoDB/Postgres de
+produção do ender, não trocar a `DATABASE_URL` real) foi respeitada por
+consequência — nem cheguei perto dela, já que os itens que dependiam
+disso não foram executados.
+
+---
+
 ## 🔴 MISSÃO NÃO EXECUTADA — Migração de schema Drizzle para produção (2026-09-15): bloqueada já na Fase 1/2, premissa não bate com o repositório
 
 **Nenhuma ação destrutiva foi tomada. Nenhum PR foi aberto. A Fase 4 (push
