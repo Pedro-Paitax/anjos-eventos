@@ -4,6 +4,84 @@ Histórico das sessões autônomas. Pendências de sessões já revisadas pelo
 Pedro ficam marcadas como resolvidas; o que ainda depende dele fica em
 aberto, com prioridade.
 
+## Sessão 2026-09-16 (manhã) — ADR aplicado + schema Drizzle nativo desenhado (sem push, sem ETL)
+
+Continuação direta do bloqueio registrado logo abaixo. O Pedro enviou os
+dois arquivos que faltavam (`plano-migracao-postgres-vultr.md` e
+`schema-fisico-detalhado.md`) e resolveu a Lacuna 1
+(`Valor_Base_Por_Pessoa` removido do schema). Verifiquei ambos antes de
+confiar: SSH em `opc@100.121.229.81` confirmou de forma independente
+que a VPS é Oracle Cloud de verdade (`/etc/os-release` = Oracle Linux
+9.8, endpoint de metadata da OCI respondeu) — não apenas alegado.
+
+### Feito
+
+1. **ADR aplicado** (`c3f1a11`): "Banco central" em `docs/DECISOES.md`
+   marcada `SUBSTITUÍDA`, riscada mas não apagada, referenciando
+   `docs/plano-migracao-postgres-vultr.md`.
+2. **Schema Drizzle nativo desenhado** (`3dede71`..`675dd6e`, 6 commits,
+   um por tabela/grupo): `src/db/schema/` — Preparos, Insumos,
+   Composição, Macro_Categorias, Headers_UI + junção nova
+   `header_preparo` (Lacuna 7), Orçamentos, Itens_Orcamento, e uma
+   definição mínima de `itens_evento_confirmados` (necessária só pra
+   existir o alvo do `ON DELETE RESTRICT` de Preparos exigido). PK
+   `INTEGER/SERIAL` preservando IDs (Lacuna 2). `drizzle-orm@0.45.2` +
+   `drizzle-kit@0.31.10` instalados.
+3. **Duas divergências reais encontradas contra o dado ao vivo do
+   NocoDB, corrigidas em vez de seguidas cegamente** (não presumidas):
+   - `Preparos.Categoria`: o documento propunha "Saladas Leves"/"Saladas
+     Pesadas" e omitia "Massas". O dado real (conferido ao vivo) é
+     Bebidas, Carnes, Entrada, Guarnições, Massas, Molhos, Saladas,
+     Sobremesa — a divisão de Saladas nunca tocou este campo, só a
+     Macro_Categoria/Header_UI vinculada. Segui o dado real.
+   - `Unidade_Rendimento`: campo NocoDB permite também KG/Pessoas, mas
+     só G/ML/Unidade têm uso real hoje — segui o documento aqui, com
+     aviso de que um Preparo futuro usando KG/Pessoas quebraria o enum
+     antes do ETL.
+4. **Decisões técnicas minhas, documentadas nos comentários dos arquivos
+   pra revisão** (não formalizadas com você, sinalizadas como tal):
+   - `Preço Corrigido` (Lacuna 6): calculado em runtime pela aplicação,
+     não coluna gerada — evita duplicar a fórmula (com a regra de borda
+     do Fator de Correção) em duas fontes de verdade.
+   - `UNIQUE` em `Insumos.Nome` (pedido explicitamente, confirmado sem
+     duplicatas ao vivo: 122 registros, zero conflitos) e também em
+     `Macro_Categorias.Nome_Macro`/`Headers_UI.Nome_Exibicao` (não
+     pedido, mas óbvio pra tabelas de referência pequenas mantidas à
+     mão — sinalizado para revisão).
+   - `ON DELETE CASCADE` na junção nova `header_preparo` (não pedido,
+     por analogia direta com Composição — dado de vínculo sem
+     significado próprio fora do par).
+   - `Itens_Orcamento.orcamentoId` ficou **sem** `ON DELETE CASCADE` —
+     o próprio documento marca isso como "candidato... não
+     formalizado", não decidi sozinho.
+5. **Validação**: `tsc --noEmit` 0 erros, `eslint` 0 erros/warnings,
+   `vitest run` 35/35 (sem regressão — nada consome o schema novo
+   ainda, é só definição de tipos). Rodado via SSH em "ender"
+   (`/srv/share/anjos_eventos`, filesystem nativo).
+6. **PR**: `gh` continua indisponível. Branch
+   `feature/schema-drizzle-nativo` empurrada, link manual:
+   `github.com/Pedro-Paitax/anjos-eventos/pull/new/feature/schema-drizzle-nativo`.
+   Não abri o PR de fato, não mergeei nada.
+
+### Explicitamente NÃO feito (conforme instruído)
+
+- Nenhum `drizzle-kit push` rodado contra a VPS Oracle Cloud.
+- Nenhum script de ETL escrito nem executado.
+- Nenhuma leitura em massa do NocoDB de produção além das consultas
+  pontuais de verificação acima (Categoria/Unidade_Rendimento/nomes
+  duplicados de Insumos).
+
+### Pendente pra próxima etapa (quando você aprovar)
+
+- Redesenho completo de `itens_evento_confirmados` e
+  `orcamento_itens_adicionais` (ambas fora do escopo desta sessão).
+- Confirmar/ajustar as decisões técnicas sinalizadas no item 4 acima.
+- Só depois: `drizzle-kit generate` (gera SQL de revisão, não escreve
+  no banco) → `drizzle-kit push` → script de ETL → os dois eixos de
+  validação do plano de migração.
+
+---
+
 ## Sessão 2026-09-16 (noite) — Item 1 concluído; Itens 2-6 bloqueados de novo, mesmo motivo de ontem
 
 Continuação da fila da noite anterior. Regra seguida: bloqueio numa etapa
