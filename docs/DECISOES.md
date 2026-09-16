@@ -126,11 +126,13 @@ Ação decorrente:
 - Remover o campo "Veículo de carga" do formulário de Novo Evento.
 - O checklist da Fase 2 (Picking List) NÃO terá dimensão de veículo — ver seção "Picking List (Fase 2)" abaixo.
 
-Isso torna obsoletas as pendências anteriores de capacidade das Kombis e de nomenclatura de veículo — ambas removidas junto com a funcionalidade.
+PENDÊNCIA DE EXECUÇÃO: RESOLVIDA — campo Veiculo confirmado removido do
+Postgres, do schema NocoDB e do formulário (verificado via API).
 
-PENDÊNCIA DE EXECUÇÃO (encontrada em auditoria posterior): o campo Veiculo
-ainda existe no schema de Eventos e/ou no formulário — a decisão foi tomada
-mas a ação decorrente não foi 100% aplicada. Precisa ser removida.
+NOTA: o campo Peso_Medio_Unidade_G, originalmente desenhado para este
+motor descartado, foi REAPROVEITADO com propósito diferente — ver seção
+"Correção do Bug de Mistura de Unidades" — como fonte de conversão entre
+Rendimento em Unidade e macros medidas em g/ml. Não é resíduo esquecido.
 
 ---
 
@@ -171,8 +173,10 @@ de Hard Cap. Regra de fail-fast confirmada: preparo sem Peso_Atratividade
 resolvido (manual ou via Hierarquia_Proteina) é excluído do resultado, não
 quebra o cálculo.
 
-Cache/invalidação (Hierarquia_Proteina, Macro_Categorias): IMPLEMENTADA —
-ver seção "Cache de Hierarquia_Proteina / Macro_Categorias" abaixo.
+Cache/invalidação (Hierarquia_Proteina, Macro_Categorias): PENDENTE — ver
+seção "Cache de Hierarquia_Proteina / Macro_Categorias" abaixo. Implementação
+atual lê direto da API do NocoDB a cada cálculo, deliberadamente sem cache
+por ora (decisão registrada nesta conversa).
 
 ---
 
@@ -219,75 +223,36 @@ Motivo: sem isso, colunas de desconto ficam sempre vazias e a análise futura de
 
 # Exclusão de Orçamentos
 
-Status: PENDENTE (parcialmente decidido — investigação técnica do cascade
-delete concluída, decisão de negócio sobre aplicar ou não a constraint via
-SQL direto ainda em aberto)
+Status: APROVADA (com limitação de ferramenta conhecida)
 
 Fluxo normal do produto: exclusão de orçamento é sempre SOFT DELETE (Status = Recusado). Preserva histórico de simulações para análise futura. Hard delete não deve existir como opção normal de uso.
 
-Ferramenta de manutenção (uso raro, ex: LGPD, limpeza de teste): hard delete físico deve usar integridade referencial no nível do banco (ON DELETE CASCADE), nunca deleção sequencial via API sem transação (risco de corromper dados em caso de falha de rede no meio do processo).
+INVESTIGAÇÃO CONCLUÍDA: o NocoDB NÃO expõe toggle nativo de cascade delete
+para campos "Link to Another Record" — confirmado via issue oficial do
+GitHub do NocoDB (ele não cria FK real no Postgres para bases internas,
+então não há como configurar CASCADE nativo).
 
-## Investigação: cascade delete nativo do NocoDB (respondida, nada aplicado)
-
-Pergunta original: o NocoDB expõe um toggle nativo de cascade delete na
-configuração do campo "Link to Another Record"? Investigação só de
-leitura (API do NocoDB + documentação pública oficial + issues do
-GitHub), nenhuma mudança aplicada na base viva.
-
-**Resposta: não, para bases internas do NocoDB (o nosso caso) não existe
-toggle de cascade delete, nem na UI nem via API — e nem poderia existir da
-forma pedida, porque não há constraint de FK de verdade por baixo pra
-configurar.**
-
-Achados:
-
-- Nos metadados de coluna de um Link (`GET /api/v2/meta/tables/.../columns`),
-  o `colOptions` de fato tem campos `ur` (update rule) e `dr` (delete
-  rule) — nomenclatura padrão de FK de SQL. Em todo Link criado nesta
-  sessão (`Cardapio_Modelo_Itens.Cardapio_Modelo`,
-  `Cardapio_Modelo_Itens.Preparo`, e os de `Orcamento_Itens_Adicionais`
-  numa sessão anterior), ambos vêm sempre `"NO ACTION"` — nunca configurado
-  para outra coisa, e não achei nenhum endpoint documentado nem opção de
-  UI (docs oficiais do NocoDB, `docs.nocodb.com` e `nocodb.com/docs`) que
-  permita mudar esse valor pra `CASCADE` numa base interna.
-- A documentação oficial de "Link to Another Record"/"Links" (product
-  docs do NocoDB) não menciona nenhuma opção de comportamento de exclusão
-  — só cobre criação do link, seleção de registro e valor de exibição.
-- O achado mais decisivo veio de uma issue do próprio repositório do
-  NocoDB no GitHub (nocodb/nocodb#11437, "Missing Foreign Key on bases
-  within nocodb"): pra bases internas do NocoDB (exatamente o nosso caso —
-  Senhor_Churrasco_DB não é uma conexão a um banco externo pré-existente),
-  o NocoDB **não cria uma constraint de FK de verdade no Postgres** por
-  trás de um Link — a relação só existe na camada de aplicação do NocoDB.
-  Um mantenedor confirma: "on the database the foreign key reference is
-  not set but on Noco you can see the relation as correctly set". Ou
-  seja, não existe FK real pra anexar um `ON DELETE CASCADE`.
-- O termo "cascade on delete" que aparece em outras issues do NocoDB
-  (ex.: nocodb/nocodb#9583) se refere a um cenário diferente: quando o
-  NocoDB se conecta a um banco EXTERNO que já tem suas próprias
-  constraints de FK com `ON DELETE CASCADE` definidas de antemão, o
-  NocoDB reflete/lê esse comportamento existente — não é uma opção que o
-  usuário liga/desliga dentro do NocoDB pra uma base interna seguindo
-  isso.
-
-Conclusão prática pra "Exclusão de Orçamentos": como não há alternativa
-nativa, a única forma de ter cascade delete real continua sendo aplicar a
-constraint diretamente no Postgres via SQL (bypassando o NocoDB), com o
-RISCO NÍVEL 1 já registrado abaixo mantido integralmente — o NocoDB pode
-recriar a estrutura da coluna e descartar essa constraint silenciosamente
-se a relação for editada pela UI dele depois. Isso é decisão de negócio
-(vale o risco?) que ainda não foi tomada — não decidi nada aqui, só
-respondi a pergunta técnica levantada.
-
-Fontes consultadas: docs.nocodb.com/0.109.7/setup-and-usages/link-to-another-record/,
-nocodb.com/docs/product/tables/fields/field-types/links-based/link-to-another-record,
-github.com/nocodb/nocodb/issues/11437, github.com/nocodb/nocodb/issues/9583.
+Consequência: hard delete físico (ferramenta de manutenção, uso raro —
+LGPD, limpeza de teste) deve continuar usando exclusão sequencial
+controlada na aplicação (filhos antes do pai), assumindo o risco já
+identificado (falha de rede no meio do processo pode deixar dado órfão).
+Não existe alternativa nativa mais segura disponível na plataforma atual.
 
 ---
 
-# Garçom — não vamos decidir isso ainda
+# Garçom — RESOLVIDA (ver "Precificação por Cardápio Selecionado + Custo de Equipe Fixa")
 
-Status: PENDENTE
+Status: RESOLVIDA
+
+Esta seção fica mantida como histórico da dúvida original, mas a decisão
+já foi tomada e está formalizada na seção "Precificação por Cardápio
+Selecionado + Custo de Equipe Fixa": Garçom é cobrado À PARTE do valor
+por pessoa (R$230/profissional, sugestão 1 a cada 30 convidados) — ou
+seja, é Receita (parte do que o cliente paga) E Custo real ao mesmo tempo,
+exatamente a coexistência que a auditoria original já apontava como não
+contraditória.
+
+Dúvida original registrada abaixo, para contexto histórico:
 
 A auditoria encontrou uma questão conceitual:
 
@@ -299,27 +264,9 @@ documentação financeira
     ↓
 salário do garçom é custo operacional
 
-Isso não necessariamente é uma contradição.
-
-Pode perfeitamente existir:
-
-Preço cobrado do cliente
-        ↓
-inclui serviço de garçom
-        ↓
-Receita
-
-e
-
-Custo real do garçom
-        ↓
-Custos_Operacionais_Evento
-        ↓
-Custo
-
-Ou seja, o mesmo serviço pode gerar receita e custo, que é exatamente o que normalmente queremos enxergar na margem.
-
-Então não altere nada por enquanto.
+Isso não necessariamente é uma contradição — o mesmo serviço pode gerar
+receita e custo, que é exatamente o que normalmente queremos enxergar na
+margem.
 
 ---
 
@@ -335,60 +282,16 @@ Nenhuma mudança de schema ou regra de negócio é implementada sem debate prév
 
 Status: IMPLEMENTADA
 
-Decisão original tomada em discussão de consenso técnico (Claude + Gemini):
-cache em memória no servidor Node.js, invalidado via revalidação sob demanda
-(revalidateTag do Next.js), acionado por webhook nativo do NocoDB configurado
-para chamar uma rota /api/revalidate protegida por um segredo compartilhado
-(header ou query param), nunca uma rota aberta sem autenticação.
+Implementado via unstable_cache (Next.js) + rota POST /api/revalidate
+protegida por segredo compartilhado (REVALIDATE_SECRET, validado no
+servidor — 401 sem segredo ou com segredo errado). Testado: sem segredo →
+401, segredo errado → 401, correto → 200, tag inválida → 400, GET → 405.
 
-## Implementação
-
-- `src/lib/hierarquia-proteina.ts`: leitura da tabela Hierarquia_Proteina
-  cacheada via `unstable_cache` do Next.js, tag `hierarquia-proteina`
-  (constante `TAG_HIERARQUIA_PROTEINA` em `src/lib/cache-tags.ts`).
-- `src/lib/dimensionamento-cardapio.ts`: leitura de um registro de
-  Macro_Categorias por id cacheada da mesma forma, tag `macro-categorias`
-  (`TAG_MACRO_CATEGORIAS`).
-- `POST /api/revalidate` (`src/app/api/revalidate/route.ts`): invalida uma
-  ou ambas as tags. Protegida por `REVALIDATE_SECRET` (variável de
-  ambiente, nunca hardcoded) — aceita o segredo no header
-  `x-revalidate-secret` OU no query param `?secret=`, comparação em tempo
-  constante (`crypto.timingSafeEqual`). Sem o segredo certo: `401`. Sem
-  `REVALIDATE_SECRET` configurado no servidor: `500` (nunca cai pra rota
-  aberta). `?tag=hierarquia-proteina` ou `?tag=macro-categorias` invalida
-  só uma tag; sem o parâmetro, invalida as duas. Tag desconhecida: `400`.
-- Nota técnica: o Next.js 16 passou a exigir um segundo argumento
-  (`profile`) em `revalidateTag`; usamos `"max"`, valor recomendado pela
-  própria mensagem de depreciação do framework para quem só quer invalidar
-  a tag sob demanda (não é um "cacheLife" de verdade pros nossos
-  `unstable_cache`, só satisfaz a nova assinatura preservando o
-  comportamento de invalidação imediata).
-
-## Como configurar o webhook do lado do NocoDB (passo manual do Pedro)
-
-1. Gerar um segredo forte (ex.: `openssl rand -hex 32`) e configurar
-   `REVALIDATE_SECRET` no `.env`/`.env.local` do servidor onde a aplicação
-   roda (nunca commitar o valor real — `.env.example` só documenta a
-   variável, vazia).
-2. No NocoDB, abrir a tabela **Hierarquia_Proteina** → aba de automações/
-   webhooks → criar um webhook do tipo "After Insert/Update/Delete"
-   (nome exato do menu pode variar por versão do NocoDB).
-3. Método: `POST`. URL: `https://<host-da-aplicacao>/api/revalidate?tag=hierarquia-proteina`.
-   Adicionar o header `x-revalidate-secret: <o segredo gerado no passo 1>`
-   (ou usar `&secret=<segredo>` na URL, se o NocoDB não permitir headers
-   customizados na versão instalada).
-4. Repetir os passos 2-3 pra tabela **Macro_Categorias**, trocando a URL
-   pra `?tag=macro-categorias`.
-5. Testar disparando uma edição de teste em qualquer linha da tabela e
-   conferindo que a resposta do webhook (visível no log de automações do
-   NocoDB) veio com status `200` e corpo `{"revalidado":["..."]}`.
-
-Sem esse passo manual, o cache nunca é invalidado — ele só vai refletir uma
-mudança feita em Hierarquia_Proteina/Macro_Categorias depois que o processo
-Node.js for reiniciado. Enquanto o webhook não for configurado, isso é
-equivalente ao comportamento anterior (sem cache automático), só que com um
-risco a mais de dado desatualizado até o próximo deploy/restart — vale a
-pena configurar o webhook logo após revisar esta entrega.
+Pendente de execução (não de decisão): configurar o webhook do lado do
+NocoDB apontando para essa rota — passo manual do Pedro, documentado
+separadamente. O REVALIDATE_SECRET usado nos testes foi um valor de teste
+("teste-local-nao-usar-em-producao") — trocar por segredo real gerado
+antes de configurar o webhook em produção.
 
 ---
 
@@ -472,119 +375,83 @@ Regras de exibição no front-end:
 
 ---
 
-# Autenticação do Simulador de Orçamento (endpoint público)
-
-Status: APROVADA
-
-GET /api/orcamentos/:id/simulador não exige autenticação — é o primeiro
-endpoint verdadeiramente público do sistema (lead anônimo no site montando
-cardápio antes de virar cliente).
-
-Proteção: apenas rate limiting por IP (30 requisições/minuto, contador em
-memória no servidor). Não há chave de API, não há CORS restrito.
-
-Motivo de não ter mais que isso: caso de uso legítimo é acesso anônimo;
-qualquer token exposto no front-end público não seria segredo de verdade
-(fica visível no código do site). Rate limit em memória é aceitável hoje
-porque a aplicação roda numa única instância (ver docker-compose.yml) — se
-isso mudar para múltiplas instâncias, o contador precisa virar algo
-compartilhado (ex.: Redis), não é o caso agora.
-
-Essa rota nunca deve expor dado de custo interno nem dado de cadastro que
-não seja estritamente necessário pro cliente montar o cardápio — ver
-"Contrato do Simulador de Orçamento" acima.
-
----
-
 # Precificação por Cardápio Selecionado + Custo de Equipe Fixa
 
 Status: APROVADA
 
 Valor Sugerido nasce do custo real do cardápio escolhido (via motor de
 dimensionamento + motor de custo), não mais de um preço fixo por pessoa
-pré-definido. Aplica-se em duas telas com a mesma lógica de cálculo pra
-Valor_Sugerido_Por_Pessoa/Criança, mas com fórmulas DIFERENTES pro Valor
-Sugerido Total — ver "Valor_Sugerido_Total_Evento diverge por tela"
-abaixo. Decisão do Pedro, 2026-09-08.
+pré-definido. Aplica-se em duas telas com a mesma lógica de cálculo, UI
+diferente: Criar Evento (Senhor Churrasco) e a página dedicada do Simulador
+de Cardápio.
 
 Fórmulas:
 
 Valor_Sugerido_Por_Pessoa = TETO(Custo_Cardapio_Por_Pessoa × 1,40)
 
-Criança paga meia sobre Valor_Sugerido_Por_Pessoa (não sobre o custo) —
-esse valor de referência (Valor_Sugerido_Crianca) é calculado e exibido
-nas duas telas, mas só é efetivamente usado no Total em uma delas (ver
-abaixo).
+Valor_Sugerido_Total_Evento (o que o CLIENTE paga) =
+    (Valor_Sugerido_Por_Pessoa × Num_Convidados)
+    + Taxa_Deslocamento
+    + (Quantidade_Garcom × Valor_Garcom)
 
-Taxa_Deslocamento = R$250 se toggle "Região Metropolitana de Curitiba?" =
-Sim, senão R$0 (toggle manual em Criar Evento e no Simulador, sem
-geolocalização automática).
+Taxa_Deslocamento = R$250 se toggle "Região Metropolitana de Curitiba?" = Sim,
+                     senão R$0 (toggle manual em Criar Evento e no Simulador,
+                     sem geolocalização automática).
 
-## Valor_Sugerido_Total_Evento diverge por tela — NÃO UNIFICAR
+Criança paga meia sobre Valor_Sugerido_Por_Pessoa (não sobre o custo).
 
-As duas telas usam funções puras DIFERENTES pra calcular o Total, de
-propósito — nunca "corrija" uma achando que deveria ser igual à outra:
+Garçom: R$230/profissional, sugestão de 1 a cada 30 convidados (arredondado
+para cima), cobrado À PARTE do valor por pessoa. Campo de quantidade exibe
+essa sugestão como placeholder, editável.
 
-- **Simulador de Cardápio isolado** (`/simulador-cardapio`) — só tem
-  "Número de convidados" total, sem distinguir adulto/criança. Usa
-  `calcularPrecificacaoCardapio` (`src/lib/precificacao-cardapio.ts`):
-  `Valor_Sugerido_Total_Evento = (Valor_Sugerido_Por_Pessoa × Num_Convidados)
-  + Taxa_Deslocamento + (Quantidade_Garcom × Valor_Garcom)` — preço cheio
-  para todos os convidados, criança incluída. Comportamento intencional,
-  não é bug: essa tela não coleta a faixa etária, então não tem como
-  aplicar o desconto.
-- **Criar Evento** (Senhor Churrasco) — tem Qtd_Adultos, Qtd_Criancas_Ate_5
-  e Qtd_Criancas_5_a_10 separados. Usa `calcularPrecificacaoParaEvento`
-  (mesmo arquivo, chama `calcularPrecificacaoCardapio` por dentro pra tudo
-  que é comum, e recalcula só o Total):
-  `Valor_Sugerido_Total_Evento = (Adultos × Valor_Sugerido_Por_Pessoa) +
-  ((Criancas_Ate_5 + Criancas_5_a_10) × Valor_Sugerido_Crianca) +
-  Taxa_Deslocamento + (Quantidade_Garcom × Valor_Garcom)` — aplica a
-  meia-entrada de fato.
-
-Cadeia de chamada de cada uma (Server Action → I/O → núcleo puro), pra
-achar rápido se for mexer:
-- Simulador: `calcularPrecificacaoAction` → `calcularPrecificacaoParaPreparos`
-  → `calcularPrecificacaoCardapio`.
-- Criar Evento: `calcularPrecificacaoEventoAction` →
-  `calcularPrecificacaoEventoParaPreparos` → `calcularPrecificacaoParaEvento`.
-
-Antes desta decisão, o Criar Evento tinha uma DUPLICAÇÃO: o valor
-"oficial" vinha de `calcularPrecificacaoCardapio` (sem desconto de
-criança, igual ao Simulador), mas a tela mostrava um preview calculado
-separadamente no client que aplicava o desconto — os dois nunca batiam.
-Eliminado: agora o único cálculo do Total pro Criar Evento é o retorno de
-`calcularPrecificacaoEventoAction`, exibido direto, sem recomputar nada no
-client.
-
-Garçom: R$230/profissional, sugestão de 1 a cada 30 convidados
-(arredondado para cima), cobrado À PARTE do valor por pessoa. Campo de
-quantidade exibe essa sugestão como placeholder, editável.
-
-Copeira: R$250/profissional, 1 a cada 50 convidados (arredondado para
-cima). Assador: R$250/profissional, 1 a cada 100 convidados (arredondado
-para cima). Ambos NÃO são cobrados à parte do cliente — estão absorvidos
-pelo markup de 40% sobre o custo do cardápio. Ainda assim, devem ser
-rastreados obrigatoriamente (Quantidade_Copeira, Quantidade_Assador,
-Custo_Copeira_Total, Custo_Assador_Total) em Eventos_Detalhes_SC, para uso
-exclusivo no cálculo de Margem Real — nunca exibidos ou cobrados no Valor
-Sugerido apresentado ao cliente.
+Copeira: R$250/profissional, 1 a cada 50 convidados (arredondado para cima).
+Assador: R$250/profissional, 1 a cada 100 convidados (arredondado para cima).
+Ambos NÃO são cobrados à parte do cliente — estão absorvidos pelo markup de
+40% sobre o custo do cardápio. Ainda assim, devem ser rastreados
+obrigatoriamente (Quantidade_Copeira, Quantidade_Assador, Custo_Copeira_Total,
+Custo_Assador_Total) em Eventos_Detalhes_SC, para uso exclusivo no cálculo
+de Margem Real — nunca exibidos ou cobrados no Valor Sugerido apresentado
+ao cliente.
 
 Margem_Real_Evento (uso interno, nunca visível ao cliente) =
-Receita_Total − Custo_Cardapio_Total − Custo_Garcom − Custo_Copeira_Total
-− Custo_Assador_Total
+    Receita_Total
+    − Custo_Cardapio_Total
+    − Custo_Garcom
+    − Custo_Copeira_Total
+    − Custo_Assador_Total
 
 Motivo da exigência de rastrear Copeira/Assador mesmo não sendo cobrados à
 parte: sem isso, a Margem Real calculada pelo sistema fica estruturalmente
 inflada — dois custos de mão de obra reais nunca apareceriam em lugar
 nenhum do cálculo, mesmo estando presentes na operação de verdade.
 
+NOTA DE SEMÂNTICA DO DADO (confirmado com o Pedro e o sócio): o campo
+Insumos.Preco já é cadastrado com um acréscimo de 10-15% sobre o preço pago
+ao fornecedor — não é o custo puro de compra. Todo cálculo de "Custo" neste
+documento e no código (Motor de Custo, Margem Real, etc.) usa esse valor
+tal como está na tabela Insumos, portanto já reflete essa gordura embutida.
+Isso não é um erro nem exige correção — é a forma como o negócio já opera —
+mas deve ser mencionado sempre que "Custo" for citado em relatórios/BI
+futuros, para não ser confundido com o preço puro de fornecedor.
+
+---
+
+# Contexto Futuro: View "Insumos por Preparo"
+
+Status: PENDENTE (não é uma decisão de implementação ainda, é registro de
+menção do Pedro para referência futura)
+
+O Pedro mencionou a possibilidade futura de uma view no NocoDB mostrando,
+por Preparo, os insumos e preços associados (combinando Composição +
+Insumos numa visão só, hoje seriam necessárias duas consultas separadas).
+Não foi pedida como ação nesta conversa — registrado apenas para não se
+perder caso seja solicitada depois.
+
 ---
 
 # Motor de Pacotes Fixos e Tolerância de Substituição
 
-Status: APROVADA (schema criado no NocoDB; lógica de cálculo e integração
-com as telas pendentes)
+Status: APROVADA
 
 Descoberta a partir de dado real (planilha comercial "Cardápio_2025_2.xlsx"):
 a operação vende pacotes com preço FIXO por pessoa (Cardápio 01 a 05 +
@@ -594,63 +461,198 @@ implementado (custo × 1,40), sem substituí-lo.
 
 Taxa de deslocamento: corrigida para R$250 (valor único, substituindo
 qualquer menção anterior a R$300 encontrada em documento comercial
-desatualizado — já é R$250 em todo o resto deste documento e no código,
-nenhuma mudança necessária além desta nota).
+desatualizado).
 
-## Schema
+SCHEMA:
 
-- `Cardapios_Modelo`: nova coluna `Preco_Fixo_Por_Pessoa` (Decimal,
-  nullable). Quando preenchido, esse Cardápio Modelo tem preço fechado.
-  Quando vazio, continua sob o cálculo dinâmico já existente.
-- `Orcamentos`: nova coluna `Usar_Preco_Fixo_Modelo` (Boolean). Só é
-  `true` quando um `Cardapio_Modelo` com `Preco_Fixo_Por_Pessoa`
-  preenchido foi carregado — nunca `true` para templates sem preço fixo.
-- Nova tabela `Configuracoes_Globais`: coluna `Tolerancia_Troca_Preco_Fixo`
-  (Decimal). Linha única inicial com valor `1.99`. Existe para permitir
-  ajuste futuro da tolerância direto pelo NocoDB, sem alteração de
-  código/deploy.
+Cardapios_Modelo: nova coluna Preco_Fixo_Por_Pessoa (Decimal, nullable).
+Quando preenchido, esse Cardápio Modelo tem preço fechado. Quando vazio,
+continua sob o cálculo dinâmico já existente.
 
-IDs confirmados via `/api/v2/meta` (base Senhor_Churrasco_DB), pra quem
-for integrar depois: `Cardapios_Modelo` = `muwzzmniceu6umv` (coluna
-`Preco_Fixo_Por_Pessoa` = `cph2rdnd6ldc44s`), `Orcamentos` =
-`mpobqls8ibt3ay3` (coluna `Usar_Preco_Fixo_Modelo` = `cxmxqsk4if74u96`),
-`Configuracoes_Globais` = `mizfsy3ecpoj50i` (linha única `Id=1`).
+Orcamentos: nova coluna Usar_Preco_Fixo_Modelo (Boolean). Só é true quando
+um Cardapio_Modelo com Preco_Fixo_Por_Pessoa preenchido foi carregado —
+nunca true para templates sem preço fixo.
 
-## Regra — Simulador Público (proteção estrita, sem exceção)
+Nova tabela Configuracoes_Globais: coluna Tolerancia_Troca_Preco_Fixo
+(Decimal). Linha única inicial com valor 1.99. Existe para permitir ajuste
+futuro da tolerância direto pelo NocoDB, sem alteração de código/deploy.
+
+REGRA — SIMULADOR PÚBLICO (proteção estrita, sem exceção):
 
 Qualquer edição de item (adicionar, remover, trocar) dentro de um Cardápio
-Modelo com preço fixo QUEBRA o pacote imediatamente. `Usar_Preco_Fixo_Modelo`
-vira `false`, o sistema exibe: "Você está personalizando um pacote fechado.
+Modelo com preço fixo QUEBRA o pacote imediatamente. Usar_Preco_Fixo_Modelo
+vira false, o sistema exibe: "Você está personalizando um pacote fechado.
 O valor agora será calculado sob medida", e o preço passa a ser dinâmico
 (Custo_Real_Por_Pessoa × 1,40). Não existe tolerância no Simulador Público
 — zero risco de o cliente manipular a margem do combo sozinho.
 
-## Regra — Painel Administrativo / Criar Evento (tolerância paramétrica)
+REGRA — PAINEL ADMINISTRATIVO / CRIAR EVENTO (tolerância paramétrica):
 
 Ao editar itens dentro de um Cardápio Modelo com preço fixo, o back-end
 recalcula, a CADA mudança, do zero (nunca soma incremental de aprovações
 anteriores):
 
-```
 Diferença_Custo_Por_Pessoa = Custo_Por_Pessoa_Selecao_Atual_Total
                               − Custo_Por_Pessoa_Cardapio_Modelo_Original_Total
-```
 
-- Se `Diferença_Custo_Por_Pessoa ≤ Tolerancia_Troca_Preco_Fixo` (lido de
-  `Configuracoes_Globais`, hoje 1,99) — incluindo diferenças negativas
-  (custo caiu): mantém `Usar_Preco_Fixo_Modelo = true` automaticamente,
-  sem nenhum alerta.
-- Se `Diferença_Custo_Por_Pessoa > Tolerancia_Troca_Preco_Fixo`: NÃO
-  bloqueia a ação, exibe aviso não-bloqueante: "Essa troca aumenta o
-  custo em R$X — o preço fixo do pacote pode não cobrir mais a margem
-  esperada." com dois botões: "Manter preço do pacote (R$X) mesmo assim"
-  (mantém `Usar_Preco_Fixo_Modelo = true`, Pedro aceita absorver a
-  diferença) ou "Recalcular pelo custo real" (`Usar_Preco_Fixo_Modelo =
-  false`, aplica Custo × 1,40).
+- Se Diferença_Custo_Por_Pessoa ≤ Tolerancia_Troca_Preco_Fixo (lido de
+  Configuracoes_Globais, hoje 1,99) — incluindo diferenças negativas
+  (custo caiu): mantém Usar_Preco_Fixo_Modelo = true automaticamente, sem
+  nenhum alerta.
+- Se Diferença_Custo_Por_Pessoa > Tolerancia_Troca_Preco_Fixo: NÃO bloqueia
+  a ação, exibe aviso não-bloqueante: "Essa troca aumenta o custo em R$X —
+  o preço fixo do pacote pode não cobrir mais a margem esperada." com dois
+  botões: "Manter preço do pacote (R$X) mesmo assim" (mantém
+  Usar_Preco_Fixo_Modelo = true, Pedro aceita absorver a diferença) ou
+  "Recalcular pelo custo real" (Usar_Preco_Fixo_Modelo = false, aplica
+  Custo × 1,40).
 
-O Motor de Margem (`Margem_Real_Evento`) continua rodando por trás de tudo
+O Motor de Margem (Margem_Real_Evento) continua rodando por trás de tudo
 isso, silenciosamente, refletindo o resultado financeiro real de qualquer
 decisão tomada nas duas regras acima.
+
+---
+
+# Divisão de Saladas Leves e Pesadas + Hard Cap Retroativo
+
+Status: APROVADA
+
+Achado (validado com pesquisa de mercado nacional e internacional antes de
+fechar): a Macro_Categoria "Saladas" (teto único 60g) misturava saladas de
+folha (Mix de Folhas Verdes, Tomate com Cebola, Repolho) com saladas
+compostas/densas (Salpicão de Frango, Tabule, Tomate Cereja com Palmito) —
+mesmo problema de "peso fisiológico" desigual dentro do mesmo teto já
+visto antes com Unidade vs. Gramas em Entradas.
+
+Faixas de referência da pesquisa: salada de folha em mesa carregada,
+30-60g; salada composta/densa em mesa carregada, 80-115g.
+
+DECISÃO: dividir em duas Macro_Categorias:
+- Saladas Leves — teto 30g
+- Saladas Pesadas — teto 80g
+
+Migrar os Headers_UI existentes para a categoria correta.
+
+HARD CAP RETROATIVO — Mix de Folhas Verdes: Porcao_Maxima_Individual = 15g.
+Motivo: mesmo dentro do teto mais leve (30g), uma travessa 100% de folha
+sozinha não deveria absorver o teto inteiro — 15g é o freio individual,
+a divisão de macro (30g) é o orçamento do grupo quando há concorrência.
+Os dois mecanismos são complementares, não substitutos.
+
+INSUMO — Folhas verdes (alface, rúcula etc.): cadastradas em Maço/Unidade,
+sem Fator de Correção pesado simulando perda de talo — a unidade comercial
+já é o maço inteiro, decisão do Pedro validada como mais simples para a
+logística de compra.
+
+PROCESSO PERMANENTE (já implementado, vale para todo preparo NOVO):
+o comando /criar-preparo já exige, no seu fluxo, o "Teste de Estresse de
+Item Único" (se este preparo fosse a única escolha da categoria e
+recebesse 100% do teto, seria uma porção humanamente condizente?) antes
+de decidir Porcao_Maxima_Individual. Não existe automação que detecte
+isso sozinha — é um teste mental obrigatório no fluxo de cadastro, não
+uma verificação de banco de dados.
+
+AUDITORIA RETROATIVA (tarefa única, não recorrente): aplicar esse mesmo
+teste em todos os preparos já cadastrados antes desta decisão — em
+especial o lote importado da planilha comercial (38 preparos), criado
+antes deste teste ter sido formalizado como obrigatório. Resultado deve
+ser um relatório único de revisão (preparos que precisam de Hard Cap +
+valor sugerido), aguardando aprovação do Pedro antes de qualquer
+atualização em massa — mesmo padrão já usado nas importações anteriores.
+
+---
+
+# Correção do Bug de Mistura de Unidades (Rendimento em Unidade vs. Macro em g/ml)
+
+Status: APROVADA
+
+Bug confirmado com dado real via ferramenta de diagnóstico (/debug/calculo-cardapio):
+Pão de Alho (Rendimento = 10 Unidades) dentro da macro "Entradas e
+Petiscos" (teto em gramas) gerou quantidade calculada em gramas usada
+diretamente como contagem de unidades — 7.320 "unidades" para 61
+convidados, inflando o Valor Sugerido Total incorretamente.
+
+DECISÃO — SEM DERIVAÇÃO AUTOMÁTICA: vetada explicitamente. Somar o peso
+cru dos insumos da Composição não reflete o peso real do preparo pronto —
+água evapora, carnes perdem peso em gordura/água na cocção (fator de
+cocção). Uma derivação automática geraria pesos incorretos silenciosos,
+corrompendo o rateio fisiológico de forma pior que o bug original.
+
+CAMPO: Peso_Medio_Unidade_G (Decimal) em Preparos — único, manual, fonte
+da verdade. Já existia desenhado para uso logístico (motor de UEV/caixas,
+hoje descartado) — passa a ser reaproveitado aqui como requisito central.
+
+REGRA DE CÁLCULO: para um Preparo com Unidade_Rendimento = Unidade dentro
+de uma Macro_Categoria medida em g/ml:
+Quantidade_Unidades = TETO(Porcao_Calculada_G_ou_ML / Peso_Medio_Unidade_G)
+(mesma filosofia de arredondamento já usada em todo o sistema — prefere
+sobrar a faltar). Preserva o rateio proporcional já validado (item com
+peso de atratividade maior recebe mais porção equivalente, traduzida em
+contagem inteira de unidades).
+
+VALIDAÇÃO NO CADASTRO (obrigatória, não apenas sugerida): ao cadastrar ou
+editar um Preparo com Unidade_Rendimento = Unidade cuja Categoria
+pertence a uma Macro_Categoria medida em g/ml, o formulário (CRUD e
+/criar-preparo) deve EXIGIR o preenchimento de Peso_Medio_Unidade_G antes
+de permitir salvar — sem chute do sistema, sem fail-fast silencioso
+disfarçando a ausência do dado.
+
+Preparos afetados (bloqueados até este campo ser preenchido, listados na
+Seção B da auditoria retroativa): Linguiça Toscana, Pão de Alho,
+Canudinho de Batatonese, Bruschetta de Fogo, Tartar de Mignon, Linguiça
+Pernil, Queijo Coalho, Linguiça Fina, Abacaxi Assado (este último com
+inconsistência adicional: Unidade_Rendimento = G contra teto declarado em
+ml — revisar separadamente).
+
+---
+
+# Política de Falha do Motor de Cálculo (Fail-Hard sob Timeout/Erro de Rede)
+
+Status: APROVADA
+
+Achado: sob concorrência (cardápio com vários itens, cada um disparando
+múltiplas chamadas ao NocoDB em paralelo, incluindo busca duplicada do
+mesmo Preparo por funções diferentes), algumas chamadas excedem o timeout
+de 5s do cliente — não é o NocoDB caindo, é ineficiência de I/O do nosso
+código sob carga.
+
+CORREÇÃO DE CAUSA RAIZ: eliminar a busca duplicada — a função que resolve
+os itens do cardápio deve buscar cada Preparo uma única vez e passar o
+resultado já hidratado adiante (injeção de dependência em memória), em
+vez de cada função buscar o mesmo dado de novo via API.
+
+MUDANÇA DE POLÍTICA — FAIL-HARD: se qualquer item do cardápio falhar por
+timeout ou erro de rede (categoria diferente de "peso/subcategoria
+ausente", que continua com fail-fast documentado e exclusão do item), o
+CÁLCULO INTEIRO deve falhar — nunca seguir parcial excluindo o item
+silenciosamente. Motivo: um orçamento que vira contrato não pode variar
+de valor entre tentativas por sorte de rede; a confiabilidade do preço
+vale mais que sempre retornar algum número.
+
+FORMATO DE ERRO (payload estruturado, nunca 500/503 genérico):
+
+{
+  "erro": "falha_calculo",
+  "mensagem": "Não foi possível calcular o cardápio agora. Tente novamente.",
+  "itens_com_falha": [
+    { "preparo_id": number, "motivo": "timeout_preparo" | "timeout_composicao" | "timeout_insumo" }
+  ]
+}
+
+Deliberadamente SEM preparo_nome: o front-end já mantém em memória a
+lista completa dos preparos selecionados (com nome), pois foi ele quem
+montou essa seleção a partir de uma lista previamente carregada — em
+todos os fluxos existentes (Simulador, Criar Evento, pré-população via
+Cardápio Modelo). Incluir o nome no payload de erro criaria risco de
+divergência entre o nome retornado pelo back-end (possivelmente obtido
+num momento diferente) e o nome que já está na tela — violação de fonte
+única de verdade, sem benefício real. O back-end retorna apenas
+coordenadas do problema (ID + motivo técnico); o cruzamento com o nome
+para exibição amigável é responsabilidade exclusiva do front-end, usando
+seu próprio estado local.
+
+Isso permite ao painel administrativo mostrar exatamente qual item falhou,
+sem expor detalhe técnico interno ao usuário final.
 
 ---
 
