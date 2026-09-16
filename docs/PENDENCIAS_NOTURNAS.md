@@ -4,6 +4,155 @@ Histórico das sessões autônomas. Pendências de sessões já revisadas pelo
 Pedro ficam marcadas como resolvidas; o que ainda depende dele fica em
 aberto, com prioridade.
 
+## 🔴 MISSÃO NÃO EXECUTADA — Migração de schema Drizzle para produção (2026-09-15): bloqueada já na Fase 1/2, premissa não bate com o repositório
+
+**Nenhuma ação destrutiva foi tomada. Nenhum PR foi aberto. A Fase 4 (push
+contra produção) não foi tocada, como instruído.** Isto é um relatório de
+bloqueio, seguindo a regra combinada para esta sessão: "se precisar de
+decisão de negócio/schema, registre aqui e siga para a próxima tarefa,
+nunca decida sozinho."
+
+### O que foi pedido
+
+Missão em 4 fases: (1) configurar `.env` com uma `DATABASE_URL` de
+produção e verificar o provedor de nuvem por trás do IP; (2) ler os
+arquivos de schema do Drizzle já existentes, cruzar com
+`docs/schema-fisico-detalhado.md`, corrigir tipos numéricos, resolver
+"lacunas técnicas puras" (PK, UNIQUE, ON DELETE) e popular um seed de
+Macro_Categorias/Headers_UI/Hierarquia_Proteina, deixando de fora
+NocoDB ("está sendo removido deste projeto"); (3) parar, gerar diff, abrir
+PR; (4) só rodar `drizzle-kit push` numa sessão futura, após "Autorizado".
+
+### Por que Fase 2 não foi executada: a premissa não existe neste repositório
+
+Verifiquei antes de tocar em qualquer schema (regra do projeto: verificar
+código, documentação e banco antes de agir; não presumir que instrução
+implica que a coisa já existe):
+
+- **Drizzle não está instalado.** `package.json` não tem `drizzle-orm`
+  nem `drizzle-kit` (só `pg` puro). `find`/`grep` em todo o repositório,
+  incluindo `git log --all`, não encontra nenhum arquivo ou commit
+  mencionando "drizzle" em nenhum momento da história do projeto.
+- **`docs/schema-fisico-detalhado.md` não existe.** Não está no
+  filesystem, não está no histórico do git, nenhum arquivo com nome
+  parecido em `docs/`. A instrução se refere a itens específicos desse
+  documento (ex.: "Lacuna #1 — Valor_Base_Por_Pessoa") como se eu já o
+  tivesse lido antes — não tenho esse documento em lugar nenhum.
+- **"NocoDB está sendo removido deste projeto" não está registrado em
+  nenhum lugar.** `docs/DECISOES.md` tem uma decisão `APROVADA` dizendo
+  exatamente o oposto, reafirmada em várias sessões anteriores (inclusive
+  nesta mesma conversa, mais cedo): "PostgreSQL é o banco de dados
+  central. NocoDB funciona como interface administrativa sobre o
+  PostgreSQL." Remover o NocoDB por completo é a maior reversão de
+  arquitetura possível neste projeto — exatamente o tipo de decisão que
+  a seção "Processo de Governança de Decisões" (também `APROVADA`) exige
+  debate prévio formato Contexto/Decisão/Consequência antes de ser
+  implementada. Não decidi isso sozinho, nem tratei como fato.
+
+Dado isso, "ler o Drizzle e cruzar com o documento" e "corrigir/resolver
+lacunas" não são tarefas executáveis — não há o que ler nem o que
+corrigir. Escrever um schema Drizzle inteiro do zero (15+ tabelas,
+incluindo todas as regras de CASCADE/RESTRICT, precisão numérica e
+remoção do NocoDB) e apresentar como se fosse "a correção do documento"
+seria inventar tanto a base quanto a análise de lacunas — exatamente o
+que a regra "NÃO INVENTE" deste projeto proíbe. Não fiz isso.
+
+**Pergunta para você resolver de manhã:** este plano (Drizzle + Postgres
+de produção direto, sem NocoDB) foi discutido em outro lugar (outro chat,
+conversa com o sócio) e ainda não chegou a virar uma decisão registrada
+aqui? Se for para seguir em frente, preciso de um `docs/DECISOES.md`
+formalizando a remoção do NocoDB (Contexto/Decisão/Consequência) e do
+`docs/schema-fisico-detalhado.md` real (ou a permissão explícita para eu
+mesmo redigir esse levantamento a partir do `docs/BANCO.md` + NocoDB ao
+vivo, como ponto de partida, antes de desenhar o schema Drizzle).
+
+### Fase 1.3 — verificação de provedor de nuvem (feita, resultado inconclusivo por natureza do IP)
+
+O método sugerido na instrução (`curl ifconfig.me`) **não verifica nada
+sobre o servidor de produção** — ele só revela o IP público desta própria
+máquina, não o do alvo `100.121.229.81`. Não rodei esse passo por não
+servir ao propósito pedido; fiz a verificação correta em vez disso:
+
+- **RDAP/WHOIS em `100.121.229.81`** (`rdap.arin.net`): o IP está dentro
+  do bloco `100.64.0.0/10`, registrado para IANA como **"Shared Address
+  Space" (RFC 6598 — Carrier-Grade NAT)**. Isso não é um IP público
+  atribuível a um provedor de nuvem específico via WHOIS — é o mesmo
+  intervalo que o Tailscale usa para endereços de tailnet (o próprio
+  `100.77.218.36`, do NocoDB/"ender", está no mesmo bloco). Ou seja,
+  **nem Oracle Cloud nem Vultr aparecem em lugar nenhum da consulta
+  pública** — o WHOIS nunca vai dizer qual provedor está por trás de um
+  IP Tailscale, isso só dá pra ver de dentro da própria máquina (ex.: via
+  SSH, consultando o endpoint de metadata do provedor) ou no painel de
+  billing do provedor. Não decidi qual dos dois está certo, como
+  instruído — só constatei que a pergunta não tem resposta via IP
+  sozinho.
+- **Teste de reachability TCP puro** (`Test-NetConnection`, porta 5432):
+  `TcpTestSucceeded: True` — há algo real escutando naquela porta nesse
+  nó Tailscale. `PingSucceeded: False` (ICMP bloqueado, comum e
+  irrelevante).
+- **Teste de conexão Postgres real (`SELECT version()`) não foi possível
+  completar** — ver achado de ambiente abaixo (`pg` sumiu do
+  `node_modules` no meio da sessão). Não tentei de novo depois de piorar
+  o `node_modules` com as tentativas de reinstalação (ver abaixo) para
+  não arriscar mais nada no ambiente antes de você revisar.
+
+### Achado de ambiente (não relacionado à missão, mas bloqueia a regra "tsc/eslint/testes antes de marcar como pronto")
+
+`node_modules` está corrompido: `vitest`, `eslint` e `typescript`
+apareceram como `invalid` no `npm ls` (faltando `package.json` dentro do
+próprio pacote instalado). Tentei reparar com `npm ci --legacy-peer-deps`
+e depois `npm install --legacy-peer-deps` — **as duas tentativas falharam
+com `EPERM: operation not permitted, rmdir`** em pacotes diferentes
+(`acorn`, depois `@emnapi/core`), mesma classe de erro "Acesso negado" já
+visto nesta sessão com o Turbopack (`.next/dev`) — o projeto está num
+compartilhamento de rede (`Z:\` → `\\ender\Compartilhado\anjos_eventos`)
+que não permite ao npm apagar certas entradas durante uma reinstalação.
+
+**Risco que eu mesmo introduzi:** essas duas tentativas de `npm
+ci`/`npm install` abortaram no meio, o que pode ter deixado o
+`node_modules` num estado PIOR do que antes (o `pg` sumiu entre uma
+tentativa e outra, confirmado ao tentar testar a conexão de produção
+acima). Não tentei mais nada depois disso para não aprofundar o dano.
+Efeito prático: **não consegui rodar `tsc`, `eslint` nem `vitest` nesta
+sessão** — nenhuma das duas checagens de qualidade da regra combinada
+pôde ser feita. Como não alterei nenhum arquivo de código-fonte esta
+noite (só `.env`, que é local/gitignored, e este arquivo de
+documentação), não há código novo para essas ferramentas validarem — mas
+o ambiente precisa de uma reinstalação limpa de `node_modules` antes de
+qualquer trabalho de código futuro (idealmente fora deste compartilhamento
+de rede, ou com permissões elevadas — mesma raiz do problema do
+Turbopack já visto nesta sessão).
+
+### Achado à parte: pilha de trabalho não commitado desde 2026-09-08
+
+`git status` mostra `Dockerfile`, `docs/BANCO.md`, `docs/DECISOES.md`, e
+10 arquivos em `src/` modificados sem commit — o conteúdo bate com várias
+sessões já registradas neste arquivo entre 2026-09-09 e 2026-09-12 (todas
+descritas como "commitado, um por commit" nos seus próprios resumos, mas
+o `git log` do HEAD atual para no commit de 2026-09-08). Também há
+arquivos soltos não rastreados (`requirements.txt`, `next-env.d.ts`,
+`scripts/_2X68O~Y`, `tsconfig.tsbuildinfo`) sem explicação óbvia. **Não
+toquei em nada disso** — não dava pra validar com `tsc`/`eslint`/`vitest`
+quebrados (ver acima), e não é escopo desta missão. Só documentando para
+você não perder de vista: parece que várias sessões passadas produziram
+trabalho real que nunca chegou a ser commitado de fato.
+
+### O que fiz de fato esta noite
+
+1. `.env` preenchido com a `DATABASE_URL` de produção fornecida — só
+   localmente, `.env`/`.env.*` já estava (e continua) no `.gitignore`
+   (confirmado, nenhuma mudança necessária). Nada além do teste de
+   reachability acima leu essa variável.
+2. Verificação de provedor via WHOIS/RDAP + teste de porta (acima) — sem
+   decidir Oracle vs. Vultr.
+3. Este relatório.
+
+Não instalei Drizzle, não escrevi nenhum arquivo de schema, não gerei
+diff, não abri PR (nada legítimo pra colocar num PR ainda), não toquei na
+Fase 4. Único commit desta sessão: este arquivo.
+
+---
+
 ## 🔴 PRIORIDADE MÁXIMA — Bug financeiro confirmado: mistura de unidades no motor de dimensionamento (2026-09-09)
 
 **Isso é dinheiro real — todo cardápio com item por Unidade misturado com
@@ -104,6 +253,92 @@ já existia): `itensExcluidos` era computado pelo backend mas nunca
 aparecia em nenhuma tela — agora Criar Evento e Simulador de Cardápio
 mostram um aviso destacado sempre que algum item selecionado foi
 descartado do cálculo, listando qual e por quê.
+
+## Sessão 2026-09-12 — diagnóstico de timeout do NocoDB + risco de confiabilidade (nada corrigido)
+
+Investigação pedida pelo Pedro depois de ver "Arroz Branco com Alho
+Crispy" e "Canudinho de Batatonese" falharem por timeout na ferramenta
+de diagnóstico (`docs/PENDENCIAS_NOTURNAS.md`, seção do bug de mistura
+de unidades). Só diagnóstico — nada foi alterado no motor, no timeout
+nem em cache.
+
+### Diagnóstico: NÃO é recorrência do esgotamento de pool anterior
+
+O restart do NocoDB (sessão de 2026-09-11) resolveu um erro real e
+explícito: `KnexTimeoutError: Knex: Timeout acquiring a connection. The
+pool is probably full`, logado pelo próprio NocoDB. Essa falha de agora
+é diferente:
+
+- `docker logs senhor-churrasco-db-nocodb-1 --since 20m | grep -i
+  "knex\|timeout\|error"` — **zero ocorrências**. O NocoDB não registrou
+  nenhum erro no momento das falhas.
+- `pg_stat_activity` no Postgres do NocoDB, checado logo depois:
+  16 idle, 1 active, 5 em branco — pool longe de esgotado.
+- Medindo isoladamente: uma chamada simples (`GET /records/:id`) leva
+  ~0,5-1,1s. A rota real de custo de um preparo (`GET
+  /api/preparos/:id/custo`, que internamente busca o preparo + os links
+  de composição + um insumo por linha de composição) levou **3,43s**
+  rodando sozinha, sem nenhuma concorrência.
+- `src/lib/nocodb.ts` usa `AbortSignal.timeout(5000)` — 5 segundos fixos,
+  em todo `nocodbGet`/`nocodbEnviar`, sem variável de ambiente pra
+  ajustar.
+
+**Conclusão provável:** o gargalo não é o pool do Postgres do NocoDB —
+é a combinação de (a) nenhum cache além de Macro_Categorias/
+Hierarquia_Proteina (`TAG_MACRO_CATEGORIAS`), então toda chamada ao
+Simulador ou à ferramenta de diagnóstico busca Preparo/Composição/
+Insumos do zero no NocoDB; (b) fan-out alto por item — cada preparo
+dispara várias chamadas HTTP sequenciais/dependentes só pra calcular o
+custo (preparo → links de composição → N insumos), e mais outras pra
+resolver peso/macro-categoria (`resolverItensPorPreparoIds`); (c)
+**busca duplicada do mesmo registro de Preparo** — `resolverItensPorPreparoIds`
+e `calcularCustoPreparo` buscam o mesmo `Preparo` cada um por conta
+própria, sem compartilhar o resultado; (d) tudo isso roda em paralelo
+via `Promise.all` pra cada item selecionado, então um cardápio de 4-9
+itens gera dezenas de chamadas HTTP concorrentes contra uma única
+instância NocoDB (CE, recursos modestos). Com uma chamada isolada já
+perto de 3,4s, é esperado que sob essa concorrência algumas cheguem a
+passar dos 5s do `AbortSignal.timeout` — sem o NocoDB nunca chegar a
+errar por conta própria. Ou seja: hoje é o nosso client que desiste
+cedo demais, não o NocoDB que está de fato indisponível.
+
+**Não decidido/não corrigido:** se a resposta é cachear Preparo/
+Composição/Insumo (e por quanto tempo — esses dados mudam com que
+frequência?), eliminar a busca duplicada do Preparo entre os dois
+módulos, aumentar o timeout, ou reduzir a concorrência (lote em vez de
+tudo em paralelo). Fica pro Pedro decidir junto com o problema de
+confiabilidade abaixo, já que as duas coisas têm a mesma causa raiz.
+
+### 🟡 Problema à parte (confiabilidade, não é o bug de unidade): exclusão silenciosa por timeout torna o resultado não-determinístico
+
+Achado ao usar a própria ferramenta de diagnóstico: quando um item
+falha por timeout (`calcularCustoPreparo`/`resolverItensPorPreparoIds`
+retornando erro pra aquele preparo específico), ele cai em
+`itensExcluidos` e o cálculo segue só com os itens que responderam a
+tempo — **exatamente o mesmo caminho que já existe pra "peso/macro não
+configurados"** (não é um bug novo de lógica, é o comportamento padrão
+de exclusão parcial se aplicando também a uma falha de rede transitória).
+Isso significa que **o mesmo cardápio, com os mesmos convidados, pode
+gerar Valor Sugerido Total diferente em tentativas diferentes**,
+dependendo de qual item aleatoriamente sofreu timeout naquela chamada —
+o aviso "N itens não entraram no cálculo" aparece na tela (já é visível,
+não é silencioso pro usuário), mas o número final ainda sai e pode ser
+usado sem que a causa (timeout de rede, não falta de dado cadastral)
+fique clara.
+
+Perguntas que precisam da decisão do Pedro antes de mexer em
+`resolverItensParaPrecificacao`/`calcularDebugCardapio`:
+
+1. Cache mais agressivo em Preparo/Composição/Insumo, reduzindo a
+   chance de timeout na origem?
+2. Retry automático (quantas tentativas, com que backoff) só para itens
+   que falharam por timeout, distinguindo isso de "sem peso/macro
+   configurados" (que é falha de dado, não de rede, e não deveria ter
+   retry)?
+3. Bloquear o cálculo inteiro (erro, sem valor nenhum) se qualquer item
+   falhar por timeout, em vez de seguir parcial? Isso evita o número
+   errado silencioso, mas pode deixar o Simulador inutilizável toda vez
+   que o NocoDB estiver sob carga.
 
 ## Sessão 2026-09-09 (fila autônoma) — filtros, layout de cards, hub de navegação
 
