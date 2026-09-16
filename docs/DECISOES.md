@@ -24,11 +24,21 @@ Uma decisão pode estar em um dos seguintes estados:
 
 ## Banco central
 
-Status: APROVADA
+Status: SUBSTITUÍDA (2026-09-16) — ver `docs/plano-migracao-postgres-vultr.md`
 
 PostgreSQL é o banco de dados central.
 
 NocoDB funciona como interface administrativa sobre o PostgreSQL.
+
+**Esta decisão não é mais válida como guia de implementação.** O ADR
+formal em `docs/plano-migracao-postgres-vultr.md` ("Migração de
+Infraestrutura e Remoção do NocoDB — Plano Consolidado") a substitui:
+NocoDB está sendo removido por completo, acesso ao banco passa a ser
+direto via Drizzle ORM contra PostgreSQL puro, numa VPS Oracle Cloud
+dedicada (identidade do provedor verificada via SSH/metadata OCI,
+não apenas alegada). Mantida aqui riscada, não apagada, por histórico —
+nenhum código novo deve ser escrito assumindo coexistência com o NocoDB
+a partir de agora.
 
 ---
 
