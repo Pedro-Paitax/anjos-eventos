@@ -38,7 +38,14 @@ async function resolverItensParaPrecificacao(
   const custosPorPreparoId = new Map<number, { custoTotalPreparo: number; rendimento: number }>();
   await Promise.all(
     itensResolvidos.map(async (item) => {
-      const custo = await calcularCustoPreparo(item.preparoId);
+      // resolverItensPorPreparoIds já buscou este Preparo — repassa pronto
+      // pra calcularCustoPreparo em vez de buscar o mesmo registro de novo
+      // (docs/DECISOES.md, "Política de Falha do Motor de Cálculo").
+      const custo = await calcularCustoPreparo(item.preparoId, {
+        "Nome Do Preparo": item.preparoNome,
+        Rendimento: item.rendimentoPreparo,
+        "UOM Rendimento": item.unidadeRendimentoPreparo,
+      });
       if (!("erro" in custo)) {
         custosPorPreparoId.set(item.preparoId, {
           custoTotalPreparo: custo.custo_total_preparo,
@@ -68,6 +75,8 @@ async function resolverItensParaPrecificacao(
       porcaoMaximaIndividual: item.porcaoMaximaIndividual,
       custoTotalPreparo: custo.custoTotalPreparo,
       rendimento: custo.rendimento,
+      unidadeRendimentoPreparo: item.unidadeRendimentoPreparo,
+      pesoMedioUnidadeG: item.pesoMedioUnidadeG,
     });
   }
 

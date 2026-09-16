@@ -40,6 +40,9 @@ export type ItemCardapioPrecificacao = {
   /** custo_total_preparo do motor de custo (docs/REGRAS_NEGOCIO.md seção 4) */
   custoTotalPreparo: number;
   rendimento: number;
+  /** UOM Rendimento cru do preparo e Peso_Medio_Unidade_G — só pra alimentar a conversão de unidade do distribuirPorcoes (docs/DECISOES.md, "Correção do Bug de Mistura de Unidades"), mesmo papel de ItemResolvido. */
+  unidadeRendimentoPreparo: string;
+  pesoMedioUnidadeG: number | null;
 };
 
 export type OpcoesPrecificacao = {
@@ -95,6 +98,12 @@ export function calcularPrecificacaoCardapio(
     macroCategoriaNome: item.macroCategoriaNome,
     capacidadeTeto: item.capacidadeTeto,
     unidade: item.unidade,
+    unidadeRendimentoPreparo: item.unidadeRendimentoPreparo,
+    pesoMedioUnidadeG: item.pesoMedioUnidadeG,
+    // Não usado por distribuirPorcoes (só serve pra resolverItensPorPreparoIds
+    // repassar pra calcularCustoPreparo sem buscar o Preparo de novo) — aqui
+    // o rendimento já resolvido do motor de custo é equivalente.
+    rendimentoPreparo: item.rendimento,
   }));
 
   const macroCategorias = distribuirPorcoes(itensResolvidos, numConvidados);
@@ -106,7 +115,7 @@ export function calcularPrecificacaoCardapio(
       const dadosCusto = dadosCustoPorPreparoId.get(item.preparo_id);
       if (!dadosCusto) continue;
       const custoPorUnidade = dadosCusto.custoTotalPreparo / dadosCusto.rendimento;
-      const custoItem = arredondar(custoPorUnidade * item.volume_necessario_total);
+      const custoItem = arredondar(custoPorUnidade * item.quantidade_para_custo);
       custoCardapioTotal = arredondar(custoCardapioTotal + custoItem);
     }
   }

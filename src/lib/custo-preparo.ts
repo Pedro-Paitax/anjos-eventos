@@ -89,23 +89,37 @@ export function calcularCustoPor100Unidades(custoTotal: number, rendimento: numb
   return arredondarCentavos((custoTotal / rendimento) * 100);
 }
 
+/**
+ * Subconjunto de PreparoRegistro que um chamador upstream (ex.:
+ * resolverItensPorPreparoIds, que já buscou o Preparo pra resolver
+ * peso/macro-categoria) pode passar pronto, evitando uma segunda busca do
+ * mesmo registro — causa raiz do timeout sob concorrência, ver
+ * docs/DECISOES.md, "Política de Falha do Motor de Cálculo".
+ */
+export type PreparoJaBuscado = Pick<PreparoRegistro, "Nome Do Preparo" | "Rendimento" | "UOM Rendimento">;
+
 export async function calcularCustoPreparo(
-  preparoId: number
+  preparoId: number,
+  preparoJaBuscado?: PreparoJaBuscado
 ): Promise<CustoPreparoResultado | CustoPreparoErro> {
   const token = process.env.NOCODB_API_TOKEN;
   if (!token) {
     return { erro: "NOCODB_API_TOKEN não configurado.", status: 500 };
   }
 
-  let preparo: PreparoRegistro | null;
+  let preparo: PreparoJaBuscado | null;
   let composicaoLinks: { list: ComposicaoLinkRegistro[] };
   try {
-    preparo = await nocodbGet<PreparoRegistro>(
-      `/tables/${TABELA_PREPAROS}/records/${preparoId}`,
-      token
-    );
-    if (!preparo) {
-      return { erro: "Preparo não encontrado.", status: 404 };
+    if (preparoJaBuscado) {
+      preparo = preparoJaBuscado;
+    } else {
+      preparo = await nocodbGet<PreparoRegistro>(
+        `/tables/${TABELA_PREPAROS}/records/${preparoId}`,
+        token
+      );
+      if (!preparo) {
+        return { erro: "Preparo não encontrado.", status: 404 };
+      }
     }
 
     composicaoLinks = (await nocodbGet<{ list: ComposicaoLinkRegistro[] }>(

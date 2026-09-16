@@ -27,6 +27,8 @@ const vinagrete: ItemCardapioPrecificacao = {
   porcaoMaximaIndividual: null,
   custoTotalPreparo: 16.96, // real
   rendimento: 1500, // real
+  unidadeRendimentoPreparo: "ML",
+  pesoMedioUnidadeG: null,
 };
 
 const arroz: ItemCardapioPrecificacao = {
@@ -41,6 +43,8 @@ const arroz: ItemCardapioPrecificacao = {
   porcaoMaximaIndividual: null,
   custoTotalPreparo: 20.07, // real
   rendimento: 1000, // real
+  unidadeRendimentoPreparo: "G",
+  pesoMedioUnidadeG: null,
 };
 
 const alcatra: ItemCardapioPrecificacao = {
@@ -55,6 +59,8 @@ const alcatra: ItemCardapioPrecificacao = {
   porcaoMaximaIndividual: null,
   custoTotalPreparo: 64.93, // real
   rendimento: 1000, // real
+  unidadeRendimentoPreparo: "G",
+  pesoMedioUnidadeG: null,
 };
 
 const CARDAPIO = [vinagrete, arroz, alcatra];

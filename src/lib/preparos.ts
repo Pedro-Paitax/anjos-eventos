@@ -79,6 +79,7 @@ type PreparoRegistroCompleto = {
   Peso_Atratividade: number | null;
   Subcategoria_Proteina: string | null;
   Porcao_Maxima_Individual: number | null;
+  Peso_Medio_Unidade_G: number | null;
 };
 
 type ComposicaoLinkRegistro = { Id: number };
@@ -114,6 +115,7 @@ export type PreparoDetalhado = {
   pesoAtratividade: number | null;
   subcategoriaProteina: string | null;
   porcaoMaximaIndividual: number | null;
+  pesoMedioUnidadeG: number | null;
   composicao: ComposicaoLinhaExistente[];
 };
 
@@ -128,6 +130,8 @@ export type DadosPreparoForm = {
   pesoAtratividade: number | null;
   subcategoriaProteina: string | null;
   porcaoMaximaIndividual: number | null;
+  /** Obrigatório quando unidadeRendimento === "Unidade" (docs/DECISOES.md, "Correção do Bug de Mistura de Unidades") — validado em src/app/actions/preparo.ts antes de chegar aqui. */
+  pesoMedioUnidadeG: number | null;
 };
 
 // Linha de composição vinda do formulário: `id` é `null` pra linha nova
@@ -150,6 +154,7 @@ function paraCamposNocodb(dados: DadosPreparoForm) {
     Peso_Atratividade: dados.pesoAtratividade,
     Subcategoria_Proteina: dados.categoria === "Carnes" ? dados.subcategoriaProteina : null,
     Porcao_Maxima_Individual: dados.porcaoMaximaIndividual,
+    Peso_Medio_Unidade_G: dados.unidadeRendimento === "Unidade" ? dados.pesoMedioUnidadeG : null,
   };
 }
 
@@ -213,6 +218,7 @@ export async function obterPreparoComComposicao(
     pesoAtratividade: preparo.Peso_Atratividade,
     subcategoriaProteina: preparo.Subcategoria_Proteina,
     porcaoMaximaIndividual: preparo.Porcao_Maxima_Individual,
+    pesoMedioUnidadeG: preparo.Peso_Medio_Unidade_G,
     composicao: composicao.filter((c): c is ComposicaoLinhaExistente => c !== null),
   };
 }

@@ -38,6 +38,9 @@ type PreparoRegistro = {
   Peso_Atratividade: number | null;
   Subcategoria_Proteina: string | null;
   Porcao_Maxima_Individual: number | null;
+  "UOM Rendimento": string | null;
+  Peso_Medio_Unidade_G: number | null;
+  Rendimento: number | null;
 };
 
 type ComLink = { Id: number };
@@ -81,6 +84,17 @@ export type ItemDimensionado = {
   porcao_final: number;
   porcao_limitada_por_cap: boolean;
   volume_necessario_total: number;
+  /**
+   * Quantidade a usar no motor de custo (docs/DECISOES.md, "Correção do
+   * Bug de Mistura de Unidades"). Igual a volume_necessario_total, exceto
+   * quando o preparo tem Unidade_Rendimento = Unidade dentro de uma macro
+   * medida em g/ml — nesse caso é TETO(volume_necessario_total /
+   * Peso_Medio_Unidade_G), convertendo de gramas/ml do teto pra contagem
+   * de unidades vendidas. volume_necessario_total continua sempre na
+   * unidade da macro (g/ml/un), sem alteração de significado — este campo
+   * é o único que muda de unidade quando há conversão.
+   */
+  quantidade_para_custo: number;
 };
 
 export type MacroCategoriaDimensionada = {
@@ -119,6 +133,12 @@ export type ItemResolvido = {
   macroCategoriaNome: string;
   capacidadeTeto: number;
   unidade: string;
+  /** UOM Rendimento cru do próprio Preparo (ex.: "Unidade", "G", "ML") — usado só pra detectar/corrigir a mistura de unidade, não confundir com `unidade` acima (que é a da macro). */
+  unidadeRendimentoPreparo: string;
+  /** Peso_Medio_Unidade_G do Preparo — obrigatório (fail-fast se ausente, ver resolverItensPorPreparoIds) quando unidadeRendimentoPreparo é "Unidade" e a macro é medida em g/ml. */
+  pesoMedioUnidadeG: number | null;
+  /** Rendimento cru do Preparo — carregado aqui só pra o chamador poder repassar pra calcularCustoPreparo sem buscar o mesmo Preparo de novo (docs/DECISOES.md, "Política de Falha do Motor de Cálculo"). */
+  rendimentoPreparo: number | null;
 };
 
 /**
@@ -158,6 +178,26 @@ export function distribuirPorcoes(
         item.porcaoMaximaIndividual != null
           ? Math.min(porcaoCalculada, item.porcaoMaximaIndividual)
           : porcaoCalculada;
+      const volumeNecessarioTotal = arredondar(porcaoFinal * numConvidados);
+
+      // docs/DECISOES.md, "Correção do Bug de Mistura de Unidades": um
+      // preparo vendido por Unidade dentro de uma macro medida em g/ml não
+      // pode ter seu volume em gramas/ml usado direto como contagem de
+      // unidades no motor de custo — converte pelo peso médio real da
+      // unidade. A fórmula da decisão usa Porcao_Calculada (POR PESSOA,
+      // mesmo termo de REGRAS_NEGOCIO.md seção 5), não o volume já
+      // multiplicado pelos convidados — arredonda pra cima quantas
+      // unidades INTEIRAS cada convidado recebe (não dá pra servir 0,3
+      // salsicha), e só depois multiplica pelo número de convidados.
+      // Fora desse caso específico, quantidade_para_custo é idêntico a
+      // volume_necessario_total (comportamento inalterado).
+      const precisaConverterParaUnidade =
+        item.unidadeRendimentoPreparo === "Unidade" &&
+        (grupo.unidade === "g" || grupo.unidade === "ml");
+      const quantidadeParaCusto =
+        precisaConverterParaUnidade && item.pesoMedioUnidadeG
+          ? Math.ceil(porcaoFinal / item.pesoMedioUnidadeG) * numConvidados
+          : volumeNecessarioTotal;
 
       return {
         preparo_id: item.preparoId,
@@ -169,7 +209,8 @@ export function distribuirPorcoes(
         porcao_maxima_individual: item.porcaoMaximaIndividual,
         porcao_final: arredondar(porcaoFinal),
         porcao_limitada_por_cap: porcaoFinal < porcaoCalculada,
-        volume_necessario_total: arredondar(porcaoFinal * numConvidados),
+        volume_necessario_total: volumeNecessarioTotal,
+        quantidade_para_custo: quantidadeParaCusto,
       };
     });
 
@@ -302,6 +343,20 @@ export async function resolverItensPorPreparoIds(
       continue;
     }
 
+    // docs/DECISOES.md, "Correção do Bug de Mistura de Unidades": preparo
+    // vendido por Unidade dentro de macro em g/ml exige Peso_Medio_Unidade_G
+    // pra converter — sem derivação automática (vetada), fail-fast igual
+    // aos outros dois casos acima.
+    const unidadeRendimentoPreparo = preparo["UOM Rendimento"] ?? "";
+    const dentroDeMacroGouMl = macroCategoria.UOM === "g" || macroCategoria.UOM === "ml";
+    if (unidadeRendimentoPreparo === "Unidade" && dentroDeMacroGouMl && !preparo.Peso_Medio_Unidade_G) {
+      itensExcluidos.push({
+        preparo: preparo["Nome Do Preparo"],
+        motivo: `Unidade_Rendimento = Unidade dentro de macro medida em ${macroCategoria.UOM}, mas Peso_Medio_Unidade_G não está preenchido.`,
+      });
+      continue;
+    }
+
     itensResolvidos.push({
       preparoId,
       preparoNome: preparo["Nome Do Preparo"],
@@ -313,6 +368,9 @@ export async function resolverItensPorPreparoIds(
       macroCategoriaNome: macroCategoria.Nome_Macro,
       capacidadeTeto: macroCategoria.Capacidade_Categoria,
       unidade: macroCategoria.UOM,
+      unidadeRendimentoPreparo,
+      pesoMedioUnidadeG: preparo.Peso_Medio_Unidade_G,
+      rendimentoPreparo: preparo.Rendimento,
     });
   }
 
