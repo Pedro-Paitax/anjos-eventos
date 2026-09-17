@@ -804,6 +804,37 @@ item.
 Sem segredos hardcoded, sem chamadas ao NocoDB do lado do cliente, sem
 TODO/FIXME em `src/`.
 
+## 🔴 Sessão 2026-09-17 (continuação) — --write bloqueado: "Costela" sem Modo de Preparo
+
+Autorizado o `--write`. Rodou, mas **falhou e fez rollback limpo**
+(transação única funcionou exatamente como desenhado — nada ficou
+gravado pela metade; `insumos`/`preparos`/`composicao`/
+`macro_categorias`/`headers_ui` continuam em 0 linhas no Oracle,
+`empresas` mantém as 3 copiadas antes).
+
+**Causa raiz**: `preparos.modo_preparo` é `NOT NULL` (docs/schema-fisico-detalhado.md),
+mas o Preparo **"Costela" (Id 32) tem `Modo de Preparo` vazio no
+NocoDB**. O script não validava isso antes de tentar inserir — a
+violação de constraint só apareceu no meio da transação real. Corrigido
+(commit `c4ceef3`): agora `Nome Do Preparo`/`Rendimento`/`Modo de
+Preparo` são validados no dry-run, então isso aparece como erro
+bloqueante ANTES de qualquer tentativa de escrita, não durante.
+
+Dry-run pós-correção: **53/54 Preparos válidos**, só "Costela"
+bloqueando.
+
+**Decisão pendente do Pedro** (não decidi sozinho, é dado de negócio
+real faltando, não lacuna técnica): como tratar o Costela sem Modo de
+Preparo?
+1. Preencher o campo no NocoDB antes de rodar a ETL de novo (mais
+   simples, resolve na origem).
+2. Migrar todo o resto agora e excluir só o Costela desta rodada
+   (soft-skip pontual), migrando ele depois de corrigido.
+3. Tornar `modo_preparo` nullable no schema novo (mudança de design,
+   diverge do documento recebido).
+
+Nenhuma das três foi escolhida — `--write` continua não executado.
+
 ## Sessão 2026-09-17 — desenho da ETL aprovado, script escrito e validado em dry-run, 3 empresas copiadas pro Oracle
 
 Antes de escrever código, apresentei o desenho completo (ordem de
