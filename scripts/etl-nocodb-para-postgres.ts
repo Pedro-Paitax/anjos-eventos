@@ -246,6 +246,15 @@ function transformarInsumo(r: InsumoBruto): typeof insumos.$inferInsert {
 }
 
 function transformarPreparo(r: PreparoBruto): typeof preparos.$inferInsert {
+  // Campos NOT NULL no schema novo (docs/schema-fisico-detalhado.md) —
+  // validados explicitamente aqui em vez de confiar que o dado real
+  // sempre bate com o documento (achado real: Preparo "Costela", Id 32,
+  // tem Modo de Preparo vazio no NocoDB — sem esta checagem, isso só
+  // apareceria como erro de constraint do Postgres NO MEIO da
+  // transação de escrita, não no relatório de validação do dry-run).
+  if (!r["Nome Do Preparo"]) throw new Error("Nome Do Preparo vazio");
+  if (r.Rendimento == null) throw new Error("Rendimento vazio");
+  if (!r["Modo de Preparo"]) throw new Error("Modo de Preparo vazio");
   if (!CATEGORIAS_VALIDAS.has(r.Categoria)) {
     throw new Error(`Categoria desconhecida: "${r.Categoria}"`);
   }
@@ -541,6 +550,6 @@ async function main() {
 }
 
 main().catch((e) => {
-  console.error("ERRO FATAL:", e);
+  console.error("ERRO FATAL:", e?.cause?.message ?? e?.message ?? e);
   process.exit(1);
 });
