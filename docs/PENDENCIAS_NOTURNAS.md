@@ -804,6 +804,24 @@ item.
 Sem segredos hardcoded, sem chamadas ao NocoDB do lado do cliente, sem
 TODO/FIXME em `src/`.
 
+## 🔴 PRIORIDADE ALTA — Costela (Id 32) migrada com Modo de Preparo PLACEHOLDER, não a receita real
+
+Decisão do Pedro (2026-09-17, ele não tinha o texto real disponível no
+momento): preencher `Modo de Preparo` com um marcador explícito em vez
+de bloquear a migração indefinidamente. Texto gravado no NocoDB
+(Preparo Id 32) e — depois do `--write` — também no Oracle:
+
+> [PENDENTE - modo de preparo a ser preenchido pelo Pedro. Placeholder
+> inserido em 2026-09-16 para destravar a migração de dado; NÃO é a
+> receita real da Costela e não deve ser usado como referência de
+> cozinha até ser substituído.]
+
+**Ação pendente**: assim que o Pedro fornecer o texto real, substituir
+em DOIS lugares — NocoDB (Preparo Id 32) e Oracle (`UPDATE preparos SET
+modo_preparo = '...' WHERE id = 32`, já que o registro existe nos dois
+sistemas em paralelo até o corte final de produção). Não remover este
+item da lista até isso ser feito.
+
 ## 🔴 Sessão 2026-09-17 (continuação) — --write bloqueado: "Costela" sem Modo de Preparo
 
 Autorizado o `--write`. Rodou, mas **falhou e fez rollback limpo**
