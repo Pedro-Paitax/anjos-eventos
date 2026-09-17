@@ -804,6 +804,73 @@ item.
 Sem segredos hardcoded, sem chamadas ao NocoDB do lado do cliente, sem
 TODO/FIXME em `src/`.
 
+## Sessão 2026-09-17 — desenho da ETL aprovado, script escrito e validado em dry-run, 3 empresas copiadas pro Oracle
+
+Antes de escrever código, apresentei o desenho completo (ordem de
+extração, mapeamento de campo, preservação de ID, estratégia de
+transação) e o Pedro aprovou com 3 decisões: **Eixo 2 adiado** (não
+reduzido, não simulado — ver abaixo), **mapa fixo de Empresa
+confirmado**, **Itens_Evento_Confirmados incluído como Fase G**.
+
+### 🔴 Eixo 2 (Teste de Snapshot Transacional) — ADIADO, registrado formalmente
+
+Não há dado real suficiente: **1 único Orçamento no NocoDB inteiro**,
+com `Status`, `Empresa` e `Num_Convidados` vazios e `Cliente_Nome`
+literalmente `"Cliente_Nome"` (placeholder). **0 linhas em
+Itens_Orcamento.** O plano exige 5 Orçamentos complexos reais — não
+existe hoje, e não inventamos dado de orçamento pra simular passagem no
+teste (decisão explícita do Pedro, 2026-09-17). **Isso não bloqueia o
+restante da migração** (Preparos/Insumos/Composição/Macro_Categorias/
+Headers_UI têm dado real completo). `docs/plano-migracao-postgres-vultr.md`
+precisa de uma nota equivalente — ainda não editado lá, só aqui; fazer
+isso é o próximo passo de documentação, não travou a ETL.
+
+### Achado: Itens_Evento_Confirmados também é placeholder
+
+Único registro (`Id 1`) tem `Evento`, `Preparo`, `Quantidade_Confirmada`
+e `Custo_Unitario_Snapshot` todos vazios/nulos — e nem `Eventos` no
+NocoDB nem `eventos` nativo têm qualquer linha real hoje. Fase G do
+script trata isso corretamente como "soft skip", não como erro.
+
+### Script escrito e validado (`scripts/etl-nocodb-para-postgres.ts`, commit `ae952ee`)
+
+`tsc`/`eslint`: 0 problemas. `vitest run`: 35/35, sem regressão.
+Dry-run executado de verdade contra o NocoDB de produção (só leitura):
+
+- Insumos 122/122, Preparos 54/54, Composição 236/236, Macro_Categorias
+  10/10, Headers_UI 15/15 — **zero erros**, todos os enums batem 100%
+  com o dado real.
+- Orcamentos 0/1, Itens_Orcamento 0/0, Itens_Evento_Confirmados 0/1 —
+  soft skip, como esperado (ver achados acima).
+- Amostra de 3 Preparos + 5 Insumos transformados mostrada ao Pedro
+  pra revisão visual antes de qualquer escrita.
+
+**Bug pego e corrigido antes do dry-run final**: a ordem de
+carregamento de env (`.env.local` por cima de `.env`, convenção do
+Next.js) faria o script escrever no Postgres local antigo
+(`localhost:5433`) em vez do Oracle — silenciosamente, porque
+`localhost:5433` também tem uma tabela `empresas` real. Corrigido +
+adicionada checagem de segurança que aborta se `DATABASE_URL` resolvida
+não contiver o IP conhecido do Oracle, independente da ordem de
+carregamento.
+
+### Empresas copiadas pro Oracle (ação isolada, autorizada explicitamente, já executada)
+
+As 3 linhas de `empresas` (Buffet Senhor Churrasco id=1, Anjos
+Cerimonial id=2, Em Plena Natureza Chácara de Eventos id=3) foram
+copiadas do Postgres nativo local pro `app_db` no Oracle, **preservando
+os mesmos IDs**, com `created_at` original e sequence resincronizada.
+Conferido: `app_db.empresas` tinha 0 linhas antes (checado no script
+antes de inserir, abortaria se já tivesse dado), 3 linhas depois,
+idênticas às da origem. Isso destrava o mapeamento de Empresa em
+Orçamentos futuros — não é mais uma pendência.
+
+### NÃO executado
+
+`--write` do script de ETL não foi rodado. Nenhum Preparo/Insumo/
+Composição/Macro_Categoria/Header_UI foi inserido no Oracle ainda —
+aguardando o Pedro confirmar a amostra revisada antes de autorizar.
+
 ## Sessão 2026-09-16 (tarde) — drizzle-kit push executado contra Oracle Cloud (autorizado)
 
 Autorizado explicitamente pelo Pedro ("Autorizado: rode npx drizzle-kit

@@ -150,6 +150,18 @@ Eventos já confirmados — se a migração falhar nas tabelas de junção ou
 nos valores já congelados (snapshots de custo, pacotes fixos), um evento
 já vendido pode mudar de valor silenciosamente.
 
+**ADIADO (decisão do Pedro, 2026-09-17, ver docs/PENDENCIAS_NOTURNAS.md):**
+não há dado real suficiente para este teste hoje. Conferido ao vivo no
+NocoDB: existe **1 único Orçamento** no sistema inteiro, incompleto
+(`Status`, `Empresa`, `Num_Convidados` vazios, `Cliente_Nome` com o
+valor literal `"Cliente_Nome"`), e **0 linhas em `Itens_Orcamento`**.
+Não há 5 Orçamentos complexos reais pra selecionar, e não foi criado
+dado fictício pra simular passagem no teste — o Eixo 2 fica pendente
+até existirem Orçamentos reais suficientes no sistema pós-migração.
+Isso NÃO bloqueia o Eixo 1 nem a migração de
+Preparos/Insumos/Composição/Macro_Categorias/Headers_UI, que têm dado
+real completo.
+
 Teste de Snapshot Transacional, obrigatório antes de considerar a
 migração completa:
 1. Selecionar 5 Orçamentos complexos reais do sistema atual (cobrindo:
