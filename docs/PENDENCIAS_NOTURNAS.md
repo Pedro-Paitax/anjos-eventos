@@ -804,6 +804,50 @@ item.
 Sem segredos hardcoded, sem chamadas ao NocoDB do lado do cliente, sem
 TODO/FIXME em `src/`.
 
+## Sessão 2026-09-17 (continuação 2) — --write concluído com sucesso, Eixo 1 validado no Oracle
+
+Placeholder da Costela (ver seção 🔴 abaixo) gravado no NocoDB, dry-run
+re-rodado (54/54 Preparos, zero erros), `--write` executado.
+
+### Contagens finais no Oracle — batem exatamente com o dry-run
+
+| Tabela | Linhas |
+|---|---|
+| insumos | 122 |
+| preparos | 54 |
+| composicao | 236 |
+| macro_categorias | 10 |
+| headers_ui | 15 |
+| header_preparo | 54 |
+| empresas | 3 |
+| orcamentos | 0 |
+| itens_orcamento | 0 |
+| itens_evento_confirmados | 0 |
+
+### Eixo 1 de validação — CONFIRMADO contra o Oracle (não mais o NocoDB)
+
+`scripts/verificar-eixo1-oracle.ts` (commit `13a6efe`) recalcula os 3
+preparos de referência consultando o Postgres novo via Drizzle,
+replicando a fórmula de `src/lib/custo-preparo.ts`:
+
+- Vinagrete: R$16,96 (referência R$16,96) — BATE
+- Alcatra Grelhada: R$64,93 (referência R$64,93) — BATE
+- Arroz Branco com Alho Crispy: R$20,07 (referência R$20,07) — BATE
+
+Migração preservou a matemática do motor de custo, não só o dado bruto.
+
+### Validação de ambiente
+
+`tsc --noEmit` 0 erros, `eslint` 0 erros/warnings, `vitest run` 35/35 —
+sem regressão, rodado depois do `--write` real.
+
+### NÃO tocado (conforme instruído)
+
+NocoDB de produção não foi desligado nem reconfigurado. O app real
+continua apontando pro sistema antigo (`.env.local`, não alterado) —
+nenhum corte de produção foi feito. Eixo 2 continua ADIADO (ver seção
+acima desta mesma sessão).
+
 ## 🔴 PRIORIDADE ALTA — Costela (Id 32) migrada com Modo de Preparo PLACEHOLDER, não a receita real
 
 Decisão do Pedro (2026-09-17, ele não tinha o texto real disponível no
