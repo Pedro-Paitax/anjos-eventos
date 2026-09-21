@@ -898,6 +898,9 @@ tabelas novas vazias. **ETL das 6 tabelas NÃO autorizado** (aguarda o backup
 | `dimensionamento-cardapio` (`resolverItensPorPreparoIds`) | migrado | **VALIDADA** após ETL: 46 = 46 resolvidos, 8 = 8 excluídos, 0 divergências em 54 preparos |
 | `dimensionamento-cardapio` (`calcularDimensionamentoOrcamento`) | migrado | sem dado (Orçamentos 0 linhas no Oracle; 1 placeholder no NocoDB) |
 | `precificacao-evento` | só deixa de exigir token NocoDB no modo oracle | herda a paridade acima |
+| Grupo B `insumos` | migrado (leitura + escrita) | leitura **VALIDADA**: 122 = 122. Escrita NÃO validada contra banco |
+| Grupo B `cardapios-modelo` | migrado (leitura + escrita) | leitura **VALIDADA**: 6 cardápios e 90 itens idênticos. Escrita NÃO validada |
+| Grupo B `preparos` | migrado (leitura + escrita) | leitura **VALIDADA**: 54 preparos, listas por categoria e composição idênticas. Escrita NÃO validada; 2 incompatibilidades form x schema (abaixo) |
 | `margem-orcamento` | migrado (Lacuna 1 aplicada, ver abaixo) | sem dado: 0 Orçamentos no Oracle, 1 placeholder no NocoDB. Não testado contra dado |
 
 **`margem-orcamento` — Lacuna 1 aplicada (decisão do Pedro, 2026-09-21).**
@@ -909,6 +912,20 @@ guarda região/quantidade de garçom). Custo projetado inalterado (mesmo laço,
 agora sobre dimensionamento/custo já migrados). Modo nocodb preservado
 literalmente. **Sem teste contra dado**: não há Orçamento real em nenhum dos
 lados.
+
+**Grupo B — escrita NÃO validada contra banco e 2 decisões do Pedro pendentes.**
+Só as leituras têm teste de equivalência (escrever em produção está fora do
+escopo autorizado). As escritas (`criar/atualizar/excluir` de preparo,
+cardápio modelo e insumo) foram implementadas em transação Drizzle, mas
+nunca executadas: validar num smoke test supervisionado, com backup, na
+Fase B. Em `preparos`, o formulário atual conflita com o schema novo, e o
+modo oracle **falha explicitamente** em vez de gravar errado:
+1. O formulário oferece unidade de rendimento `KG`/`Pessoas`; o enum novo só
+   tem `G`/`ML`/`Unidade`. Decidir: adicionar ao enum ou restringir o formulário.
+2. `modo_preparo` é NOT NULL no schema novo; o formulário aceita vazio (mesma
+   causa do caso da Costela). Decidir: obrigar no formulário ou tornar nullable.
+`apresentacao_utensilio` não faz parte do formulário e não é alterada em updates.
+`nocodb.ts` NÃO foi removido: o modo `nocodb` (default e rollback) ainda o usa.
 
 Aviso: `custo-preparo`/`dimensionamento` em modo oracle ignoram o token do
 NocoDB, mas o cache por tag (`/api/revalidate`, webhook do NocoDB) deixa de
