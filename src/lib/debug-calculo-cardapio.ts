@@ -1,5 +1,6 @@
 import "server-only";
 import { exigirToken } from "@/lib/nocodb";
+import { dataSource } from "@/lib/data-source";
 import {
   distribuirPorcoes,
   resolverItensPorPreparoIds,
@@ -75,7 +76,8 @@ export async function calcularDebugCardapio(
     return { erro: "Informe ?convidados= com um número maior que zero.", status: 422 };
   }
 
-  const token = exigirToken();
+  // No modo oracle a leitura é via Drizzle (resolverItensPorPreparoIds ignora o token).
+  const token = dataSource() === "oracle" ? "" : exigirToken();
   const { itensResolvidos, itensExcluidos } = await resolverItensPorPreparoIds(preparoIds, token);
 
   const custosPorPreparoId = new Map<
