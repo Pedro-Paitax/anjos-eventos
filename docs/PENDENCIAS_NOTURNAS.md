@@ -852,19 +852,17 @@ tabelas novas vazias. **ETL das 6 tabelas NÃO autorizado** (aguarda o backup
 | `dimensionamento-cardapio` (`resolverItensPorPreparoIds`) | migrado | parcial: 32/54 idênticos; os 14 divergentes são todos de peso via `Hierarquia_Proteina` (0 divergências de outra causa). Aguardando ETL |
 | `dimensionamento-cardapio` (`calcularDimensionamentoOrcamento`) | migrado | sem dado (Orçamentos 0 linhas no Oracle; 1 placeholder no NocoDB) |
 | `precificacao-evento` | só deixa de exigir token NocoDB no modo oracle | herda a paridade acima |
-| `margem-orcamento` | **NÃO migrado — conflito de regra, decisão do Pedro** | — |
+| `margem-orcamento` | migrado (Lacuna 1 aplicada, ver abaixo) | sem dado: 0 Orçamentos no Oracle, 1 placeholder no NocoDB. Não testado contra dado |
 
-**`margem-orcamento` — conflito com decisão documentada.** O módulo lê
-`Valor_Base_Por_Pessoa` persistido no Orçamento do NocoDB e aplica o desconto
-sobre `valorBase = Valor_Base_Por_Pessoa x Num_Convidados`. O schema novo
-(`src/db/schema/orcamentos.ts`, Lacuna 1, docs/DECISOES.md "Arquitetura
-Financeira do Orçamento") **deliberadamente não tem essa coluna**: o valor
-sugerido por pessoa nunca é persistido, é calculado em tempo real, e o
-desconto incide sobre `Valor_Sugerido_Total_Evento`. Portanto migrar o módulo
-não é trocar a fonte: exige decidir como a receita projetada passa a ser
-calculada (via precificação em tempo real) e a semântica do desconto muda.
-Não alterei a regra silenciosamente. Também não há dado para paridade (1
-Orçamento placeholder, 0 itens). Pendente: decisão do Pedro sobre a fórmula.
+**`margem-orcamento` — Lacuna 1 aplicada (decisão do Pedro, 2026-09-21).**
+No modo oracle, `Valor_Base_Por_Pessoa` é ignorado (dado morto do modelo
+antigo). Receita = `valor_sugerido_por_pessoa` (precificação em tempo real)
+× `Num_Convidados` + Σ `orcamento_itens_adicionais` − desconto aplicado
+sobre esse TOTAL. Taxa de deslocamento e garçom ficam fora (o Orçamento não
+guarda região/quantidade de garçom). Custo projetado inalterado (mesmo laço,
+agora sobre dimensionamento/custo já migrados). Modo nocodb preservado
+literalmente. **Sem teste contra dado**: não há Orçamento real em nenhum dos
+lados.
 
 Aviso: `custo-preparo`/`dimensionamento` em modo oracle ignoram o token do
 NocoDB, mas o cache por tag (`/api/revalidate`, webhook do NocoDB) deixa de

@@ -2,6 +2,8 @@ import "server-only";
 import { exigirToken, nocodbGet } from "@/lib/nocodb";
 import { calcularDimensionamentoOrcamento } from "@/lib/dimensionamento-cardapio";
 import { calcularCustoPreparo } from "@/lib/custo-preparo";
+import { calcularPrecificacaoParaPreparos } from "@/lib/precificacao-evento";
+import { dataSource } from "@/lib/data-source";
 
 // IDs de tabela/campo do NocoDB (base Senhor_Churrasco_DB) — confirmados
 // via /api/v2/meta ao criar o schema (docs/DECISOES.md, seção
@@ -62,9 +64,15 @@ function calcularDescontoAplicado(
   return 0;
 }
 
-export async function calcularMargemProjetada(
-  orcamentoId: number
-): Promise<MargemResultado | MargemErro> {
+type ReceitaProjetada = {
+  numConvidados: number;
+  valorBase: number;
+  totalItensAdicionais: number;
+  descontoAplicado: number;
+  receitaProjetada: number;
+};
+
+async function calcularReceitaNocodb(orcamentoId: number): Promise<ReceitaProjetada | MargemErro> {
   const token = exigirToken();
 
   const orcamento = await nocodbGet<OrcamentoRegistro>(
@@ -104,6 +112,80 @@ export async function calcularMargemProjetada(
     orcamento.Desconto_Valor
   );
   const receitaProjetada = arredondar(valorBase + totalItensAdicionais - descontoAplicado);
+
+  return { numConvidados, valorBase, totalItensAdicionais, descontoAplicado, receitaProjetada };
+}
+
+/**
+ * DATA_SOURCE=oracle: aplica a Lacuna 1 já decidida (docs/DECISOES.md,
+ * "Arquitetura Financeira do Orçamento" + docs/schema-fisico-detalhado.md).
+ * Valor_Base_Por_Pessoa é IGNORADO (dado morto do modelo antigo): o valor
+ * sugerido por pessoa é calculado em tempo real pela precificação por
+ * cardápio, multiplicado por Num_Convidados, somado aos itens adicionais,
+ * e o desconto incide sobre esse TOTAL, nunca sobre o valor por pessoa.
+ * Taxa de deslocamento e garçom ficam de fora (nunca entram no valor por
+ * pessoa e o Orçamento não guarda região/quantidade de garçom).
+ */
+async function calcularReceitaOracle(orcamentoId: number): Promise<ReceitaProjetada | MargemErro> {
+  let numConvidados: number;
+  let preparoIds: number[];
+  let totalItensAdicionais: number;
+  let descontoTipo: string | null;
+  let descontoValor: number | null;
+  try {
+    const { db } = await import("@/db/client");
+    const { eq } = await import("drizzle-orm");
+    const { orcamentos, itensOrcamento } = await import("@/db/schema/orcamentos");
+    const { orcamentoItensAdicionais } = await import("@/db/schema/catalogo-complementar");
+
+    const [orcamento] = await db.select().from(orcamentos).where(eq(orcamentos.id, orcamentoId));
+    if (!orcamento) return { erro: "Orçamento não encontrado.", status: 404 };
+    numConvidados = orcamento.numConvidados;
+    descontoTipo = orcamento.descontoTipo;
+    descontoValor = orcamento.descontoValor == null ? null : Number(orcamento.descontoValor);
+
+    const itens = await db
+      .select({ preparoId: itensOrcamento.preparoId })
+      .from(itensOrcamento)
+      .where(eq(itensOrcamento.orcamentoId, orcamentoId));
+    preparoIds = [...new Set(itens.map((i) => i.preparoId))];
+
+    const adicionais = await db
+      .select({ valor: orcamentoItensAdicionais.valor })
+      .from(orcamentoItensAdicionais)
+      .where(eq(orcamentoItensAdicionais.orcamentoId, orcamentoId));
+    totalItensAdicionais = arredondar(adicionais.reduce((soma, i) => soma + Number(i.valor), 0));
+  } catch (erro) {
+    return { erro: `Falha ao consultar Postgres: ${(erro as Error).message}`, status: 502 };
+  }
+
+  if (!numConvidados || numConvidados <= 0) {
+    return { erro: "Orçamento está sem Num_Convidados válido cadastrado.", status: 422 };
+  }
+
+  const precificacao = await calcularPrecificacaoParaPreparos(preparoIds, {
+    numConvidados,
+    regiaoMetropolitanaCuritiba: false,
+  });
+  if ("erro" in precificacao) return precificacao;
+
+  const valorBase = arredondar(precificacao.resultado.valor_sugerido_por_pessoa * numConvidados);
+  const totalAntesDoDesconto = arredondar(valorBase + totalItensAdicionais);
+  const descontoAplicado = calcularDescontoAplicado(totalAntesDoDesconto, descontoTipo, descontoValor);
+  const receitaProjetada = arredondar(totalAntesDoDesconto - descontoAplicado);
+
+  return { numConvidados, valorBase, totalItensAdicionais, descontoAplicado, receitaProjetada };
+}
+
+export async function calcularMargemProjetada(
+  orcamentoId: number
+): Promise<MargemResultado | MargemErro> {
+  const receita =
+    dataSource() === "oracle"
+      ? await calcularReceitaOracle(orcamentoId)
+      : await calcularReceitaNocodb(orcamentoId);
+  if ("erro" in receita) return receita;
+  const { valorBase, totalItensAdicionais, descontoAplicado, receitaProjetada } = receita;
 
   const dimensionamento = await calcularDimensionamentoOrcamento(orcamentoId);
   if ("erro" in dimensionamento) {
