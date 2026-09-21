@@ -79,4 +79,55 @@ describe.skipIf(!habilitado)("paridade Grupo A (NocoDB x Oracle)", () => {
     console.log(`[paridade hierarquia-proteina] nocodb=${noco.size} oracle=${oracle.size} entradas`);
     expect([...oracle.entries()].sort()).toEqual([...noco.entries()].sort());
   }, 60_000);
+
+  it("dimensionamento-cardapio: resolverItensPorPreparoIds idêntico em todos os Preparos", async () => {
+    if (!apontaProOracle) return;
+    const { resolverItensPorPreparoIds } = await import("@/lib/dimensionamento-cardapio");
+    const { db } = await import("@/db/client");
+    const { preparos } = await import("@/db/schema/preparos");
+    const token = process.env.NOCODB_API_TOKEN!;
+    const ids = (await db.select({ id: preparos.id }).from(preparos)).map((r) => r.id).sort((a, b) => a - b);
+
+    // Em lotes: o NocoDB estoura o timeout de 5s com 54 preparos em paralelo
+    // (comportamento conhecido da API, não da migração).
+    type Res = Awaited<ReturnType<typeof resolverItensPorPreparoIds>>;
+    const rodar = async (fonte: "nocodb" | "oracle"): Promise<Res> => {
+      process.env.DATA_SOURCE = fonte;
+      const acc: Res = { itensResolvidos: [], itensExcluidos: [] };
+      for (let i = 0; i < ids.length; i += 6) {
+        const r = await resolverItensPorPreparoIds(ids.slice(i, i + 6), token);
+        acc.itensResolvidos.push(...r.itensResolvidos);
+        acc.itensExcluidos.push(...r.itensExcluidos);
+      }
+      return acc;
+    };
+    const noco = await rodar("nocodb");
+    const oracle = await rodar("oracle");
+    delete process.env.DATA_SOURCE;
+
+    const porId = (r: typeof noco) => new Map(r.itensResolvidos.map((i) => [i.preparoId, JSON.stringify(i)]));
+    const excl = (r: typeof noco) => new Map(r.itensExcluidos.map((i) => [i.preparo, i.motivo]));
+    const a = porId(noco), b = porId(oracle), ea = excl(noco), eb = excl(oracle);
+    const divergencias: string[] = [];
+    for (const id of ids) {
+      if (a.get(id) !== b.get(id)) divergencias.push(`resolvido Id ${id}: nocodb=${a.get(id)} oracle=${b.get(id)}`);
+    }
+    for (const [nome, motivo] of ea) if (eb.get(nome) !== motivo) divergencias.push(`excluido "${nome}": nocodb="${motivo}" oracle="${eb.get(nome)}"`);
+    for (const nome of eb.keys()) if (!ea.has(nome)) divergencias.push(`excluido só no oracle: "${nome}"`);
+    console.log(`[paridade dimensionamento] ${ids.length} preparos; resolvidos nocodb=${a.size} oracle=${b.size}; excluidos nocodb=${ea.size} oracle=${eb.size}; ${divergencias.length} divergências`);
+    // Diagnóstico: quantas divergências têm a causa conhecida (peso vindo de
+    // Hierarquia_Proteina, tabela ainda sem ETL no Oracle)? As demais são
+    // divergência real e bloqueiam de qualquer forma.
+    const viaHierarquia = noco.itensResolvidos.filter((i) => i.origemPeso.startsWith("Hierarquia_Proteina"));
+    const idsHier = new Set(viaHierarquia.map((i) => i.preparoId));
+    const nomesHier = new Set(viaHierarquia.map((i) => i.preparoNome));
+    const idsDiv = ids.filter((id) => a.get(id) !== b.get(id));
+    const naoExplicadasIds = idsDiv.filter((id) => !idsHier.has(id));
+    const nomesExclDiv = [...ea.keys(), ...eb.keys()].filter((n) => ea.get(n) !== eb.get(n));
+    const naoExplicadasNomes = [...new Set(nomesExclDiv)].filter((n) => !nomesHier.has(n));
+    console.log(
+      `[diagnostico] via Hierarquia_Proteina (nocodb)=${viaHierarquia.length}; ids divergentes=${idsDiv.length}; NÃO explicados por hierarquia: ids=${naoExplicadasIds.length} ${JSON.stringify(naoExplicadasIds)} nomes-excluidos=${naoExplicadasNomes.length} ${JSON.stringify(naoExplicadasNomes)}`
+    );
+    expect(divergencias).toEqual([]);
+  }, 300_000);
 });

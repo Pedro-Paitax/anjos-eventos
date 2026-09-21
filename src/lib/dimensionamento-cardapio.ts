@@ -3,6 +3,7 @@ import { unstable_cache } from "next/cache";
 import { nocodbGet } from "@/lib/nocodb";
 import { buscarPesosPadraoPorSubcategoria } from "@/lib/hierarquia-proteina";
 import { TAG_MACRO_CATEGORIAS } from "@/lib/cache-tags";
+import { dataSource } from "@/lib/data-source";
 
 // IDs de tabela do NocoDB (base Senhor_Churrasco_DB), confirmados via
 // /api/v2/meta/bases/.../tables — não inventar, checar o schema real antes
@@ -290,6 +291,71 @@ async function resolverHeaderEMacroCategoria(
 }
 
 /**
+ * Leitura de Preparos + Header_UI + Macro_Categoria via Drizzle
+ * (DATA_SOURCE=oracle), devolvida no mesmo formato dos registros do NocoDB
+ * pra o restante da resolução (peso, exclusões) não mudar. Numeric do
+ * Postgres chega como string — convertido pra number aqui.
+ */
+async function carregarPreparosEHeadersOracle(preparoIds: number[]): Promise<{
+  preparoPorId: Map<number, PreparoRegistro>;
+  headerEMacroPorPreparoId: Map<number, HeaderEMacroCategoria | null>;
+}> {
+  const preparoPorId = new Map<number, PreparoRegistro>();
+  const headerEMacroPorPreparoId = new Map<number, HeaderEMacroCategoria | null>();
+  if (preparoIds.length === 0) return { preparoPorId, headerEMacroPorPreparoId };
+
+  const { db } = await import("@/db/client");
+  const { asc, eq, inArray } = await import("drizzle-orm");
+  const { preparos } = await import("@/db/schema/preparos");
+  const { headerPreparo, headersUi, macroCategorias } = await import("@/db/schema/cardapio-referencia");
+  const num = (v: string | null) => (v == null ? null : Number(v));
+
+  const linhas = await db.select().from(preparos).where(inArray(preparos.id, preparoIds));
+  for (const p of linhas) {
+    preparoPorId.set(p.id, {
+      Id: p.id,
+      "Nome Do Preparo": p.nomePreparo,
+      Categoria: p.categoria,
+      Peso_Atratividade: num(p.pesoAtratividade),
+      Subcategoria_Proteina: p.subcategoriaProteina,
+      Porcao_Maxima_Individual: num(p.porcaoMaximaIndividual),
+      "UOM Rendimento": p.unidadeRendimento,
+      Peso_Medio_Unidade_G: num(p.pesoMedioUnidadeG),
+      Rendimento: num(p.rendimento),
+    });
+  }
+
+  const vinculos = await db
+    .select({
+      preparoId: headerPreparo.preparoId,
+      nomeExibicao: headersUi.nomeExibicao,
+      macroId: macroCategorias.id,
+      nomeMacro: macroCategorias.nomeMacro,
+      capacidadeTeto: macroCategorias.capacidadeTeto,
+      unidade: macroCategorias.unidade,
+    })
+    .from(headerPreparo)
+    .innerJoin(headersUi, eq(headerPreparo.headerUiId, headersUi.id))
+    .innerJoin(macroCategorias, eq(headersUi.macroCategoriaId, macroCategorias.id))
+    .where(inArray(headerPreparo.preparoId, preparoIds))
+    .orderBy(asc(headerPreparo.headerUiId));
+  for (const id of preparoIds) headerEMacroPorPreparoId.set(id, null);
+  for (const v of vinculos) {
+    if (headerEMacroPorPreparoId.get(v.preparoId)) continue; // NocoDB usa o primeiro vínculo
+    headerEMacroPorPreparoId.set(v.preparoId, {
+      headerExibicao: v.nomeExibicao,
+      macroCategoria: {
+        Id: v.macroId,
+        Nome_Macro: v.nomeMacro,
+        Capacidade_Categoria: Number(v.capacidadeTeto),
+        UOM: v.unidade,
+      },
+    });
+  }
+  return { preparoPorId, headerEMacroPorPreparoId };
+}
+
+/**
  * Resolve peso, header e macro-categoria de uma lista de preparos — mesma
  * lógica usada pelo motor de dimensionamento sobre Itens_Orcamento, mas
  * reaproveitável por qualquer chamador que já tenha os preparo_id em mãos
@@ -305,19 +371,25 @@ export async function resolverItensPorPreparoIds(
 
   const pesosPadrao = await buscarPesosPadraoPorSubcategoria(token);
 
-  const preparos = await Promise.all(
-    preparoIds.map((id) => nocodbGet<PreparoRegistro>(`/tables/${TABELA_PREPAROS}/records/${id}`, token))
-  );
-  const preparoPorId = new Map(
-    preparos.filter((p): p is PreparoRegistro => p !== null).map((p) => [p.Id, p])
-  );
+  let preparoPorId: Map<number, PreparoRegistro>;
+  let headerEMacroPorPreparoId: Map<number, HeaderEMacroCategoria | null>;
+  if (dataSource() === "oracle") {
+    ({ preparoPorId, headerEMacroPorPreparoId } = await carregarPreparosEHeadersOracle(preparoIds));
+  } else {
+    const preparos = await Promise.all(
+      preparoIds.map((id) => nocodbGet<PreparoRegistro>(`/tables/${TABELA_PREPAROS}/records/${id}`, token))
+    );
+    preparoPorId = new Map(
+      preparos.filter((p): p is PreparoRegistro => p !== null).map((p) => [p.Id, p])
+    );
 
-  const headerEMacroPorPreparoId = new Map<number, HeaderEMacroCategoria | null>();
-  await Promise.all(
-    preparoIds.map(async (id) => {
-      headerEMacroPorPreparoId.set(id, await resolverHeaderEMacroCategoria(id, token));
-    })
-  );
+    headerEMacroPorPreparoId = new Map<number, HeaderEMacroCategoria | null>();
+    await Promise.all(
+      preparoIds.map(async (id) => {
+        headerEMacroPorPreparoId.set(id, await resolverHeaderEMacroCategoria(id, token));
+      })
+    );
+  }
 
   for (const preparoId of preparoIds) {
     const preparo = preparoPorId.get(preparoId);
@@ -377,9 +449,48 @@ export async function resolverItensPorPreparoIds(
   return { itensResolvidos, itensExcluidos };
 }
 
+/** Mesma orquestração de calcularDimensionamentoOrcamento, lendo Orçamento e Itens via Drizzle (DATA_SOURCE=oracle). */
+async function calcularDimensionamentoOrcamentoOracle(
+  orcamentoId: number
+): Promise<DimensionamentoResultado | DimensionamentoErro> {
+  let numConvidados: number;
+  let itensResolvidos: ItemResolvido[];
+  let itensExcluidos: ItemExcluido[];
+  try {
+    const { db } = await import("@/db/client");
+    const { eq } = await import("drizzle-orm");
+    const { orcamentos, itensOrcamento } = await import("@/db/schema/orcamentos");
+
+    const [orcamento] = await db.select().from(orcamentos).where(eq(orcamentos.id, orcamentoId));
+    if (!orcamento) return { erro: "Orçamento não encontrado.", status: 404 };
+    numConvidados = orcamento.numConvidados;
+    if (!numConvidados || numConvidados <= 0) {
+      return { erro: "Orçamento está sem Num_Convidados válido cadastrado.", status: 422 };
+    }
+
+    const itens = await db
+      .select({ preparoId: itensOrcamento.preparoId })
+      .from(itensOrcamento)
+      .where(eq(itensOrcamento.orcamentoId, orcamentoId));
+    const preparoIds = [...new Set(itens.map((i) => i.preparoId))];
+    ({ itensResolvidos, itensExcluidos } = await resolverItensPorPreparoIds(preparoIds, ""));
+  } catch (erro) {
+    return { erro: `Falha ao consultar Postgres: ${(erro as Error).message}`, status: 502 };
+  }
+
+  return {
+    orcamento_id: orcamentoId,
+    num_convidados: numConvidados,
+    macro_categorias: distribuirPorcoes(itensResolvidos, numConvidados),
+    itens_excluidos: itensExcluidos,
+  };
+}
+
 export async function calcularDimensionamentoOrcamento(
   orcamentoId: number
 ): Promise<DimensionamentoResultado | DimensionamentoErro> {
+  if (dataSource() === "oracle") return calcularDimensionamentoOrcamentoOracle(orcamentoId);
+
   const token = process.env.NOCODB_API_TOKEN;
   if (!token) {
     return { erro: "NOCODB_API_TOKEN não configurado.", status: 500 };

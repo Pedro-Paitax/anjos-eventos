@@ -1,5 +1,6 @@
 import "server-only";
 import { exigirToken } from "@/lib/nocodb";
+import { dataSource } from "@/lib/data-source";
 import { resolverItensPorPreparoIds } from "@/lib/dimensionamento-cardapio";
 import { calcularCustoPreparo } from "@/lib/custo-preparo";
 import {
@@ -110,7 +111,7 @@ export async function calcularPrecificacaoParaPreparos(
     return { erro: "Informe a quantidade de convidados.", status: 422 };
   }
 
-  const token = exigirToken();
+  const token = dataSource() === "oracle" ? "" : exigirToken();
   const resolvido = await resolverItensParaPrecificacao(preparoIds, token);
   if ("erro" in resolvido) return resolvido;
 
@@ -137,7 +138,7 @@ export async function calcularPrecificacaoEventoParaPreparos(
     return { erro: "Informe a quantidade de convidados.", status: 422 };
   }
 
-  const token = exigirToken();
+  const token = dataSource() === "oracle" ? "" : exigirToken();
   const resolvido = await resolverItensParaPrecificacao(preparoIds, token);
   if ("erro" in resolvido) return resolvido;
 
