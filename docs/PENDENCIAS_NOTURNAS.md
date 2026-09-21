@@ -825,6 +825,19 @@ baixo, equivalência de lista/contagem). Parar e chamar o Pedro se: (a)
 paridade do Grupo A divergir; (b) surgir dependência oculta que mude o
 escopo do corte.
 
+### PENDENTE COM PRAZO — Backup do Oracle (item 5 do checklist, 2026-09-21)
+
+Não foi possível confirmar backup automático: sem OCI CLI/credencial nesta
+máquina, sem script de `pg_dump`/cron no repo, docs só listam como requisito.
+
+- **Backup de hardware (snapshot OCI):** Pedro está configurando
+  manualmente no console agora. Confirmar quando concluído.
+- **Backup de dado (`pg_dump` diário off-site):** NÃO implementado. Precisa
+  existir ANTES do Dia do Corte (Fase B do checklist). Não bloqueia a
+  Fase A de hoje.
+- **Regra:** não migrar mais dado real de produção pro Oracle sem isso
+  resolvido.
+
 ## Sessão 2026-09-17 (continuação 2) — --write concluído com sucesso, Eixo 1 validado no Oracle
 
 Placeholder da Costela (ver seção 🔴 abaixo) gravado no NocoDB, dry-run
