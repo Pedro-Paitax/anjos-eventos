@@ -838,6 +838,23 @@ máquina, sem script de `pg_dump`/cron no repo, docs só listam como requisito.
 - **Regra:** não migrar mais dado real de produção pro Oracle sem isso
   resolvido.
 
+**Desenho do backup de dado (decidido pelo Pedro, 2026-09-21):** roda no
+`ender` (cron), `pg_dump -Fc` do Postgres do Oracle, upload via `rclone` pro
+Google Drive do Pedro (escopo `drive.file`, OAuth autorizado uma vez),
+retenção de 30 dias. Conta de serviço descartada: sem cota em Drive pessoal.
+
+- **Decisão consciente — sem criptografia adicional:** backup do Drive sem
+  `rclone crypt`. Aceito por ora porque o Drive é conta pessoal e o escopo
+  `drive.file` já isola o acesso; contém dados de clientes/contratos. Revisar
+  se o Drive for compartilhado no futuro ou se o volume de dado sensível
+  crescer.
+- **Limitação conhecida — credencial no `ps`:** o `DATABASE_URL` (com senha)
+  fica visível na lista de processos do `ender` durante o `pg_dump`. Aceito
+  por ser máquina de um usuário só; não é um não-issue, e deixa de ser
+  aceitável se o `ender` passar a ter outros usuários.
+- **Dependência conhecida:** o backup depende de o `ender` estar ligado e do
+  Tailscale até o Oracle. Se o `ender` cair, não há dump.
+
 ### Fase A — estado dos módulos do Grupo A (2026-09-21)
 
 Push aditivo do schema (migração 0001, commit `0cdc60a`) aplicado no Oracle
