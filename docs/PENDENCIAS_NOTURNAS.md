@@ -868,6 +868,17 @@ retenção de 30 dias. Conta de serviço descartada: sem cota em Drive pessoal.
 
 ### Fase A — estado dos módulos do Grupo A (2026-09-21)
 
+**Modo truncate+reload do ETL implementado (2026-09-21, commit `4148bb7`) —
+SÓ DIA DO CORTE, nunca executado com escrita.** `scripts/etl-corte-producao.ts`
+trunca (sem CASCADE) e recarrega as 14 tabelas de catálogo numa transação
+única; não toca `usuarios`/`contratos`/`eventos`/`empresas`. Escrita exige
+`--write --confirmo-producao --confirmo-banco=100.121.229.81`,
+`DIA_DO_CORTE=<data de hoje>` e `ultimo-status.txt` do backup = OK com < 26h;
+sem isso recusa (exit 2) antes de conectar. Validado: `tsc`/`eslint`, 10 testes
+das travas, 4 recusas reais no servidor, dry-run (plano por tabela bate com as
+contagens atuais do Oracle). NÃO validado: a escrita em si (TRUNCATE + recarga).
+Os dois ETLs viraram `preparar()`+`gravar(tx)` e seguem rodando standalone.
+
 **ETL das 4 tabelas do NocoDB executado (2026-09-21, autorizado pelo Pedro):**
 `scripts/etl-tabelas-complementares.ts --write` (commit `936977b`), após backup
 funcionando. Carregado no Oracle: hierarquia_proteina 5, configuracoes_globais

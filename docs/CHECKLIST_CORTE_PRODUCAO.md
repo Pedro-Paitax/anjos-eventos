@@ -43,7 +43,9 @@ tem duas fases: **(A)** migrar os módulos pra Drizzle atrás de uma flag,
     `cardapios-modelo`, `debug-calculo-cardapio`, `simulador-orcamento`,
     `preparos`, `insumos`, `nocodb.ts` (só remover depois que ninguém
     mais importar).
-- [ ] Modo "truncate + reload" do ETL com trava `--confirmo-producao`.
+- [x] Modo "truncate + reload" do ETL com trava `--confirmo-producao`
+      (`scripts/etl-corte-producao.ts`, commit `4148bb7`). Só o dry-run e
+      as recusas das travas foram exercitados; **nunca executado com escrita**.
 - [ ] Confirmar backup do Oracle (snapshot da instância + `pg_dump`
       diário off-site) — item do ADR ainda **pendente de confirmação**.
 - [ ] Substituir o placeholder do Modo de Preparo da Costela (Id 32) em
@@ -58,7 +60,9 @@ tem duas fases: **(A)** migrar os módulos pra Drizzle atrás de uma flag,
 2. [ ] Snapshot do Oracle + `pg_dump` do Postgres local + dump do NocoDB
        (ponto de retorno).
 3. [ ] **Congelar edições no NocoDB** (durante toda a janela).
-4. [ ] ETL completo, modo truncate+reload, com `--confirmo-producao`
+4. [ ] ETL completo (`scripts/etl-corte-producao.ts`; travas: `--write
+       --confirmo-producao --confirmo-banco=100.121.229.81`,
+       `DIA_DO_CORTE=<hoje>` e backup OK < 26h), modo truncate+reload, com `--confirmo-producao`
        (dry-run antes → conferir contagens → escrita).
 5. [ ] Copiar `usuarios`/`contratos` pro Oracle preservando IDs.
 6. [ ] `scripts/verificar-eixo1-oracle.ts` — os 3 valores precisam bater.
