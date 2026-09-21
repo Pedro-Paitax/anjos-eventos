@@ -1,5 +1,6 @@
 import "server-only";
 import { nocodbGet } from "@/lib/nocodb";
+import { dataSource } from "@/lib/data-source";
 
 // IDs de tabela do NocoDB (base Senhor_Churrasco_DB), confirmados via
 // /api/v2/meta/bases/.../tables — não inventar, checar o schema real antes
@@ -98,10 +99,95 @@ export function calcularCustoPor100Unidades(custoTotal: number, rendimento: numb
  */
 export type PreparoJaBuscado = Pick<PreparoRegistro, "Nome Do Preparo" | "Rendimento" | "UOM Rendimento">;
 
+function validarRendimento(
+  preparo: PreparoJaBuscado
+): { rendimento: number; unidade: "g" | "ml" | "unidade" } | CustoPreparoErro {
+  const rendimento = preparo["Rendimento"];
+  const unidadeOriginal = preparo["UOM Rendimento"];
+  const unidade = unidadeOriginal ? UNIDADE_RENDIMENTO[unidadeOriginal] : undefined;
+
+  if (!rendimento || rendimento <= 0) {
+    return {
+      erro: `Preparo "${preparo["Nome Do Preparo"]}" está sem Rendimento válido cadastrado.`,
+      status: 422,
+    };
+  }
+  if (!unidade) {
+    return {
+      erro: `Unidade de rendimento "${unidadeOriginal}" não suportada por este endpoint (esperado G, ML ou Unidade).`,
+      status: 422,
+    };
+  }
+  return { rendimento, unidade };
+}
+
+/**
+ * Mesma conta de calcularCustoPreparo, lendo do Postgres novo via Drizzle
+ * (DATA_SOURCE=oracle). Numeric do Postgres chega como string — convertido
+ * aqui pra number antes de entrar no núcleo puro, que não muda.
+ */
+async function calcularCustoPreparoOracle(
+  preparoId: number,
+  preparoJaBuscado?: PreparoJaBuscado
+): Promise<CustoPreparoResultado | CustoPreparoErro> {
+  let preparo: PreparoJaBuscado;
+  let itens: ItemComposicaoParaCusto[];
+  try {
+    const { db } = await import("@/db/client");
+    const { eq } = await import("drizzle-orm");
+    const { preparos } = await import("@/db/schema/preparos");
+    const { composicao } = await import("@/db/schema/composicao");
+    const { insumos } = await import("@/db/schema/insumos");
+
+    if (preparoJaBuscado) {
+      preparo = preparoJaBuscado;
+    } else {
+      const [linha] = await db.select().from(preparos).where(eq(preparos.id, preparoId));
+      if (!linha) return { erro: "Preparo não encontrado.", status: 404 };
+      preparo = {
+        "Nome Do Preparo": linha.nomePreparo,
+        Rendimento: Number(linha.rendimento),
+        "UOM Rendimento": linha.unidadeRendimento,
+      };
+    }
+
+    const linhas = await db
+      .select({
+        quantidade: composicao.quantidade,
+        preco: insumos.preco,
+        fatorCorrecao: insumos.fatorCorrecao,
+      })
+      .from(composicao)
+      .innerJoin(insumos, eq(composicao.insumoId, insumos.id))
+      .where(eq(composicao.preparoId, preparoId));
+    itens = linhas.map((l) => ({
+      quantidade: Number(l.quantidade),
+      preco: l.preco == null ? null : Number(l.preco),
+      fatorCorrecao: l.fatorCorrecao == null ? null : Number(l.fatorCorrecao),
+    }));
+  } catch (erro) {
+    return { erro: `Falha ao consultar Postgres: ${(erro as Error).message}`, status: 502 };
+  }
+
+  const validado = validarRendimento(preparo);
+  if ("erro" in validado) return validado;
+
+  const custoTotal = calcularCustoTotalComposicao(itens);
+  return {
+    preparo: preparo["Nome Do Preparo"],
+    custo_total_preparo: custoTotal,
+    rendimento: validado.rendimento,
+    unidade_rendimento: validado.unidade,
+    custo_por_100_unidades: calcularCustoPor100Unidades(custoTotal, validado.rendimento),
+  };
+}
+
 export async function calcularCustoPreparo(
   preparoId: number,
   preparoJaBuscado?: PreparoJaBuscado
 ): Promise<CustoPreparoResultado | CustoPreparoErro> {
+  if (dataSource() === "oracle") return calcularCustoPreparoOracle(preparoId, preparoJaBuscado);
+
   const token = process.env.NOCODB_API_TOKEN;
   if (!token) {
     return { erro: "NOCODB_API_TOKEN não configurado.", status: 500 };
@@ -130,22 +216,9 @@ export async function calcularCustoPreparo(
     return { erro: `Falha ao consultar NocoDB: ${(erro as Error).message}`, status: 502 };
   }
 
-  const rendimento = preparo["Rendimento"];
-  const unidadeOriginal = preparo["UOM Rendimento"];
-  const unidade = unidadeOriginal ? UNIDADE_RENDIMENTO[unidadeOriginal] : undefined;
-
-  if (!rendimento || rendimento <= 0) {
-    return {
-      erro: `Preparo "${preparo["Nome Do Preparo"]}" está sem Rendimento válido cadastrado.`,
-      status: 422,
-    };
-  }
-  if (!unidade) {
-    return {
-      erro: `Unidade de rendimento "${unidadeOriginal}" não suportada por este endpoint (esperado G, ML ou Unidade).`,
-      status: 422,
-    };
-  }
+  const validado = validarRendimento(preparo);
+  if ("erro" in validado) return validado;
+  const { rendimento, unidade } = validado;
 
   let custoTotal: number;
   try {
