@@ -1,6 +1,8 @@
 import "server-only";
 import { exigirToken, nocodbGet } from "@/lib/nocodb";
-import { calcularDimensionamentoOrcamento } from "@/lib/dimensionamento-cardapio";
+import { calcularDimensionamentoOrcamento, type DimensionamentoResultado } from "@/lib/dimensionamento-cardapio";
+import { calcularPrecificacaoParaPreparos } from "@/lib/precificacao-evento";
+import { dataSource } from "@/lib/data-source";
 
 const TABELA_ORCAMENTOS = "mpobqls8ibt3ay3";
 
@@ -43,29 +45,7 @@ function unidadeValida(valor: string): valor is ItemSimulador["unidade"] {
   return valor === "g" || valor === "ml" || valor === "unidade";
 }
 
-export async function calcularSimuladorOrcamento(
-  orcamentoId: number
-): Promise<SimuladorResultado | SimuladorErro> {
-  const token = exigirToken();
-
-  const orcamento = await nocodbGet<OrcamentoRegistro>(
-    `/tables/${TABELA_ORCAMENTOS}/records/${orcamentoId}`,
-    token
-  );
-  if (!orcamento) {
-    return { erro: "Orçamento não encontrado.", status: 404 };
-  }
-
-  const numConvidados = orcamento.Num_Convidados;
-  if (!numConvidados || numConvidados <= 0) {
-    return { erro: "Orçamento está sem Num_Convidados válido cadastrado.", status: 422 };
-  }
-
-  const dimensionamento = await calcularDimensionamentoOrcamento(orcamentoId);
-  if ("erro" in dimensionamento) {
-    return dimensionamento;
-  }
-
+function montarItensSimulador(dimensionamento: DimensionamentoResultado): ItemSimulador[] {
   // Itens sem peso/macro-categoria resolvidos (dimensionamento.itens_excluidos)
   // são deliberadamente omitidos aqui, sem aviso — não revelar ao público
   // detalhes internos de cadastro (Peso_Atratividade, Subcategoria_Proteina)
@@ -86,6 +66,89 @@ export async function calcularSimuladorOrcamento(
       });
     }
   }
+  return itens;
+}
+
+/**
+ * DATA_SOURCE=oracle: Lacuna 1 (docs/DECISOES.md, "Arquitetura Financeira do
+ * Orçamento"). Valor_Base_Por_Pessoa é dado morto e é IGNORADO; o valor
+ * estimado é o valor sugerido por pessoa calculado em tempo real (mesma
+ * precificação por cardápio) x Num_Convidados. Payload público: erros aqui
+ * são genéricos, sem revelar motivos internos de cadastro.
+ */
+async function calcularSimuladorOrcamentoOracle(
+  orcamentoId: number
+): Promise<SimuladorResultado | SimuladorErro> {
+  let numConvidados: number;
+  let preparoIds: number[];
+  try {
+    const { db } = await import("@/db/client");
+    const { eq } = await import("drizzle-orm");
+    const { orcamentos, itensOrcamento } = await import("@/db/schema/orcamentos");
+
+    const [orcamento] = await db.select().from(orcamentos).where(eq(orcamentos.id, orcamentoId));
+    if (!orcamento) return { erro: "Orçamento não encontrado.", status: 404 };
+    numConvidados = orcamento.numConvidados;
+
+    const itens = await db
+      .select({ preparoId: itensOrcamento.preparoId })
+      .from(itensOrcamento)
+      .where(eq(itensOrcamento.orcamentoId, orcamentoId));
+    preparoIds = [...new Set(itens.map((i) => i.preparoId))];
+  } catch (erro) {
+    return { erro: `Falha ao consultar Postgres: ${(erro as Error).message}`, status: 502 };
+  }
+
+  if (!numConvidados || numConvidados <= 0) {
+    return { erro: "Orçamento está sem Num_Convidados válido cadastrado.", status: 422 };
+  }
+
+  const dimensionamento = await calcularDimensionamentoOrcamento(orcamentoId);
+  if ("erro" in dimensionamento) return dimensionamento;
+
+  const precificacao = await calcularPrecificacaoParaPreparos(preparoIds, {
+    numConvidados,
+    regiaoMetropolitanaCuritiba: false,
+  });
+  if ("erro" in precificacao) {
+    return { erro: "Não foi possível estimar o valor deste orçamento.", status: 422 };
+  }
+
+  return {
+    orcamento_id: orcamentoId,
+    num_convidados: numConvidados,
+    valor_total_estimado: arredondar(precificacao.resultado.valor_sugerido_por_pessoa * numConvidados),
+    itens: montarItensSimulador(dimensionamento),
+    avisos: [],
+  };
+}
+
+export async function calcularSimuladorOrcamento(
+  orcamentoId: number
+): Promise<SimuladorResultado | SimuladorErro> {
+  if (dataSource() === "oracle") return calcularSimuladorOrcamentoOracle(orcamentoId);
+
+  const token = exigirToken();
+
+  const orcamento = await nocodbGet<OrcamentoRegistro>(
+    `/tables/${TABELA_ORCAMENTOS}/records/${orcamentoId}`,
+    token
+  );
+  if (!orcamento) {
+    return { erro: "Orçamento não encontrado.", status: 404 };
+  }
+
+  const numConvidados = orcamento.Num_Convidados;
+  if (!numConvidados || numConvidados <= 0) {
+    return { erro: "Orçamento está sem Num_Convidados válido cadastrado.", status: 422 };
+  }
+
+  const dimensionamento = await calcularDimensionamentoOrcamento(orcamentoId);
+  if ("erro" in dimensionamento) {
+    return dimensionamento;
+  }
+
+  const itens = montarItensSimulador(dimensionamento);
 
   const valorTotalEstimado = arredondar((orcamento.Valor_Base_Por_Pessoa ?? 0) * numConvidados);
 
