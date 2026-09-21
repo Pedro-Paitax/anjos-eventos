@@ -903,6 +903,22 @@ tabelas novas vazias. **ETL das 6 tabelas NÃO autorizado** (aguarda o backup
 | Grupo B `preparos` | migrado (leitura + escrita) | leitura **VALIDADA**: 54 preparos, listas por categoria e composição idênticas. Escrita NÃO validada; 2 incompatibilidades form x schema (abaixo) |
 | `margem-orcamento` | migrado (Lacuna 1 aplicada, ver abaixo) | sem dado: 0 Orçamentos no Oracle, 1 placeholder no NocoDB. Não testado contra dado |
 
+**Paridade pelo ENDPOINT REAL (2026-09-21):** `scripts/paridade-endpoint.ts`
+faz build do `git HEAD` num diretório próprio (`~/.paridade-endpoint-app` no
+`ender`), sobe 2 instâncias standalone (:3101 `DATA_SOURCE=nocodb`, :3102
+`oracle`), compara status + corpo JSON campo a campo e derruba tudo. Só
+leitura. Resultado: `GET /api/preparos/{id}/custo` **54/54 idênticos, 0
+divergências**; 10 casos de borda idênticos (id 999999/0/abc/-1 em preparos e
+`/api/orcamentos/{999999,0}/{dimensionamento,margem-projetada,simulador}` —
+404/400 equivalentes). As rotas não têm auth/middleware, nada foi contornado.
+Ressalva: o NocoDB devolveu 502 por timeout de 5s da lib em 14 preparos de
+muitos insumos na 1ª rodada (falha de transporte, não de valor; o Oracle
+respondeu 200); o script repete SÓ esse 502 (até 4x) e conta — 12 repetições
+na rodada final. Fora do teste: orçamentos com dado real (0 no Oracle, 1
+placeholder no NocoDB; não simulado) e as rotas `/api/nocodb/preparos` e
+`/api/revalidate`. Reproduzir: `ssh ender 'cd /srv/share/anjos_eventos &&
+npx tsx scripts/paridade-endpoint.ts [--reuse-build]'`.
+
 **`margem-orcamento` — Lacuna 1 aplicada (decisão do Pedro, 2026-09-21).**
 No modo oracle, `Valor_Base_Por_Pessoa` é ignorado (dado morto do modelo
 antigo). Receita = `valor_sugerido_por_pessoa` (precificação em tempo real)
