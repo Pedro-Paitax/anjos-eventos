@@ -804,6 +804,27 @@ item.
 Sem segredos hardcoded, sem chamadas ao NocoDB do lado do cliente, sem
 TODO/FIXME em `src/`.
 
+## Decisões do corte de produção (Pedro, 2026-09-21) — checklist em docs/CHECKLIST_CORTE_PRODUCAO.md
+
+1. **Escopo**: incluir as 6 tabelas faltantes (`usuarios`, `contratos`,
+   `Cardapios_Modelo`+`Cardapio_Modelo_Itens`, `Hierarquia_Proteina`,
+   `Configuracoes_Globais`, `Orcamento_Itens_Adicionais`). Pré-requisito
+   não-opcional.
+2. **Escrita durante o corte**: CONGELAR edições no NocoDB durante toda a
+   janela. Sem escrita dupla, sem reconciliação depois.
+3. **Onde o app roda pós-corte**: Oracle (mesmo servidor do banco), não o
+   ender. Direção decidida; **pendente de confirmação final do Pedro
+   antes do dia do corte**.
+4. **ETL "truncate + reload"**: APROVADO, com trava — só no dia do corte
+   real (Fase B do checklist), nunca em sessão de dev/teste. O script
+   exige `--confirmo-producao` explícito nesse modo.
+
+**Mudança de prioridade**: Fase A começa já, módulos em paralelo (Grupo A
+= risco financeiro, paridade valor a valor bloqueante; Grupo B = risco
+baixo, equivalência de lista/contagem). Parar e chamar o Pedro se: (a)
+paridade do Grupo A divergir; (b) surgir dependência oculta que mude o
+escopo do corte.
+
 ## Sessão 2026-09-17 (continuação 2) — --write concluído com sucesso, Eixo 1 validado no Oracle
 
 Placeholder da Costela (ver seção 🔴 abaixo) gravado no NocoDB, dry-run
