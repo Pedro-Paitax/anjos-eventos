@@ -868,6 +868,13 @@ retenção de 30 dias. Conta de serviço descartada: sem cota em Drive pessoal.
 
 ### Fase A — estado dos módulos do Grupo A (2026-09-21)
 
+**ETL das 4 tabelas do NocoDB executado (2026-09-21, autorizado pelo Pedro):**
+`scripts/etl-tabelas-complementares.ts --write` (commit `936977b`), após backup
+funcionando. Carregado no Oracle: hierarquia_proteina 5, configuracoes_globais
+1, cardapios_modelo 6, cardapio_modelo_itens 90; orcamento_itens_adicionais 0
+(único item do NocoDB não tem Orçamento vinculado, pulado, nada simulado).
+`usuarios` e `contratos` NÃO carregados: ficam pro Dia do Corte (Fase B).
+
 Push aditivo do schema (migração 0001, commit `0cdc60a`) aplicado no Oracle
 com autorização, em transação única após ensaio com ROLLBACK. Só estrutura:
 tabelas novas vazias. **ETL das 6 tabelas NÃO autorizado** (aguarda o backup
@@ -876,8 +883,8 @@ tabelas novas vazias. **ETL das 6 tabelas NÃO autorizado** (aguarda o backup
 | Módulo | Estado | Paridade (leitura NocoDB x Oracle) |
 |---|---|---|
 | `custo-preparo` | migrado atrás de `DATA_SOURCE` | **VALIDADA**: 54/54 preparos, 0 divergências |
-| `hierarquia-proteina` | migrado | estrutura pronta, aguardando ETL (Oracle vazio: 0 x 5 entradas) |
-| `dimensionamento-cardapio` (`resolverItensPorPreparoIds`) | migrado | parcial: 32/54 idênticos; os 14 divergentes são todos de peso via `Hierarquia_Proteina` (0 divergências de outra causa). Aguardando ETL |
+| `hierarquia-proteina` | migrado | **VALIDADA** após ETL: 5 = 5 entradas |
+| `dimensionamento-cardapio` (`resolverItensPorPreparoIds`) | migrado | **VALIDADA** após ETL: 46 = 46 resolvidos, 8 = 8 excluídos, 0 divergências em 54 preparos |
 | `dimensionamento-cardapio` (`calcularDimensionamentoOrcamento`) | migrado | sem dado (Orçamentos 0 linhas no Oracle; 1 placeholder no NocoDB) |
 | `precificacao-evento` | só deixa de exigir token NocoDB no modo oracle | herda a paridade acima |
 | `margem-orcamento` | migrado (Lacuna 1 aplicada, ver abaixo) | sem dado: 0 Orçamentos no Oracle, 1 placeholder no NocoDB. Não testado contra dado |
