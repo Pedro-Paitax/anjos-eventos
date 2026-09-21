@@ -901,6 +901,8 @@ tabelas novas vazias. **ETL das 6 tabelas NÃO autorizado** (aguarda o backup
 | Grupo B `insumos` | migrado (leitura + escrita) | leitura **VALIDADA**: 122 = 122. Escrita NÃO validada contra banco |
 | Grupo B `cardapios-modelo` | migrado (leitura + escrita) | leitura **VALIDADA**: 6 cardápios e 90 itens idênticos. Escrita NÃO validada |
 | Grupo B `preparos` | migrado (leitura + escrita) | leitura **VALIDADA**: 54 preparos, listas por categoria e composição idênticas. Escrita NÃO validada; 2 incompatibilidades form x schema (abaixo) |
+| Grupo B `debug-calculo-cardapio` | migrado (só deixa de exigir token NocoDB no modo oracle; orquestra funções já migradas) | **VALIDADA** por equivalência: 7 fatias de cardápio modelo (6 cardápios), resultado idêntico campo a campo, 0 divergências, 0 inconclusivos. Amostra, não os ~90 itens: cardápio inteiro estoura o timeout de 5s do NocoDB, então a fatia é dividida até o NocoDB responder (1ª rodada: 1 fatia falhou só por timeout do NocoDB, não por valor) |
+| Grupo B `simulador-orcamento` | migrado (Lacuna 1: `valor_total_estimado` = valor sugerido por pessoa em tempo real × convidados, `Valor_Base_Por_Pessoa` ignorado; erro público genérico) | **sem dado para paridade de valor** (0 Orçamentos no Oracle, 1 placeholder no NocoDB). Só equivalência de "Orçamento inexistente": 404 idêntico nos dois modos |
 | `margem-orcamento` | migrado (Lacuna 1 aplicada, ver abaixo) | sem dado: 0 Orçamentos no Oracle, 1 placeholder no NocoDB. Não testado contra dado |
 
 **Paridade pelo ENDPOINT REAL (2026-09-21):** `scripts/paridade-endpoint.ts`
