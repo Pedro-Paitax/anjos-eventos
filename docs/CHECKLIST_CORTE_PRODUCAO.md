@@ -50,7 +50,9 @@ tem duas fases: **(A)** migrar os módulos pra Drizzle atrás de uma flag,
       diário off-site) — item do ADR ainda **pendente de confirmação**.
 - [ ] Substituir o placeholder do Modo de Preparo da Costela (Id 32) em
       NocoDB e Oracle.
-- [ ] Teste dos cálculos de referência pelo endpoint real do app.
+- [x] Teste dos cálculos de referência pelo endpoint real do app
+      (`scripts/paridade-endpoint.ts`, 2026-09-21: 54/54 preparos, 0
+      divergências — ver docs/PENDENCIAS_NOTURNAS.md).
 - [ ] Confirmar onde o app roda pós-corte (Oracle) e preparar a imagem
       (build fora do servidor, conforme ADR).
 
