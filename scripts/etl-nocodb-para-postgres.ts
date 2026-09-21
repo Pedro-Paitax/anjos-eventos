@@ -94,8 +94,9 @@ const ESCREVER = process.argv.includes("--write");
 // módulo por um no-op nos bundles de servidor). Rodando este script
 // via `tsx` puro, não dá pra reaproveitá-los — cliente e fetch próprios
 // abaixo, minimalistas, mesma forma de conexão.
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-const db = drizzle(pool);
+export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+export const db = drizzle(pool);
+export type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 function exigirTokenNocoDB(): string {
   const token = process.env.NOCODB_API_TOKEN;
@@ -356,8 +357,12 @@ const MAPA_NOME_EMPRESA: Record<string, string> = {
   "Em Plena Natureza": "Em Plena Natureza Chácara de Eventos",
 };
 
-async function main() {
-  console.log(ESCREVER ? "MODO: escrita real (--write)" : "MODO: dry-run (nenhuma escrita)");
+/**
+ * Lê o NocoDB (só leitura), transforma e valida. NÃO escreve nada. Reusado pelo
+ * modo padrão (main, abaixo) e pelo orquestrador do Dia do Corte
+ * (scripts/etl-corte-producao.ts, modo truncate+reload).
+ */
+export async function preparar() {
   const token = exigirTokenNocoDB();
 
   // --- Fase A: Insumos, Macro_Categorias ---
@@ -500,48 +505,79 @@ async function main() {
   console.log("\n=== AMOSTRA — 5 Insumos transformados ===");
   console.log(JSON.stringify(insumosLinhas.slice(0, 5), null, 2));
 
+  const tabelas = [
+    "insumos",
+    "macro_categorias",
+    "headers_ui",
+    "preparos",
+    "composicao",
+    "header_preparo",
+    "orcamentos",
+    "itens_orcamento",
+    "itens_evento_confirmados",
+  ];
+  /** Só as com coluna serial `id` (header_preparo tem PK composta, sem sequence). */
+  const tabelasComSerial = tabelas.filter((t) => t !== "header_preparo");
+
+  return {
+    erros,
+    avisos,
+    tabelas,
+    tabelasComSerial,
+    linhas: {
+      insumos: insumosLinhas.length,
+      macro_categorias: macrosLinhas.length,
+      headers_ui: headersLinhas.length,
+      preparos: preparosLinhas.length,
+      composicao: composicaoLinhas.length,
+      header_preparo: headerPreparoLinhas.length,
+      orcamentos: orcamentosLinhas.length,
+      itens_orcamento: itensOrcamentoLinhas.length,
+      itens_evento_confirmados: itensEventoLinhas.length,
+    },
+    preparoIds: preparosLinhas.map((p) => p.id as number),
+    orcamentoIds: orcamentosLinhas.map((o) => o.id as number),
+    /** Insere tudo (ordem respeita FKs) dentro da transação recebida. */
+    async gravar(tx: Tx) {
+      if (insumosLinhas.length) await tx.insert(insumos).values(insumosLinhas);
+      if (macrosLinhas.length) await tx.insert(macroCategorias).values(macrosLinhas);
+      if (headersLinhas.length) await tx.insert(headersUi).values(headersLinhas);
+      if (preparosLinhas.length) await tx.insert(preparos).values(preparosLinhas);
+      if (composicaoLinhas.length) await tx.insert(composicao).values(composicaoLinhas);
+      if (headerPreparoLinhas.length) await tx.insert(headerPreparo).values(headerPreparoLinhas);
+      if (orcamentosLinhas.length) await tx.insert(orcamentos).values(orcamentosLinhas);
+      if (itensOrcamentoLinhas.length) await tx.insert(itensOrcamento).values(itensOrcamentoLinhas);
+      if (itensEventoLinhas.length) await tx.insert(itensEventoConfirmados).values(itensEventoLinhas);
+    },
+  };
+}
+
+async function main() {
+  console.log(ESCREVER ? "MODO: escrita real (--write)" : "MODO: dry-run (nenhuma escrita)");
+  const preparado = await preparar();
+
   if (!ESCREVER) {
     console.log("\nDry-run — nenhuma escrita realizada. Rode com --write para aplicar.");
     await pool.end();
     return;
   }
 
-  if (erros.length > 0) {
-    console.log(`\nABORTADO: ${erros.length} erro(s) encontrado(s) em tabelas de dado real — corrija a causa e rode de novo. Nada foi escrito.`);
+  if (preparado.erros.length > 0) {
+    console.log(`\nABORTADO: ${preparado.erros.length} erro(s) encontrado(s) em tabelas de dado real — corrija a causa e rode de novo. Nada foi escrito.`);
     await pool.end();
     process.exitCode = 1;
     return;
   }
 
   console.log("\nIniciando escrita em transação única...");
-  await db.transaction(async (tx) => {
-    if (insumosLinhas.length) await tx.insert(insumos).values(insumosLinhas);
-    if (macrosLinhas.length) await tx.insert(macroCategorias).values(macrosLinhas);
-    if (headersLinhas.length) await tx.insert(headersUi).values(headersLinhas);
-    if (preparosLinhas.length) await tx.insert(preparos).values(preparosLinhas);
-    if (composicaoLinhas.length) await tx.insert(composicao).values(composicaoLinhas);
-    if (headerPreparoLinhas.length) await tx.insert(headerPreparo).values(headerPreparoLinhas);
-    if (orcamentosLinhas.length) await tx.insert(orcamentos).values(orcamentosLinhas);
-    if (itensOrcamentoLinhas.length) await tx.insert(itensOrcamento).values(itensOrcamentoLinhas);
-    if (itensEventoLinhas.length) await tx.insert(itensEventoConfirmados).values(itensEventoLinhas);
-  });
+  await db.transaction((tx) => preparado.gravar(tx));
   console.log("Transação commitada.");
 
   // setval FORA da transação, só depois do commit — ver comentário no
   // topo do arquivo (setval não é transacional).
-  const tabelasComSerial = [
-    "insumos",
-    "macro_categorias",
-    "headers_ui",
-    "preparos",
-    "composicao",
-    "orcamentos",
-    "itens_orcamento",
-    "itens_evento_confirmados",
-  ];
-  for (const t of tabelasComSerial) {
+  for (const t of preparado.tabelasComSerial) {
     await pool.query(
-      `SELECT setval(pg_get_serial_sequence('${t}', 'id'), COALESCE((SELECT MAX(id) FROM ${t}), 1))`
+      `SELECT setval(pg_get_serial_sequence('${t}', 'id'), COALESCE((SELECT MAX(id) FROM ${t}), 1), (SELECT MAX(id) FROM ${t}) IS NOT NULL)`
     );
   }
   console.log("Sequences resincronizadas.");
@@ -549,7 +585,11 @@ async function main() {
   await pool.end();
 }
 
-main().catch((e) => {
-  console.error("ERRO FATAL:", e?.cause?.message ?? e?.message ?? e);
-  process.exit(1);
-});
+// Só executa quando chamado direto (não quando importado pelo orquestrador
+// do Dia do Corte).
+if (process.argv[1] && /etl-nocodb-para-postgres.[cm]?[tj]s$/.test(process.argv[1])) {
+  main().catch((e) => {
+    console.error("ERRO FATAL:", e?.cause?.message ?? e?.message ?? e);
+    process.exit(1);
+  });
+}

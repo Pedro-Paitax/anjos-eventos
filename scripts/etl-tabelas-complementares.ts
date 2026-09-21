@@ -63,8 +63,9 @@ import {
 } from "../src/db/schema/catalogo-complementar";
 
 const ESCREVER = process.argv.includes("--write");
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-const db = drizzle(pool);
+export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+export const db = drizzle(pool);
+export type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 const NOCODB_BASE_URL = "http://100.77.218.36:8090/api/v2";
 const TABELAS = {
@@ -106,8 +107,16 @@ function cabeEm2Casas(v: number): boolean {
   return Number(v.toFixed(2)) === v;
 }
 
-async function main() {
-  console.log(ESCREVER ? "MODO: escrita real (--write)" : "MODO: dry-run (nenhuma escrita)");
+export type OpcoesPreparar = {
+  /** Truncate+reload: as tabelas-alvo serão esvaziadas na mesma transação, então "não vazia" não bloqueia. */
+  ignorarNaoVazias?: boolean;
+  /** Truncate+reload: Preparos/Orçamentos serão recarregados na mesma transação — valida FK contra estes IDs, não contra o banco. */
+  preparoIds?: Set<number>;
+  orcamentoIds?: Set<number>;
+};
+
+/** Lê o NocoDB (só leitura), transforma e valida. NÃO escreve nada. */
+export async function preparar(opcoes: OpcoesPreparar = {}) {
   const token = process.env.NOCODB_API_TOKEN;
   if (!token) throw new Error("NOCODB_API_TOKEN não configurado.");
 
@@ -131,9 +140,11 @@ async function main() {
     const [{ n }] = await db.select({ n: sql<number>`count(*)::int` }).from(tabela);
     contagens[nome] = n;
   }
-  const naoVazias = Object.entries(contagens).filter(([, n]) => n > 0);
-  const preparoIdsOracle = new Set((await db.select({ id: preparos.id }).from(preparos)).map((p) => p.id));
-  const orcamentoIdsOracle = new Set((await db.select({ id: orcamentos.id }).from(orcamentos)).map((o) => o.id));
+  const naoVazias = opcoes.ignorarNaoVazias ? [] : Object.entries(contagens).filter(([, n]) => n > 0);
+  const preparoIdsOracle =
+    opcoes.preparoIds ?? new Set((await db.select({ id: preparos.id }).from(preparos)).map((p) => p.id));
+  const orcamentoIdsOracle =
+    opcoes.orcamentoIds ?? new Set((await db.select({ id: orcamentos.id }).from(orcamentos)).map((o) => o.id));
 
   // --- Hierarquia_Proteina (hard fail) ---
   const subcategoriasValidas = new Set<string>(subcategoriaProteinaEnum.enumValues);
@@ -251,12 +262,48 @@ async function main() {
   console.log("=== AMOSTRA — Cardapios_Modelo (todos) ===");
   console.log(JSON.stringify(cardLinhas));
 
+  const tabelas = [
+    "hierarquia_proteina",
+    "configuracoes_globais",
+    "cardapios_modelo",
+    "cardapio_modelo_itens",
+    "orcamento_itens_adicionais",
+  ];
+
+  return {
+    erros,
+    avisos,
+    naoVazias,
+    tabelas,
+    tabelasComSerial: tabelas,
+    linhas: {
+      hierarquia_proteina: hierLinhas.length,
+      configuracoes_globais: configLinhas.length,
+      cardapios_modelo: cardLinhas.length,
+      cardapio_modelo_itens: itensLinhas.length,
+      orcamento_itens_adicionais: adicLinhas.length,
+    },
+    /** Insere tudo (ordem respeita FKs) dentro da transação recebida. */
+    async gravar(tx: Tx) {
+      if (hierLinhas.length) await tx.insert(hierarquiaProteina).values(hierLinhas);
+      if (configLinhas.length) await tx.insert(configuracoesGlobais).values(configLinhas);
+      if (cardLinhas.length) await tx.insert(cardapiosModelo).values(cardLinhas);
+      if (itensLinhas.length) await tx.insert(cardapioModeloItens).values(itensLinhas);
+      if (adicLinhas.length) await tx.insert(orcamentoItensAdicionais).values(adicLinhas);
+    },
+  };
+}
+
+async function main() {
+  console.log(ESCREVER ? "MODO: escrita real (--write)" : "MODO: dry-run (nenhuma escrita)");
+  const preparado = await preparar();
+
   if (!ESCREVER) {
     console.log("\nDry-run — nenhuma escrita realizada. Rode com --write para aplicar.");
     await pool.end();
     return;
   }
-  if (erros.length || naoVazias.length) {
+  if (preparado.erros.length || preparado.naoVazias.length) {
     console.log("\nABORTADO: erros ou tabela-alvo não vazia. Nada foi escrito.");
     await pool.end();
     process.exitCode = 1;
@@ -264,16 +311,10 @@ async function main() {
   }
 
   console.log("\nIniciando escrita em transação única...");
-  await db.transaction(async (tx) => {
-    if (hierLinhas.length) await tx.insert(hierarquiaProteina).values(hierLinhas);
-    if (configLinhas.length) await tx.insert(configuracoesGlobais).values(configLinhas);
-    if (cardLinhas.length) await tx.insert(cardapiosModelo).values(cardLinhas);
-    if (itensLinhas.length) await tx.insert(cardapioModeloItens).values(itensLinhas);
-    if (adicLinhas.length) await tx.insert(orcamentoItensAdicionais).values(adicLinhas);
-  });
+  await db.transaction((tx) => preparado.gravar(tx));
   console.log("Transação commitada.");
 
-  for (const t of ["hierarquia_proteina", "configuracoes_globais", "cardapios_modelo", "cardapio_modelo_itens", "orcamento_itens_adicionais"]) {
+  for (const t of preparado.tabelasComSerial) {
     // Tabela vazia: mantém a sequence em 1 "não usada", pro próximo id ser 1.
     await pool.query(
       `SELECT setval(pg_get_serial_sequence('${t}', 'id'), COALESCE((SELECT MAX(id) FROM ${t}), 1), (SELECT MAX(id) FROM ${t}) IS NOT NULL)`
@@ -283,7 +324,11 @@ async function main() {
   await pool.end();
 }
 
-main().catch((e) => {
-  console.error("ERRO FATAL:", e?.cause?.message ?? e?.message ?? e);
-  process.exit(1);
-});
+// Só executa quando chamado direto (não quando importado pelo orquestrador
+// do Dia do Corte).
+if (process.argv[1] && /etl-tabelas-complementares.[cm]?[tj]s$/.test(process.argv[1])) {
+  main().catch((e) => {
+    console.error("ERRO FATAL:", e?.cause?.message ?? e?.message ?? e);
+    process.exit(1);
+  });
+}
