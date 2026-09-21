@@ -1,0 +1,1452 @@
+{
+  "id": "50cf697d-881a-484d-8f94-23414c641cae",
+  "prevId": "d2bbecc5-2584-49d5-b6ce-cea36bf73ac6",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.contratos": {
+      "name": "contratos",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "evento_id": {
+          "name": "evento_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "arquivo_pdf": {
+          "name": "arquivo_pdf",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dados_extraidos_raw": {
+          "name": "dados_extraidos_raw",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "confirmado_por": {
+          "name": "confirmado_por",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "confirmado_em": {
+          "name": "confirmado_em",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "idx_contratos_evento_id": {
+          "name": "idx_contratos_evento_id",
+          "columns": [
+            {
+              "expression": "evento_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "contratos_evento_id_eventos_id_fk": {
+          "name": "contratos_evento_id_eventos_id_fk",
+          "tableFrom": "contratos",
+          "tableTo": "eventos",
+          "columnsFrom": [
+            "evento_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.empresas": {
+      "name": "empresas",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "nome": {
+          "name": "nome",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "empresas_nome_unique": {
+          "name": "empresas_nome_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "nome"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.eventos": {
+      "name": "eventos",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "empresa_id": {
+          "name": "empresa_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cliente": {
+          "name": "cliente",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "data_evento": {
+          "name": "data_evento",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tipo_evento": {
+          "name": "tipo_evento",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "num_convidados": {
+          "name": "num_convidados",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'orcado'"
+        },
+        "valor": {
+          "name": "valor",
+          "type": "numeric(10, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "observacoes": {
+          "name": "observacoes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "detalhes": {
+          "name": "detalhes",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "qtd_adultos": {
+          "name": "qtd_adultos",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "qtd_criancas_ate_5": {
+          "name": "qtd_criancas_ate_5",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "qtd_criancas_5_a_10": {
+          "name": "qtd_criancas_5_a_10",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "qtd_fornecedores": {
+          "name": "qtd_fornecedores",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cardapio_carnes": {
+          "name": "cardapio_carnes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cardapio_acompanhamentos": {
+          "name": "cardapio_acompanhamentos",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cardapio_saladas": {
+          "name": "cardapio_saladas",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cardapio_bebidas": {
+          "name": "cardapio_bebidas",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "preco_pessoa": {
+          "name": "preco_pessoa",
+          "type": "numeric(10, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "preco_crianca_meia": {
+          "name": "preco_crianca_meia",
+          "type": "numeric(10, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "valor_garcom": {
+          "name": "valor_garcom",
+          "type": "numeric(10, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "taxa_deslocamento": {
+          "name": "taxa_deslocamento",
+          "type": "numeric(10, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "qtd_garcons": {
+          "name": "qtd_garcons",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "contato": {
+          "name": "contato",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "telefone": {
+          "name": "telefone",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "endereco_evento": {
+          "name": "endereco_evento",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "hora_chegada_equipe": {
+          "name": "hora_chegada_equipe",
+          "type": "time",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "hora_aperitivo": {
+          "name": "hora_aperitivo",
+          "type": "time",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "hora_almoco": {
+          "name": "hora_almoco",
+          "type": "time",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "hora_encerramento": {
+          "name": "hora_encerramento",
+          "type": "time",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "qtd_churrasqueiros": {
+          "name": "qtd_churrasqueiros",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "qtd_copeiras": {
+          "name": "qtd_copeiras",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "prazo_pagamento": {
+          "name": "prazo_pagamento",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "chave_pix": {
+          "name": "chave_pix",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "caminho_contrato": {
+          "name": "caminho_contrato",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cardapio_entrada": {
+          "name": "cardapio_entrada",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cardapio_sobremesa": {
+          "name": "cardapio_sobremesa",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "regiao_metropolitana_curitiba": {
+          "name": "regiao_metropolitana_curitiba",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "quantidade_copeira_sugerida": {
+          "name": "quantidade_copeira_sugerida",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "custo_copeira_total": {
+          "name": "custo_copeira_total",
+          "type": "numeric(10, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "custo_assador_total": {
+          "name": "custo_assador_total",
+          "type": "numeric(10, 2)",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "idx_eventos_empresa_id": {
+          "name": "idx_eventos_empresa_id",
+          "columns": [
+            {
+              "expression": "empresa_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_eventos_data_evento": {
+          "name": "idx_eventos_data_evento",
+          "columns": [
+            {
+              "expression": "data_evento",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_eventos_status": {
+          "name": "idx_eventos_status",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "eventos_empresa_id_empresas_id_fk": {
+          "name": "eventos_empresa_id_empresas_id_fk",
+          "tableFrom": "eventos",
+          "tableTo": "empresas",
+          "columnsFrom": [
+            "empresa_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "eventos_status_check": {
+          "name": "eventos_status_check",
+          "value": "\"eventos\".\"status\" IN ('orcado', 'confirmado', 'realizado', 'cancelado')"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.usuarios": {
+      "name": "usuarios",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "nome": {
+          "name": "nome",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "usuarios_nome_unique": {
+          "name": "usuarios_nome_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "nome"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.insumos": {
+      "name": "insumos",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "nome": {
+          "name": "nome",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "unidade": {
+          "name": "unidade",
+          "type": "unidade_insumo",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "preco": {
+          "name": "preco",
+          "type": "numeric(10, 4)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "fator_correcao": {
+          "name": "fator_correcao",
+          "type": "numeric(4, 3)",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "insumos_nome_unique": {
+          "name": "insumos_nome_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "nome"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.preparos": {
+      "name": "preparos",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "nome_preparo": {
+          "name": "nome_preparo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "categoria": {
+          "name": "categoria",
+          "type": "categoria_preparo",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "rendimento": {
+          "name": "rendimento",
+          "type": "numeric(10, 3)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "unidade_rendimento": {
+          "name": "unidade_rendimento",
+          "type": "unidade_rendimento",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "apresentacao_utensilio": {
+          "name": "apresentacao_utensilio",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tags": {
+          "name": "tags",
+          "type": "restricao_alimentar[]",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "modo_preparo": {
+          "name": "modo_preparo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tempo_preparo_minutos": {
+          "name": "tempo_preparo_minutos",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "peso_atratividade": {
+          "name": "peso_atratividade",
+          "type": "numeric(6, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "subcategoria_proteina": {
+          "name": "subcategoria_proteina",
+          "type": "subcategoria_proteina",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "porcao_maxima_individual": {
+          "name": "porcao_maxima_individual",
+          "type": "numeric(10, 3)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "peso_medio_unidade_g": {
+          "name": "peso_medio_unidade_g",
+          "type": "numeric(10, 3)",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.composicao": {
+      "name": "composicao",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "quantidade": {
+          "name": "quantidade",
+          "type": "numeric(10, 4)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "insumo_id": {
+          "name": "insumo_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "preparo_id": {
+          "name": "preparo_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "composicao_insumo_id_insumos_id_fk": {
+          "name": "composicao_insumo_id_insumos_id_fk",
+          "tableFrom": "composicao",
+          "tableTo": "insumos",
+          "columnsFrom": [
+            "insumo_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "composicao_preparo_id_preparos_id_fk": {
+          "name": "composicao_preparo_id_preparos_id_fk",
+          "tableFrom": "composicao",
+          "tableTo": "preparos",
+          "columnsFrom": [
+            "preparo_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.header_preparo": {
+      "name": "header_preparo",
+      "schema": "",
+      "columns": {
+        "header_ui_id": {
+          "name": "header_ui_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "preparo_id": {
+          "name": "preparo_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "header_preparo_header_ui_id_headers_ui_id_fk": {
+          "name": "header_preparo_header_ui_id_headers_ui_id_fk",
+          "tableFrom": "header_preparo",
+          "tableTo": "headers_ui",
+          "columnsFrom": [
+            "header_ui_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "header_preparo_preparo_id_preparos_id_fk": {
+          "name": "header_preparo_preparo_id_preparos_id_fk",
+          "tableFrom": "header_preparo",
+          "tableTo": "preparos",
+          "columnsFrom": [
+            "preparo_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "header_preparo_header_ui_id_preparo_id_pk": {
+          "name": "header_preparo_header_ui_id_preparo_id_pk",
+          "columns": [
+            "header_ui_id",
+            "preparo_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.headers_ui": {
+      "name": "headers_ui",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "nome_exibicao": {
+          "name": "nome_exibicao",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "macro_categoria_id": {
+          "name": "macro_categoria_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "headers_ui_macro_categoria_id_macro_categorias_id_fk": {
+          "name": "headers_ui_macro_categoria_id_macro_categorias_id_fk",
+          "tableFrom": "headers_ui",
+          "tableTo": "macro_categorias",
+          "columnsFrom": [
+            "macro_categoria_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "headers_ui_nome_exibicao_unique": {
+          "name": "headers_ui_nome_exibicao_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "nome_exibicao"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.macro_categorias": {
+      "name": "macro_categorias",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "nome_macro": {
+          "name": "nome_macro",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "capacidade_teto": {
+          "name": "capacidade_teto",
+          "type": "numeric(8, 2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "unidade": {
+          "name": "unidade",
+          "type": "unidade_macro",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "macro_categorias_nome_macro_unique": {
+          "name": "macro_categorias_nome_macro_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "nome_macro"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.itens_evento_confirmados": {
+      "name": "itens_evento_confirmados",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "evento_id": {
+          "name": "evento_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "preparo_id": {
+          "name": "preparo_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "orcamento_origem_id": {
+          "name": "orcamento_origem_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "quantidade_confirmada": {
+          "name": "quantidade_confirmada",
+          "type": "numeric(10, 4)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "custo_unitario_snapshot": {
+          "name": "custo_unitario_snapshot",
+          "type": "numeric(10, 4)",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "itens_evento_confirmados_evento_id_eventos_id_fk": {
+          "name": "itens_evento_confirmados_evento_id_eventos_id_fk",
+          "tableFrom": "itens_evento_confirmados",
+          "tableTo": "eventos",
+          "columnsFrom": [
+            "evento_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "itens_evento_confirmados_preparo_id_preparos_id_fk": {
+          "name": "itens_evento_confirmados_preparo_id_preparos_id_fk",
+          "tableFrom": "itens_evento_confirmados",
+          "tableTo": "preparos",
+          "columnsFrom": [
+            "preparo_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "itens_evento_confirmados_orcamento_origem_id_orcamentos_id_fk": {
+          "name": "itens_evento_confirmados_orcamento_origem_id_orcamentos_id_fk",
+          "tableFrom": "itens_evento_confirmados",
+          "tableTo": "orcamentos",
+          "columnsFrom": [
+            "orcamento_origem_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.itens_orcamento": {
+      "name": "itens_orcamento",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "orcamento_id": {
+          "name": "orcamento_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "preparo_id": {
+          "name": "preparo_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "itens_orcamento_orcamento_id_orcamentos_id_fk": {
+          "name": "itens_orcamento_orcamento_id_orcamentos_id_fk",
+          "tableFrom": "itens_orcamento",
+          "tableTo": "orcamentos",
+          "columnsFrom": [
+            "orcamento_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "itens_orcamento_preparo_id_preparos_id_fk": {
+          "name": "itens_orcamento_preparo_id_preparos_id_fk",
+          "tableFrom": "itens_orcamento",
+          "tableTo": "preparos",
+          "columnsFrom": [
+            "preparo_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.orcamentos": {
+      "name": "orcamentos",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "evento_id": {
+          "name": "evento_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "empresa_id": {
+          "name": "empresa_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "cliente_nome": {
+          "name": "cliente_nome",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "num_convidados": {
+          "name": "num_convidados",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "status_orcamento",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "desconto_tipo": {
+          "name": "desconto_tipo",
+          "type": "desconto_tipo",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "desconto_valor": {
+          "name": "desconto_valor",
+          "type": "numeric(10, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "usar_preco_fixo_modelo": {
+          "name": "usar_preco_fixo_modelo",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "criado_em": {
+          "name": "criado_em",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "atualizado_em": {
+          "name": "atualizado_em",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "orcamentos_evento_id_eventos_id_fk": {
+          "name": "orcamentos_evento_id_eventos_id_fk",
+          "tableFrom": "orcamentos",
+          "tableTo": "eventos",
+          "columnsFrom": [
+            "evento_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "orcamentos_empresa_id_empresas_id_fk": {
+          "name": "orcamentos_empresa_id_empresas_id_fk",
+          "tableFrom": "orcamentos",
+          "tableTo": "empresas",
+          "columnsFrom": [
+            "empresa_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.cardapio_modelo_itens": {
+      "name": "cardapio_modelo_itens",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "cardapio_modelo_id": {
+          "name": "cardapio_modelo_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "preparo_id": {
+          "name": "preparo_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "cardapio_modelo_itens_cardapio_modelo_id_cardapios_modelo_id_fk": {
+          "name": "cardapio_modelo_itens_cardapio_modelo_id_cardapios_modelo_id_fk",
+          "tableFrom": "cardapio_modelo_itens",
+          "tableTo": "cardapios_modelo",
+          "columnsFrom": [
+            "cardapio_modelo_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "cardapio_modelo_itens_preparo_id_preparos_id_fk": {
+          "name": "cardapio_modelo_itens_preparo_id_preparos_id_fk",
+          "tableFrom": "cardapio_modelo_itens",
+          "tableTo": "preparos",
+          "columnsFrom": [
+            "preparo_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.cardapios_modelo": {
+      "name": "cardapios_modelo",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "nome": {
+          "name": "nome",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "descricao": {
+          "name": "descricao",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "preco_fixo_por_pessoa": {
+          "name": "preco_fixo_por_pessoa",
+          "type": "numeric(10, 2)",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.configuracoes_globais": {
+      "name": "configuracoes_globais",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "tolerancia_troca_preco_fixo": {
+          "name": "tolerancia_troca_preco_fixo",
+          "type": "numeric(10, 2)",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.hierarquia_proteina": {
+      "name": "hierarquia_proteina",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "subcategoria": {
+          "name": "subcategoria",
+          "type": "subcategoria_proteina",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "peso_padrao": {
+          "name": "peso_padrao",
+          "type": "numeric(6, 2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "origem_dado": {
+          "name": "origem_dado",
+          "type": "origem_dado",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.orcamento_itens_adicionais": {
+      "name": "orcamento_itens_adicionais",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "descricao": {
+          "name": "descricao",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "valor": {
+          "name": "valor",
+          "type": "numeric(10, 2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "orcamento_id": {
+          "name": "orcamento_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "orcamento_itens_adicionais_orcamento_id_orcamentos_id_fk": {
+          "name": "orcamento_itens_adicionais_orcamento_id_orcamentos_id_fk",
+          "tableFrom": "orcamento_itens_adicionais",
+          "tableTo": "orcamentos",
+          "columnsFrom": [
+            "orcamento_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {
+    "public.unidade_insumo": {
+      "name": "unidade_insumo",
+      "schema": "public",
+      "values": [
+        "KG",
+        "Litro",
+        "Unidade",
+        "Maço"
+      ]
+    },
+    "public.categoria_preparo": {
+      "name": "categoria_preparo",
+      "schema": "public",
+      "values": [
+        "Bebidas",
+        "Carnes",
+        "Entrada",
+        "Guarnições",
+        "Massas",
+        "Molhos",
+        "Saladas",
+        "Sobremesa"
+      ]
+    },
+    "public.restricao_alimentar": {
+      "name": "restricao_alimentar",
+      "schema": "public",
+      "values": [
+        "Vegano",
+        "Vegetariano",
+        "Sem Gluten",
+        "Sem Lactose"
+      ]
+    },
+    "public.subcategoria_proteina": {
+      "name": "subcategoria_proteina",
+      "schema": "public",
+      "values": [
+        "Carne Vermelha",
+        "Ovino",
+        "Suíno",
+        "Peixe",
+        "Aves"
+      ]
+    },
+    "public.unidade_rendimento": {
+      "name": "unidade_rendimento",
+      "schema": "public",
+      "values": [
+        "G",
+        "ML",
+        "Unidade"
+      ]
+    },
+    "public.unidade_macro": {
+      "name": "unidade_macro",
+      "schema": "public",
+      "values": [
+        "g",
+        "ml"
+      ]
+    },
+    "public.desconto_tipo": {
+      "name": "desconto_tipo",
+      "schema": "public",
+      "values": [
+        "Percentual",
+        "Valor Fixo",
+        "Nenhum"
+      ]
+    },
+    "public.status_orcamento": {
+      "name": "status_orcamento",
+      "schema": "public",
+      "values": [
+        "Simulação",
+        "Enviado",
+        "Aceito",
+        "Recusado"
+      ]
+    },
+    "public.origem_dado": {
+      "name": "origem_dado",
+      "schema": "public",
+      "values": [
+        "Dado Operacional",
+        "Estimativa Heurística"
+      ]
+    }
+  },
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}
