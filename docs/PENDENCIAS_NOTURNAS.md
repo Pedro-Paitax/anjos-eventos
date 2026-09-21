@@ -843,6 +843,17 @@ máquina, sem script de `pg_dump`/cron no repo, docs só listam como requisito.
 Google Drive do Pedro (escopo `drive.file`, OAuth autorizado uma vez),
 retenção de 30 dias. Conta de serviço descartada: sem cota em Drive pessoal.
 
+- **Status do backup de dado (2026-09-21):** `scripts/backup-pg-oracle.sh`
+  (commit `fb78980`) testado à mão de ponta a ponta: dump -> `pg_restore
+  --list` -> upload -> conferência de tamanho no Drive; arquivo baixado do
+  Drive lista as 18 tabelas e traz 54/122/236 linhas de preparos/insumos/
+  composição (bate com o Oracle). Cron diário 03:30 no `ender` instalado.
+  **Falta a 1ª execução automática (2026-09-22 03:30)** confirmar
+  `~/backups-anjos-eventos/ultimo-status.txt` = OK. Retenção de 30 dias só
+  foi exercitada em dry-run (ainda não há arquivo com 30 dias).
+  Sem alerta de falha: se o cron falhar, só se descobre lendo
+  `ultimo-status.txt`/`backup.log`. Snapshot de hardware (OCI) segue com o
+  Pedro no console.
 - **Decisão consciente — sem criptografia adicional:** backup do Drive sem
   `rclone crypt`. Aceito por ora porque o Drive é conta pessoal e o escopo
   `drive.file` já isola o acesso; contém dados de clientes/contratos. Revisar
