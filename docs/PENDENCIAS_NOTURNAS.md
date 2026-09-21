@@ -838,6 +838,38 @@ máquina, sem script de `pg_dump`/cron no repo, docs só listam como requisito.
 - **Regra:** não migrar mais dado real de produção pro Oracle sem isso
   resolvido.
 
+### Fase A — estado dos módulos do Grupo A (2026-09-21)
+
+Push aditivo do schema (migração 0001, commit `0cdc60a`) aplicado no Oracle
+com autorização, em transação única após ensaio com ROLLBACK. Só estrutura:
+tabelas novas vazias. **ETL das 6 tabelas NÃO autorizado** (aguarda o backup
+`pg_dump` off-site acima).
+
+| Módulo | Estado | Paridade (leitura NocoDB x Oracle) |
+|---|---|---|
+| `custo-preparo` | migrado atrás de `DATA_SOURCE` | **VALIDADA**: 54/54 preparos, 0 divergências |
+| `hierarquia-proteina` | migrado | estrutura pronta, aguardando ETL (Oracle vazio: 0 x 5 entradas) |
+| `dimensionamento-cardapio` (`resolverItensPorPreparoIds`) | migrado | parcial: 32/54 idênticos; os 14 divergentes são todos de peso via `Hierarquia_Proteina` (0 divergências de outra causa). Aguardando ETL |
+| `dimensionamento-cardapio` (`calcularDimensionamentoOrcamento`) | migrado | sem dado (Orçamentos 0 linhas no Oracle; 1 placeholder no NocoDB) |
+| `precificacao-evento` | só deixa de exigir token NocoDB no modo oracle | herda a paridade acima |
+| `margem-orcamento` | **NÃO migrado — conflito de regra, decisão do Pedro** | — |
+
+**`margem-orcamento` — conflito com decisão documentada.** O módulo lê
+`Valor_Base_Por_Pessoa` persistido no Orçamento do NocoDB e aplica o desconto
+sobre `valorBase = Valor_Base_Por_Pessoa x Num_Convidados`. O schema novo
+(`src/db/schema/orcamentos.ts`, Lacuna 1, docs/DECISOES.md "Arquitetura
+Financeira do Orçamento") **deliberadamente não tem essa coluna**: o valor
+sugerido por pessoa nunca é persistido, é calculado em tempo real, e o
+desconto incide sobre `Valor_Sugerido_Total_Evento`. Portanto migrar o módulo
+não é trocar a fonte: exige decidir como a receita projetada passa a ser
+calculada (via precificação em tempo real) e a semântica do desconto muda.
+Não alterei a regra silenciosamente. Também não há dado para paridade (1
+Orçamento placeholder, 0 itens). Pendente: decisão do Pedro sobre a fórmula.
+
+Aviso: `custo-preparo`/`dimensionamento` em modo oracle ignoram o token do
+NocoDB, mas o cache por tag (`/api/revalidate`, webhook do NocoDB) deixa de
+ser disparado por edições no Oracle — revisar invalidação antes do corte.
+
 ## Sessão 2026-09-17 (continuação 2) — --write concluído com sucesso, Eixo 1 validado no Oracle
 
 Placeholder da Costela (ver seção 🔴 abaixo) gravado no NocoDB, dry-run
