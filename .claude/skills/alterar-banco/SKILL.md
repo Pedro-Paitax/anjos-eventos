@@ -22,12 +22,14 @@ Nunca alterar estrutura ou dados sem primeiro entender o impacto.
 Leia:
 
 - `docs/BANCO.md`
+- `docs/schema-fisico-detalhado.md`
 - `docs/REGRAS_NEGOCIO.md`
 - `docs/DECISOES.md`
 
 Quando necessário:
 
 - `docs/BRIEFING.MD`
+- `docs/ARQUITETURA.MD`
 
 ---
 
@@ -48,21 +50,34 @@ Determine quais partes dependem da estrutura que será alterada.
 
 ## 2.5. Camada de acesso correta
 
-Toda alteração de ESTRUTURA (nova tabela, nova coluna, novo relacionamento)
-deve ser feita através da interface/API do NocoDB, nunca via SQL direto
-(ALTER TABLE, CREATE TABLE) no Postgres por trás dele — o NocoDB gerencia
-suas próprias tabelas de junção para relacionamentos, e mudanças estruturais
-feitas fora dele ficam invisíveis para a interface até uma sincronização manual,
-podendo até colidir com o que o NocoDB já criou internamente.
+**Atualizado 2026-09-22** — o corte de produção NocoDB → PostgreSQL/Oracle
+Cloud foi concluído (`docs/CHECKLIST_CORTE_PRODUCAO.md`,
+`docs/DECISOES.md`). O fluxo abaixo descreve a regra pré-corte por
+histórico; a regra vigente é a seguinte.
 
-Alterações de DADOS (inserir, atualizar, consultar registros) podem usar a
-API REST do NocoDB (xc-token) diretamente — é assim que o backend do
-Anjos Eventos já opera.
+Toda alteração de ESTRUTURA (nova tabela, nova coluna, novo relacionamento)
+deve ser feita via **Drizzle**: editar o schema em `src/db/schema/*.ts` e
+gerar/aplicar a migration correspondente com `drizzle-kit` — nunca DDL
+manual direto no Postgres sem migration versionada correspondente.
+
+Alterações de DADOS (inserir, atualizar, consultar registros) usam o
+Drizzle ORM através dos módulos em `src/lib/` (atrás da flag
+`DATA_SOURCE=nocodb|oracle`, `src/lib/data-source.ts`).
+
+O NocoDB é fonte legada, em janela de observação/rollback (Fase C, ver
+`docs/CHECKLIST_CORTE_PRODUCAO.md`) — não escrever código novo que
+assuma o NocoDB como fonte de verdade ou como caminho de alteração
+estrutural.
 
 Acesso SQL direto ao Postgres é reservado para: leitura de diagnóstico
 (SELECT), ou correções pontuais em ÚLTIMO caso, com confirmação explícita
-do usuário antes de executar, e aviso claro de que a mudança pode não
-refletir na interface do NocoDB até revisão manual.
+do usuário antes de executar.
+
+**Regra histórica (pré-corte, mantida por contexto):** toda alteração de
+estrutura era feita através da interface/API do NocoDB, nunca via SQL
+direto no Postgres por trás dele — o NocoDB gerenciava suas próprias
+tabelas de junção para relacionamentos, e mudanças estruturais feitas
+fora dele ficavam invisíveis até sincronização manual.
 
 # 3. Verificar banco real
 

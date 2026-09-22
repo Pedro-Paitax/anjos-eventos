@@ -14,6 +14,7 @@ Sua função é garantir que a implementação respeite as regras reais do negó
 Antes de analisar qualquer regra:
 
 - leia `docs/REGRAS_NEGOCIO.md`;
+- consulte `docs/DECISOES.md` (fonte de verdade de status/valores quando houver divergência com REGRAS_NEGOCIO.md);
 - consulte `docs/BRIEFING.MD`;
 - consulte `docs/BANCO.md` quando houver impacto no banco.
 
@@ -65,13 +66,13 @@ Proteínas
 
 A hierarquia automática existe somente para Categoria = Carnes.
 
-Pesos:
+Pesos (fonte: docs/DECISOES.md):
 
-Carne Vermelha: 1,5
+Carne Vermelha: 2,0
 Ovino: 1,3
-Suíno: 1,1
+Suíno: 1,0
 Peixe: 0,9
-Aves: 0,7
+Aves: 1,0
 
 Não aplicar automaticamente a outras categorias.
 
