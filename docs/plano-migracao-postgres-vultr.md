@@ -1,5 +1,13 @@
 # Migração de Infraestrutura e Remoção do NocoDB — Plano Consolidado
 
+> **Atualização 2026-09-22 (auditoria de documentação):** o corte de
+> produção descrito neste plano **já foi concluído** — ver
+> `docs/CHECKLIST_CORTE_PRODUCAO.md` e a seção "Corte de Produção NocoDB
+> → Oracle Cloud" em `docs/DECISOES.md`. A linha de status abaixo
+> ("execução em andamento... schema e migração de dado ainda pendentes")
+> ficou desatualizada e é mantida aqui sem edição, por histórico — não
+> reflete o estado atual.
+
 Status: APROVADA (arquitetura); execução em andamento — VPS Oracle Cloud
 já provisionada e reachable via Tailscale (`100.121.229.81:5432`).
 Identidade do provedor **verificada de forma independente em 16/09**
