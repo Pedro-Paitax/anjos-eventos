@@ -911,6 +911,21 @@ tabelas novas vazias. **ETL das 6 tabelas NÃO autorizado** (aguarda o backup
 | Grupo B `simulador-orcamento` | migrado (Lacuna 1: `valor_total_estimado` = valor sugerido por pessoa em tempo real × convidados, `Valor_Base_Por_Pessoa` ignorado; erro público genérico) | **sem dado para paridade de valor** (0 Orçamentos no Oracle, 1 placeholder no NocoDB). Só equivalência de "Orçamento inexistente": 404 idêntico nos dois modos |
 | `margem-orcamento` | migrado (Lacuna 1 aplicada, ver abaixo) | sem dado: 0 Orçamentos no Oracle, 1 placeholder no NocoDB. Não testado contra dado |
 
+**LOTE 2 DA FASE B EXECUTADO — TRUNCATE + RELOAD COM ESCRITA REAL
+(2026-09-22, ~09:32, autorizado pelo Pedro):** `DIA_DO_CORTE=2026-09-22
+npx tsx scripts/etl-corte-producao.ts --write --confirmo-producao
+--confirmo-banco=100.121.229.81` no ender. Transação única commitada,
+sequences resincronizadas. Contagens pós-carga conferidas de forma
+independente (query direta no Oracle, não só o self-report do script):
+`insumos=122, macro_categorias=10, headers_ui=15, preparos=54,
+composicao=236, header_preparo=54, orcamentos=0, itens_orcamento=0,
+itens_evento_confirmados=0, hierarquia_proteina=5,
+configuracoes_globais=1, cardapios_modelo=6, cardapio_modelo_itens=90,
+orcamento_itens_adicionais=0` — todas batem com o esperado. Receita real
+da Costela (Id 32) sobreviveu à recarga (confirmado). Ponto de retorno:
+os 2 `pg_dump` de hoje (NocoDB + Postgres local, ver Lote 1 acima) — sem
+snapshot de hardware, decisão registrada acima.
+
 **Dry-run do truncate+reload reexecutado (2026-09-22, 09:xx), depois do ETL
 das 4 tabelas complementares já carregado:** `npx tsx
 scripts/etl-corte-producao.ts` (sem `--write`, sem nenhuma trava exigida)
