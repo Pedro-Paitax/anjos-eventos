@@ -216,6 +216,10 @@ export async function criarEvento(dados: DadosEvento): Promise<number> {
   return rows[0].id;
 }
 
+export async function excluirEvento(id: number): Promise<void> {
+  await pool.query(`DELETE FROM eventos WHERE id = $1`, [id]);
+}
+
 export async function atualizarEvento(
   id: number,
   dados: DadosEvento

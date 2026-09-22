@@ -7,6 +7,7 @@ import { atualizarEventoAction } from "@/app/actions/evento";
 import { CabecalhoPagina } from "@/components/cabecalho-pagina";
 import { FormularioEventoChurrasco } from "@/components/formulario-evento-churrasco";
 import { FormularioEventoGenerico } from "@/components/formulario-evento-generico";
+import { BotaoExcluirEvento } from "@/components/botao-excluir-evento";
 
 type PaginaEventoProps = {
   params: Promise<{ id: string }>;
@@ -39,6 +40,7 @@ export default async function EventoPage({ params }: PaginaEventoProps) {
           titulo={evento.cliente}
           subtitulo={evento.empresa_nome}
           voltarPara={{ href: "/agenda", rotulo: "← Agenda" }}
+          acao={<BotaoExcluirEvento eventoId={evento.id} clienteNome={evento.cliente} />}
         />
 
         <div className="rounded-[2px] bg-ink-soft/60 p-6 shadow-[0_20px_40px_-24px_rgba(0,0,0,0.6)]">
