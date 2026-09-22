@@ -907,6 +907,18 @@ tabelas novas vazias. **ETL das 6 tabelas NÃO autorizado** (aguarda o backup
 | Grupo B `simulador-orcamento` | migrado (Lacuna 1: `valor_total_estimado` = valor sugerido por pessoa em tempo real × convidados, `Valor_Base_Por_Pessoa` ignorado; erro público genérico) | **sem dado para paridade de valor** (0 Orçamentos no Oracle, 1 placeholder no NocoDB). Só equivalência de "Orçamento inexistente": 404 idêntico nos dois modos |
 | `margem-orcamento` | migrado (Lacuna 1 aplicada, ver abaixo) | sem dado: 0 Orçamentos no Oracle, 1 placeholder no NocoDB. Não testado contra dado |
 
+**Dry-run do truncate+reload reexecutado (2026-09-22, 09:xx), depois do ETL
+das 4 tabelas complementares já carregado:** `npx tsx
+scripts/etl-corte-producao.ts` (sem `--write`, sem nenhuma trava exigida)
+no "ender". As 14 tabelas do plano batem exatamente com o estado atual do
+Oracle (ex.: `insumos 122->122`, `preparos 54->54`, `composicao 236->236`,
+`cardapios_modelo 6->6`, `cardapio_modelo_itens 90->90`,
+`hierarquia_proteina 5->5`, `configuracoes_globais 1->1`); `orcamentos`,
+`itens_orcamento`, `itens_evento_confirmados`, `orcamento_itens_adicionais`
+seguem 0->0 (mesmos 2 registros placeholder do NocoDB pulados de sempre,
+avisos não-bloqueantes). **Nada foi truncado nem escrito** — só leitura e
+plano impresso, como sempre.
+
 **Reconfirmação ao vivo do achado "cardápio 8 diverge" (2026-09-22, 08:54):**
 a sessão da noite de 2026-09-21 tinha registrado (só em memória, não neste
 arquivo) uma divergência aparente na fatia cardápio 8, preparos
