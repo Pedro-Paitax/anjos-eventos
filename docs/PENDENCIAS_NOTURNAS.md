@@ -911,6 +911,17 @@ tabelas novas vazias. **ETL das 6 tabelas NÃO autorizado** (aguarda o backup
 | Grupo B `simulador-orcamento` | migrado (Lacuna 1: `valor_total_estimado` = valor sugerido por pessoa em tempo real × convidados, `Valor_Base_Por_Pessoa` ignorado; erro público genérico) | **sem dado para paridade de valor** (0 Orçamentos no Oracle, 1 placeholder no NocoDB). Só equivalência de "Orçamento inexistente": 404 idêntico nos dois modos |
 | `margem-orcamento` | migrado (Lacuna 1 aplicada, ver abaixo) | sem dado: 0 Orçamentos no Oracle, 1 placeholder no NocoDB. Não testado contra dado |
 
+**LOTE 3 DA FASE B EXECUTADO — usuarios/contratos copiados + Eixo 1
+validado (2026-09-22, ~09:44, autorizado pelo Pedro):** 5 `usuarios`
+copiados do Postgres local (`anjos-eventos-db`) pro Oracle preservando
+IDs (1 Pedrinho, 2 Pedro, 3 Ivonete, 4 Matheus, 5 Nicolly), `contratos`
+igual nos dois lados (0 linhas — nada a copiar). Sequences resincronizadas
+(`usuarios_id_seq`=5). Confirmado de forma independente por query direta
+no Oracle. `scripts/verificar-eixo1-oracle.ts` rodado contra o Oracle: os
+3 cálculos de referência batem exatamente — Vinagrete R$16,96, Alcatra
+Grelhada R$64,93, Arroz Branco com Alho Crispy R$20,07. **Migração
+preservou a matemática do motor de custo, não só os dados brutos.**
+
 **LOTE 2 DA FASE B EXECUTADO — TRUNCATE + RELOAD COM ESCRITA REAL
 (2026-09-22, ~09:32, autorizado pelo Pedro):** `DIA_DO_CORTE=2026-09-22
 npx tsx scripts/etl-corte-producao.ts --write --confirmo-producao

@@ -85,8 +85,12 @@ tem duas fases: **(A)** migrar os módulos pra Drizzle atrás de uma flag,
        --confirmo-producao --confirmo-banco=100.121.229.81`,
        `DIA_DO_CORTE=<hoje>` e backup OK < 26h), modo truncate+reload, com `--confirmo-producao`
        (dry-run antes → conferir contagens → escrita).
-5. [ ] Copiar `usuarios`/`contratos` pro Oracle preservando IDs.
-6. [ ] `scripts/verificar-eixo1-oracle.ts` — os 3 valores precisam bater.
+5. [x] Copiar `usuarios`/`contratos` pro Oracle preservando IDs. 5
+       usuarios copiados (IDs 1-5), contratos igual nos dois lados (0
+       linhas). Sequence resincronizada.
+6. [x] `scripts/verificar-eixo1-oracle.ts` — os 3 valores precisam bater.
+       **Batem os 3**: Vinagrete R$16,96, Alcatra Grelhada R$64,93, Arroz
+       Branco com Alho Crispy R$20,07.
 7. [ ] Mudanças de configuração (as únicas):
    - `DATABASE_URL=postgresql://app_user:…@100.121.229.81:5432/app_db`
      (`.env` do servidor / `docker-compose.yml`)
