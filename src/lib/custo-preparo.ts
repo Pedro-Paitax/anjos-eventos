@@ -50,7 +50,19 @@ export type CustoPreparoResultado = {
   custo_por_100_unidades: number;
 };
 
-export type CustoPreparoErro = { erro: string; status: number };
+/**
+ * Só as 3 etapas de rede do motor de custo, exatamente como documentado em
+ * docs/DECISOES.md, "Política de Falha do Motor de Cálculo". Presente SÓ
+ * quando o erro veio de timeout/falha de rede consultando o Preparo, a
+ * Composição ou o Insumo — nunca em erro de dado faltando (ex.: Rendimento
+ * não cadastrado), que continua sendo fail-fast comum (sem este campo).
+ * Categoriza a falha pro chamador (resolverItensParaPrecificacao) decidir
+ * entre excluir o item (dado faltando) ou fail-hard (rede) sem repetir a
+ * lógica de classificação em dois lugares.
+ */
+export type MotivoFalhaRede = "timeout_preparo" | "timeout_composicao" | "timeout_insumo";
+
+export type CustoPreparoErro = { erro: string; status: number; motivoFalhaRede?: MotivoFalhaRede };
 
 /**
  * Arredonda pra centavos corrigindo antes o erro de representação binária
@@ -166,7 +178,16 @@ async function calcularCustoPreparoOracle(
       fatorCorrecao: l.fatorCorrecao == null ? null : Number(l.fatorCorrecao),
     }));
   } catch (erro) {
-    return { erro: `Falha ao consultar Postgres: ${(erro as Error).message}`, status: 502 };
+    // Postgres resolve Preparo + Composição/Insumo numa única consulta
+    // (join), diferente do NocoDB (3 chamadas HTTP separadas) — sem stage
+    // pra distinguir, usa "timeout_composicao" (é a consulta que de fato
+    // roda quando preparoJaBuscado já veio pronto, caso normal de
+    // resolverItensParaPrecificacao).
+    return {
+      erro: `Falha ao consultar Postgres: ${(erro as Error).message}`,
+      status: 502,
+      motivoFalhaRede: "timeout_composicao",
+    };
   }
 
   const validado = validarRendimento(preparo);
@@ -193,71 +214,97 @@ export async function calcularCustoPreparo(
     return { erro: "NOCODB_API_TOKEN não configurado.", status: 500 };
   }
 
+  // Cada etapa de rede tem seu próprio try/catch, tagueada com o motivo
+  // certo (docs/DECISOES.md, "Política de Falha do Motor de Cálculo") — não
+  // dá pra usar um try/catch só pra tudo e ainda saber qual das 3 etapas
+  // (Preparo/Composição/Insumo) foi a que falhou.
   let preparo: PreparoJaBuscado | null;
-  let composicaoLinks: { list: ComposicaoLinkRegistro[] };
-  try {
-    if (preparoJaBuscado) {
-      preparo = preparoJaBuscado;
-    } else {
+  if (preparoJaBuscado) {
+    preparo = preparoJaBuscado;
+  } else {
+    try {
       preparo = await nocodbGet<PreparoRegistro>(
         `/tables/${TABELA_PREPAROS}/records/${preparoId}`,
         token
       );
-      if (!preparo) {
-        return { erro: "Preparo não encontrado.", status: 404 };
-      }
+    } catch (erro) {
+      return {
+        erro: `Falha ao consultar NocoDB: ${(erro as Error).message}`,
+        status: 502,
+        motivoFalhaRede: "timeout_preparo",
+      };
     }
+    if (!preparo) {
+      return { erro: "Preparo não encontrado.", status: 404 };
+    }
+  }
 
+  let composicaoLinks: { list: ComposicaoLinkRegistro[] };
+  try {
     composicaoLinks = (await nocodbGet<{ list: ComposicaoLinkRegistro[] }>(
       `/tables/${TABELA_PREPAROS}/links/${CAMPO_LINK_COMPOSICAO}/records/${preparoId}?limit=1000`,
       token
     )) ?? { list: [] };
   } catch (erro) {
-    return { erro: `Falha ao consultar NocoDB: ${(erro as Error).message}`, status: 502 };
+    return {
+      erro: `Falha ao consultar NocoDB: ${(erro as Error).message}`,
+      status: 502,
+      motivoFalhaRede: "timeout_composicao",
+    };
   }
 
   const validado = validarRendimento(preparo);
   if ("erro" in validado) return validado;
   const { rendimento, unidade } = validado;
 
-  let custoTotal: number;
+  let composicoes: (ComposicaoRegistro | null)[];
   try {
-    const composicoes = await Promise.all(
+    composicoes = await Promise.all(
       composicaoLinks.list.map((c) =>
         nocodbGet<ComposicaoRegistro>(`/tables/${TABELA_COMPOSICAO}/records/${c.Id}`, token)
       )
     );
-
-    const insumoIds = [
-      ...new Set(
-        composicoes
-          .map((c) => c?.Insumo?.Id)
-          .filter((id): id is number => typeof id === "number")
-      ),
-    ];
-    const insumos = await Promise.all(
-      insumoIds.map((id) => nocodbGet<InsumoRegistro>(`/tables/${TABELA_INSUMOS}/records/${id}`, token))
-    );
-    const insumoPorId = new Map(
-      insumos.filter((i): i is InsumoRegistro => i !== null).map((i) => [i.Id, i])
-    );
-
-    const itensParaCusto: ItemComposicaoParaCusto[] = composicoes
-      .filter((c): c is ComposicaoRegistro => c?.Insumo != null)
-      .map((composicao) => {
-        const insumo = insumoPorId.get(composicao.Insumo!.Id);
-        return {
-          quantidade: composicao.Quantidade,
-          preco: insumo?.["Custo Médio"] ?? null,
-          fatorCorrecao: insumo?.["Rendimento (%)"] ?? null,
-        };
-      });
-
-    custoTotal = calcularCustoTotalComposicao(itensParaCusto);
   } catch (erro) {
-    return { erro: `Falha ao consultar NocoDB: ${(erro as Error).message}`, status: 502 };
+    return {
+      erro: `Falha ao consultar NocoDB: ${(erro as Error).message}`,
+      status: 502,
+      motivoFalhaRede: "timeout_composicao",
+    };
   }
 
+  const insumoIds = [
+    ...new Set(
+      composicoes.map((c) => c?.Insumo?.Id).filter((id): id is number => typeof id === "number")
+    ),
+  ];
+
+  let insumos: (InsumoRegistro | null)[];
+  try {
+    insumos = await Promise.all(
+      insumoIds.map((id) => nocodbGet<InsumoRegistro>(`/tables/${TABELA_INSUMOS}/records/${id}`, token))
+    );
+  } catch (erro) {
+    return {
+      erro: `Falha ao consultar NocoDB: ${(erro as Error).message}`,
+      status: 502,
+      motivoFalhaRede: "timeout_insumo",
+    };
+  }
+
+  const insumoPorId = new Map(insumos.filter((i): i is InsumoRegistro => i !== null).map((i) => [i.Id, i]));
+
+  const itensParaCusto: ItemComposicaoParaCusto[] = composicoes
+    .filter((c): c is ComposicaoRegistro => c?.Insumo != null)
+    .map((composicao) => {
+      const insumo = insumoPorId.get(composicao.Insumo!.Id);
+      return {
+        quantidade: composicao.Quantidade,
+        preco: insumo?.["Custo Médio"] ?? null,
+        fatorCorrecao: insumo?.["Rendimento (%)"] ?? null,
+      };
+    });
+
+  const custoTotal = calcularCustoTotalComposicao(itensParaCusto);
   const custoPor100Unidades = calcularCustoPor100Unidades(custoTotal, rendimento);
 
   return {

@@ -2,7 +2,7 @@ import "server-only";
 import { exigirToken } from "@/lib/nocodb";
 import { dataSource } from "@/lib/data-source";
 import { resolverItensPorPreparoIds } from "@/lib/dimensionamento-cardapio";
-import { calcularCustoPreparo } from "@/lib/custo-preparo";
+import { calcularCustoPreparo, type MotivoFalhaRede } from "@/lib/custo-preparo";
 import {
   calcularPrecificacaoCardapio,
   calcularPrecificacaoParaEvento,
@@ -14,9 +14,34 @@ import {
 
 export type PrecificacaoEventoErro = { erro: string; status: number };
 
+/**
+ * Payload de fail-hard exato de docs/DECISOES.md, "Política de Falha do
+ * Motor de Cálculo": timeout/erro de rede em QUALQUER item do cardápio
+ * derruba o cálculo inteiro, nunca vira exclusão silenciosa com total
+ * parcial (diferente de "peso/subcategoria ausente" — dado faltando, que
+ * continua fail-fast normal, ver PrecificacaoEventoErro/itensExcluidos).
+ * Deliberadamente sem preparo_nome — o front-end já tem a lista completa
+ * dos preparos selecionados (com nome) em memória, é quem cruza o ID.
+ */
+export type FalhaCalculoErro = {
+  erro: "falha_calculo";
+  mensagem: string;
+  itens_com_falha: { preparo_id: number; motivo: MotivoFalhaRede }[];
+  status: 503;
+};
+
+function falhaCalculo(itensComFalha: { preparo_id: number; motivo: MotivoFalhaRede }[]): FalhaCalculoErro {
+  return {
+    erro: "falha_calculo",
+    mensagem: "Não foi possível calcular o cardápio agora. Tente novamente.",
+    itens_com_falha: itensComFalha,
+    status: 503,
+  };
+}
+
 export type PrecificacaoEventoResultado = {
   resultado: PrecificacaoResultado;
-  /** Preparos selecionados que não entraram no cálculo (nome + motivo), pra avisar quem está cadastrando o evento — nunca exibido ao cliente. */
+  /** Preparos selecionados que não entraram no cálculo (nome + motivo), pra avisar quem está cadastrando o evento — nunca exibido ao cliente. Só dado faltando (peso/subcategoria/rendimento) chega aqui — falha de rede é fail-hard, ver FalhaCalculoErro. */
   itensExcluidos: { preparo: string; motivo: string }[];
 };
 
@@ -33,10 +58,26 @@ async function resolverItensParaPrecificacao(
 ): Promise<
   | { itensParaPrecificacao: ItemCardapioPrecificacao[]; itensExcluidos: { preparo: string; motivo: string }[] }
   | PrecificacaoEventoErro
+  | FalhaCalculoErro
 > {
-  const { itensResolvidos, itensExcluidos } = await resolverItensPorPreparoIds(preparoIds, token);
+  let itensResolvidos: Awaited<ReturnType<typeof resolverItensPorPreparoIds>>["itensResolvidos"];
+  let itensExcluidos: Awaited<ReturnType<typeof resolverItensPorPreparoIds>>["itensExcluidos"];
+  try {
+    ({ itensResolvidos, itensExcluidos } = await resolverItensPorPreparoIds(preparoIds, token));
+  } catch {
+    // Mesma política de fail-hard abaixo, mas na etapa de resolver
+    // peso/macro-categoria (antes até de chegar no motor de custo) — sem
+    // isso, uma falha de rede aqui vira uma exceção não tratada (500
+    // genérico), o exato "nunca 500/503 genérico" que a política proíbe.
+    // Sem como saber qual preparo_id individual falhou (Promise.all rejeita
+    // no primeiro erro), reporta todos os selecionados.
+    return falhaCalculo(preparoIds.map((preparoId) => ({ preparo_id: preparoId, motivo: "timeout_preparo" })));
+  }
 
   const custosPorPreparoId = new Map<number, { custoTotalPreparo: number; rendimento: number }>();
+  const itensComFalhaDeRede: { preparo_id: number; motivo: MotivoFalhaRede }[] = [];
+  const semCusto: { preparo: string; motivo: string }[] = [];
+
   await Promise.all(
     itensResolvidos.map(async (item) => {
       // resolverItensPorPreparoIds já buscou este Preparo — repassa pronto
@@ -47,23 +88,37 @@ async function resolverItensParaPrecificacao(
         Rendimento: item.rendimentoPreparo,
         "UOM Rendimento": item.unidadeRendimentoPreparo,
       });
-      if (!("erro" in custo)) {
-        custosPorPreparoId.set(item.preparoId, {
-          custoTotalPreparo: custo.custo_total_preparo,
-          rendimento: custo.rendimento,
-        });
+      if ("erro" in custo) {
+        if (custo.motivoFalhaRede) {
+          // Timeout/erro de rede: categoria DIFERENTE de "peso/subcategoria
+          // ausente" — não pode ser excluído e seguir com total parcial.
+          itensComFalhaDeRede.push({ preparo_id: item.preparoId, motivo: custo.motivoFalhaRede });
+        } else {
+          // Dado faltando (ex.: Rendimento não cadastrado) — mesma
+          // categoria de fail-fast já documentada, continua excluindo o
+          // item normalmente.
+          semCusto.push({ preparo: item.preparoNome, motivo: "Falha ao calcular o custo do preparo." });
+        }
+        return;
       }
+      custosPorPreparoId.set(item.preparoId, {
+        custoTotalPreparo: custo.custo_total_preparo,
+        rendimento: custo.rendimento,
+      });
     })
   );
 
+  // FAIL-HARD: qualquer item com falha de rede derruba o cálculo inteiro,
+  // mesmo que outros itens tenham custo válido — nunca segue com total
+  // parcial (docs/DECISOES.md).
+  if (itensComFalhaDeRede.length > 0) {
+    return falhaCalculo(itensComFalhaDeRede);
+  }
+
   const itensParaPrecificacao: ItemCardapioPrecificacao[] = [];
-  const semCusto: { preparo: string; motivo: string }[] = [];
   for (const item of itensResolvidos) {
     const custo = custosPorPreparoId.get(item.preparoId);
-    if (!custo) {
-      semCusto.push({ preparo: item.preparoNome, motivo: "Falha ao calcular o custo do preparo." });
-      continue;
-    }
+    if (!custo) continue; // dado faltando, já registrado em semCusto acima
     itensParaPrecificacao.push({
       preparoId: item.preparoId,
       preparoNome: item.preparoNome,
@@ -103,7 +158,7 @@ async function resolverItensParaPrecificacao(
 export async function calcularPrecificacaoParaPreparos(
   preparoIds: number[],
   opcoes: OpcoesPrecificacao
-): Promise<PrecificacaoEventoResultado | PrecificacaoEventoErro> {
+): Promise<PrecificacaoEventoResultado | PrecificacaoEventoErro | FalhaCalculoErro> {
   if (preparoIds.length === 0) {
     return { erro: "Selecione ao menos um item do cardápio.", status: 422 };
   }
@@ -130,7 +185,7 @@ export async function calcularPrecificacaoEventoParaPreparos(
   preparoIds: number[],
   opcoes: OpcoesPrecificacao,
   distribuicao: DistribuicaoConvidados
-): Promise<PrecificacaoEventoResultado | PrecificacaoEventoErro> {
+): Promise<PrecificacaoEventoResultado | PrecificacaoEventoErro | FalhaCalculoErro> {
   if (preparoIds.length === 0) {
     return { erro: "Selecione ao menos um item do cardápio.", status: 422 };
   }

@@ -21,6 +21,16 @@ function formatarMoeda(valor: number): string {
   return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
+/**
+ * Payload de fail-hard (docs/DECISOES.md, "Política de Falha do Motor de
+ * Cálculo") tem `mensagem` amigável separada de `erro` (que ali é o código
+ * "falha_calculo", não texto pra exibir) — os demais erros usam `erro` como
+ * a própria mensagem, igual sempre foi.
+ */
+function mensagemDeErro(resposta: { erro: string; mensagem?: string }): string {
+  return resposta.mensagem ?? resposta.erro;
+}
+
 export function SimuladorCardapio({
   preparosPorCategoria,
 }: {
@@ -69,7 +79,7 @@ export function SimuladorCardapio({
       })
         .then((resposta) => {
           if ("erro" in resposta) {
-            setErro(resposta.erro);
+            setErro(mensagemDeErro(resposta));
             setResultado(null);
             setItensExcluidos([]);
             return;
@@ -221,9 +231,15 @@ export function SimuladorCardapio({
         )}
 
         {simulacaoAtiva && resultado && (
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
+          <div className="grid grid-cols-2 gap-5 sm:grid-cols-4">
             <div className="flex flex-col gap-1.5">
-              <p className={rotuloClasse}>Por pessoa</p>
+              <p className={rotuloClasse}>Custo por Pessoa</p>
+              <p className="font-display text-2xl italic text-paper-dim">
+                {formatarMoeda(resultado.custo_cardapio_por_pessoa)}
+              </p>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <p className={rotuloClasse}>Preço Sugerido por Pessoa</p>
               <p className="font-display text-2xl italic text-paper">
                 {formatarMoeda(resultado.valor_sugerido_por_pessoa)}
               </p>

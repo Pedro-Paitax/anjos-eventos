@@ -120,7 +120,13 @@ export function calcularPrecificacaoCardapio(
     }
   }
 
-  const custoCardapioPorPessoa = custoCardapioTotal / numConvidados;
+  // Arredonda pra centavos ANTES de aplicar o markup — não depois. Sem
+  // isso, Custo_Por_Pessoa (exibido já arredondado) x 1,40 podia divergir
+  // em 1 centavo de Valor_Sugerido_Por_Pessoa (que usava o valor cru, sem
+  // arredondar) num arredondamento duplo silencioso. Achado ao expor os
+  // dois valores lado a lado no Simulador de Cardápio — ver
+  // src/lib/precificacao-cardapio.test.ts.
+  const custoCardapioPorPessoa = arredondar(custoCardapioTotal / numConvidados);
   const valorSugeridoPorPessoa = arredondarParaCimaCentavos(custoCardapioPorPessoa * MARKUP_CARDAPIO);
   const valorSugeridoCrianca = arredondar(valorSugeridoPorPessoa / 2);
 
@@ -138,7 +144,7 @@ export function calcularPrecificacaoCardapio(
 
   return {
     custo_cardapio_total: custoCardapioTotal,
-    custo_cardapio_por_pessoa: arredondar(custoCardapioPorPessoa),
+    custo_cardapio_por_pessoa: custoCardapioPorPessoa,
     valor_sugerido_por_pessoa: valorSugeridoPorPessoa,
     valor_sugerido_crianca: valorSugeridoCrianca,
     taxa_deslocamento: taxaDeslocamento,

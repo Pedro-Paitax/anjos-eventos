@@ -22,6 +22,16 @@ import {
 
 const DEBOUNCE_MS = 600;
 
+/**
+ * Payload de fail-hard (docs/DECISOES.md, "Política de Falha do Motor de
+ * Cálculo") tem `mensagem` amigável separada de `erro` (que ali é o código
+ * "falha_calculo", não texto pra exibir) — os demais erros usam `erro` como
+ * a própria mensagem, igual sempre foi.
+ */
+function mensagemDeErro(resposta: { erro: string; mensagem?: string }): string {
+  return resposta.mensagem ?? resposta.erro;
+}
+
 type ValoresIniciaisCardapio = Pick<Evento, (typeof VALOR_SALVO)[CategoriaCardapio]>;
 
 type FormularioEventoChurrascoProps = {
@@ -166,7 +176,7 @@ export function FormularioEventoChurrasco({
       })
         .then((resposta) => {
           if ("erro" in resposta) {
-            setErroPrecificacao(resposta.erro);
+            setErroPrecificacao(mensagemDeErro(resposta));
             setItensExcluidos([]);
             return;
           }

@@ -114,10 +114,15 @@ describe("calcularPrecificacaoCardapio", () => {
       regiaoMetropolitanaCuritiba: false,
     });
 
-    // custo por pessoa = 1747.88 / 61 = 28.6537... * 1.4 = 40.11527... ->
-    // TETO em centavos (não em Real inteiro) = 40.12
-    expect(resultado.custo_cardapio_por_pessoa).toBeCloseTo(28.65, 1);
-    expect(resultado.valor_sugerido_por_pessoa).toBe(40.12);
+    // custo por pessoa = 1747.88 / 61 = 28.6537... -> arredonda pra
+    // centavos ANTES do markup (28.65, mesmo valor exposto como
+    // Custo_Por_Pessoa na tela) -> TETO(28.65 x 1.4) = 40.11. Arredondar só
+    // no final (usando o 28.6537... cru) dava 40.12, 1 centavo à frente do
+    // que Custo_Por_Pessoa x 1,40 realmente fecha — bug de arredondamento
+    // duplo corrigido pra expor os dois valores lado a lado sem
+    // inconsistência (ver src/lib/precificacao-cardapio.ts).
+    expect(resultado.custo_cardapio_por_pessoa).toBe(28.65);
+    expect(resultado.valor_sugerido_por_pessoa).toBe(40.11);
     expect(resultado.valor_sugerido_crianca).toBe(20.06);
   });
 
@@ -127,11 +132,11 @@ describe("calcularPrecificacaoCardapio", () => {
       regiaoMetropolitanaCuritiba: true,
     });
 
-    // (40.12 * 61) + 250 (deslocamento) + (3 garçons sugeridos * 230)
+    // (40.11 * 61) + 250 (deslocamento) + (3 garçons sugeridos * 230)
     expect(resultado.taxa_deslocamento).toBe(250);
     expect(resultado.quantidade_garcom_usada).toBe(3);
     expect(resultado.valor_garcom).toBe(230);
-    expect(resultado.valor_sugerido_total_evento).toBeCloseTo(40.12 * 61 + 250 + 3 * 230, 2);
+    expect(resultado.valor_sugerido_total_evento).toBeCloseTo(40.11 * 61 + 250 + 3 * 230, 2);
   });
 
   it("Valor_Sugerido_Total_Evento SEM o toggle (sem taxa de deslocamento)", () => {
@@ -141,7 +146,7 @@ describe("calcularPrecificacaoCardapio", () => {
     });
 
     expect(resultado.taxa_deslocamento).toBe(0);
-    expect(resultado.valor_sugerido_total_evento).toBeCloseTo(40.12 * 61 + 0 + 3 * 230, 2);
+    expect(resultado.valor_sugerido_total_evento).toBeCloseTo(40.11 * 61 + 0 + 3 * 230, 2);
   });
 
   it("quantidade de garçom e valor de garçom são editáveis, sobrepondo a sugestão/padrão", () => {
@@ -155,7 +160,7 @@ describe("calcularPrecificacaoCardapio", () => {
     expect(resultado.quantidade_garcom_sugerida).toBe(3); // sugestão não muda
     expect(resultado.quantidade_garcom_usada).toBe(5); // valor usado é o editado
     expect(resultado.valor_garcom).toBe(200);
-    expect(resultado.valor_sugerido_total_evento).toBeCloseTo(40.12 * 61 + 0 + 5 * 200, 2);
+    expect(resultado.valor_sugerido_total_evento).toBeCloseTo(40.11 * 61 + 0 + 5 * 200, 2);
   });
 });
 
@@ -195,13 +200,13 @@ describe("calcularPrecificacaoParaEvento", () => {
     });
     const resultadoBase = calcularPrecificacaoCardapio(CARDAPIO, opcoes);
 
-    // 50*40.12 + 11*20.06 + 0 + 3*230 = 2006.00 + 220.66 + 0 + 690 = 2916.66
+    // 50*40.11 + 11*20.06 + 0 + 3*230 = 2005.50 + 220.66 + 0 + 690 = 2916.16
     expect(resultadoEvento.valor_sugerido_total_evento).toBeCloseTo(
-      50 * 40.12 + 11 * 20.06 + 0 + 3 * 230,
+      50 * 40.11 + 11 * 20.06 + 0 + 3 * 230,
       2
     );
     // Confirma que diverge do valor "preço cheio para todos" do Simulador
-    // (61*40.12 + 0 + 690 = 3137.32) — é exatamente a diferença que motivou
+    // (61*40.11 + 0 + 690 = 3136.71) — é exatamente a diferença que motivou
     // a decisão do Pedro.
     expect(resultadoEvento.valor_sugerido_total_evento).not.toBe(
       resultadoBase.valor_sugerido_total_evento
