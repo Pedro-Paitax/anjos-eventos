@@ -46,3 +46,4 @@ build/
 *.tmp
 *.temp
 *.swp
+graphify-out/

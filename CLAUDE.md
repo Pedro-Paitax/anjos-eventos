@@ -68,6 +68,17 @@ Explique o conflito.
 
 ---
 
+# EFICIÊNCIA DE CONTEXTO & GRAPHIFY
+
+Para evitar consumo excessivo de tokens e saturação da janela de contexto:
+
+- **Mapeamento de Dependências:** Antes de disparar buscas amplas (`grep`, `glob` ou leituras em massa de arquivos), consulte primeiro o arquivo `GRAPH_REPORT.md` para entender conexões de módulos, rotas e componentes.
+- **Não inspecione arquivos brutos do Graphify:** Nunca leia arquivos dentro de `graphify-out/` (como `graph.json` ou `.graphify_analysis.json`). Apenas `GRAPH_REPORT.md` deve ser consultado.
+- **Respostas e Modificações Enxutas:** Não reproduza arquivos inteiros nas respostas. Apresente apenas os trechos modificados ou diffs pontuais necessários para a alteração.
+- **Escopo PWA:** Não leia nem processe arquivos binários ou estáticos em `public/icons/`, `public/images/`, `public/splash/` ou assets de mídia, exceto se solicitado explicitamente para alterar o `manifest.json`.
+
+---
+
 # PROCESSO DE TRABALHO
 
 Para tarefas pequenas:
