@@ -905,6 +905,22 @@ tabelas novas vazias. **ETL das 6 tabelas NÃO autorizado** (aguarda o backup
 | Grupo B `simulador-orcamento` | migrado (Lacuna 1: `valor_total_estimado` = valor sugerido por pessoa em tempo real × convidados, `Valor_Base_Por_Pessoa` ignorado; erro público genérico) | **sem dado para paridade de valor** (0 Orçamentos no Oracle, 1 placeholder no NocoDB). Só equivalência de "Orçamento inexistente": 404 idêntico nos dois modos |
 | `margem-orcamento` | migrado (Lacuna 1 aplicada, ver abaixo) | sem dado: 0 Orçamentos no Oracle, 1 placeholder no NocoDB. Não testado contra dado |
 
+**Reconfirmação ao vivo do achado "cardápio 8 diverge" (2026-09-22, 08:54):**
+a sessão da noite de 2026-09-21 tinha registrado (só em memória, não neste
+arquivo) uma divergência aparente na fatia cardápio 8, preparos
+`[12,20,21,24]`, antes da versão final do teste acima existir. Rodei de novo
+a mesma fatia com o teste já commitado (`paridade-grupo-b-debug-simulador.
+integration.test.ts`, via SSH em "ender",
+`RUN_PARIDADE=1 npx vitest run ...`, log completo com o Pedro): a fatia
+estourou o timeout de 5s do NocoDB de novo e foi dividida em `[12,20]` e
+`[21,24]` — as duas metades vieram **idênticas** (0 divergências nas 7
+fatias da suite inteira). **Sem divergência de valor financeiro real.**
+Conclusão: o achado antigo foi um falso positivo da versão anterior do
+teste, que ainda não distinguia timeout/erro de transporte do NocoDB de
+divergência de valor real (a versão atual, usada aqui, já faz essa
+distinção). Módulo `debug-calculo-cardapio`/`simulador-orcamento`
+permanece desbloqueado, sem pendência de decisão do Pedro.
+
 **Paridade pelo ENDPOINT REAL (2026-09-21):** `scripts/paridade-endpoint.ts`
 faz build do `git HEAD` num diretório próprio (`~/.paridade-endpoint-app` no
 `ender`), sobe 2 instâncias standalone (:3101 `DATA_SOURCE=nocodb`, :3102
