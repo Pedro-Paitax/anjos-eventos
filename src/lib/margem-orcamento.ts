@@ -47,11 +47,13 @@ function arredondar(valor: number): number {
 }
 
 /**
- * Desconto_Tipo "Percentual" incide sobre o valor base (Valor_Base_Por_Pessoa
- * x Num_Convidados), antes de somar itens adicionais — convenção comum de
- * negócio (desconto na diária, não nas taxas extras). Não documentado
- * explicitamente em docs/BRIEFING.MD/DECISOES.md; se a intenção for outra,
- * ajustar aqui.
+ * Desconto_Tipo "Percentual" incide sobre o valor recebido em `valorBase`.
+ * Decisão fechada (docs/DECISOES.md, "Incidência de desconto sobre o
+ * orçamento"): a regra vigente é aplicar o desconto sobre o total já somado
+ * com itens adicionais — é o que calcularReceitaOracle faz hoje.
+ * calcularReceitaNocodb (caminho legado, em descontinuação) ainda passa só
+ * o valor base sem itens adicionais — divergência conhecida do caminho
+ * legado, não corrigida aqui.
  */
 function calcularDescontoAplicado(
   valorBase: number,
