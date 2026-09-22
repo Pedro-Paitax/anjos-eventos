@@ -1,0 +1,66 @@
+Correções e nova feature para o formulário de Novo Evento — Buffet Senhor Churrasco:
+
+CORREÇÃO 1 — Alinhamento do grid de Convidados:
+O label "Crianças de 5 a 10 anos" quebra em duas linhas e empurra o input
+dele mais pra baixo que os outros três da mesma linha (Adultos, Crianças até
+5 anos, Fornecedores). Ajuste o CSS para que todos os inputs dessa linha
+fiquem alinhados na mesma altura, independente do label quebrar linha ou não
+(ex: usando align-items: flex-end no container flex/grid, ou reservando
+altura fixa de 2 linhas para todos os labels desse grupo).
+
+CORREÇÃO 2 — Reordenar seções:
+Mova a seção "Valores" para DEPOIS da seção "Cardápio" (hoje está antes).
+Ordem final deve ser: Dados do cliente → Datas e horários → Convidados →
+Cardápio → Valores → Serviços → Financeiro/observações → Veículo e status →
+Contrato.
+
+FEATURE 1 — Valor Sugerido:
+Na seção Valores, adicione um campo "Valor sugerido (R$)", somente leitura,
+calculado automaticamente a partir de:
+(Adultos × Preço por pessoa) + ((Crianças até 5 + Crianças de 5 a 10) × Preço
+criança meia) + (Quantidade de garçons × Valor por garçom) + Taxa de
+deslocamento
+Esse valor é só uma sugestão/referência — o campo "Valor total do evento"
+continua editável manualmente e não é sobrescrito automaticamente pelo
+valor sugerido (o usuário pode aceitar ou digitar outro valor).
+
+FEATURE 2 — Cardápio conectado ao banco de dados real (NocoDB):
+Hoje os 5 campos de cardápio (Aperitivos, Carnes, Acompanhamentos, Salada,
+Bebidas) são texto livre. Precisam virar SELECTS (múltipla escolha, pois um
+evento normalmente tem vários itens por categoria) puxando da base de fichas
+técnicas que já existe no NocoDB.
+
+Antes de implementar o filtro por categoria, faça o seguinte, NESTA ORDEM:
+
+1. Crie uma variável de ambiente NOCODB_API_TOKEN no arquivo .env (não
+   .env.example, não comitar no git) com o valor do token que vou te passar
+   separadamente. Adicione .env ao .gitignore se ainda não estiver.
+
+2. Crie uma rota de backend (ex: /api/nocodb/preparos) que faz a chamada
+   para a API do NocoDB usando fetch, com o token vindo de
+   process.env.NOCODB_API_TOKEN (nunca hardcoded, e nunca exposto no
+   frontend/client-side):
+   GET http://100.77.218.36:8090/api/v2/tables/m3yr136ykw6ju2w/records?limit=1000
+   Header: xc-token: <valor da variável de ambiente>
+
+3. Chame essa rota, pegue a resposta, e me mostre (no terminal ou como
+   resposta de texto) TODOS os campos/atributos que vêm em cada registro
+   dessa tabela — especialmente procurando um campo que indique a categoria
+   do item (aperitivo, carne, acompanhamento, salada, bebida). NÃO assuma o
+   nome desse campo. Me mostre a estrutura completa de um registro de
+   exemplo antes de continuar.
+
+4. Depois de identificar o campo de categoria, liste TODOS os valores
+   distintos de categoria que existem na tabela (ex: pode ser Entradas,
+   Guarnições, Carnes, Saladas, Bebidas, Sobremesas, ou outra nomenclatura
+   qualquer usada no NocoDB — não presuma quais são).
+
+5. Pare aqui e me mostre essa lista de categorias encontradas antes de
+   continuar.
+
+6. Depois da minha confirmação, crie a seção "Cardápio" do formulário com
+   UM SELECT PARA CADA CATEGORIA ENCONTRADA (não apenas os 5 campos fixos
+   que existiam antes — Aperitivos/Carnes/Acompanhamentos/Salada/Bebidas
+   devem ser substituídos pela lista real de categorias do banco). Cada
+   select deve ser múltipla escolha, filtrado pelos itens daquela categoria
+   específica.

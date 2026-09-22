@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import {
   criarEvento,
   atualizarEvento,
+  excluirEvento,
   type DadosEvento,
   type StatusEvento,
 } from "@/lib/eventos";
@@ -116,4 +117,20 @@ export async function atualizarEventoAction(id: number, formData: FormData) {
   }
   await atualizarEvento(id, dados);
   redirect(`/agenda/${id}`);
+}
+
+/**
+ * Exclusão simples (sem soft-delete) — o pedido do Pedro foi só parar de
+ * depender de acesso direto ao banco pra corrigir erro de cadastro. A
+ * confirmação ("tem certeza?") acontece no client, antes desta action ser
+ * chamada (ver BotaoExcluirEvento).
+ */
+export async function excluirEventoAction(id: number) {
+  const usuarioAtual = await obterUsuarioAtual();
+  if (!usuarioAtual) {
+    redirect("/login");
+  }
+
+  await excluirEvento(id);
+  redirect("/agenda");
 }

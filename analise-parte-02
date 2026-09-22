@@ -1,0 +1,683 @@
+ agenda é unificada.
+
+---
+
+# 2. Orçamentos
+
+Um orçamento representa uma proposta para um cliente.
+
+A receita projetada é:
+
+```text
+Receita Projetada =
+(Valor_Base_Por_Pessoa × Num_Convidados)
++ Σ Itens Adicionais
+− Desconto
+O custo projetado é calculado em tempo real a partir dos itens do orçamento.
+
+A margem projetada é:
+
+Margem Projetada =
+Receita Projetada − Custo Projetado
+
+A margem projetada não deve ser armazenada como valor definitivo.
+
+3. Evento confirmado
+
+Quando um orçamento é aceito e convertido em evento, os itens confirmados devem preservar:
+
+quantidade confirmada;
+custo unitário no momento da confirmação.
+
+Esses valores são snapshots históricos.
+
+Alterações futuras nos preços das fichas técnicas não devem modificar o histórico de eventos já confirmados.
+
+4. Motor de custo de ficha técnica
+
+A fórmula é:
+
+custo_total_preparo =
+Σ(quantidade_composição × preço_corrigido_insumo)
+
+Depois:
+
+custo_por_unidade_rendimento =
+custo_total_preparo / rendimento
+
+E:
+
+custo_por_pessoa =
+custo_por_unidade_rendimento × porção_por_pessoa
+5. Motor de dimensionamento
+
+É PROIBIDO utilizar per capita estático como regra principal.
+
+A fórmula base é:
+
+Porcao_Calculada =
+Capacidade_Teto_Macro ×
+(Peso_Item / Σ Pesos_Macro_dos_itens_selecionados)
+
+Depois:
+
+Porcao_Final =
+MIN(Porcao_Calculada, Porcao_Maxima_Individual)
+
+quando houver limite individual.
+
+O volume total é:
+
+Volume_Necessário_Total =
+Porcao_Final × Num_Convidados
+6. Peso do item
+
+A resolução do peso segue esta ordem:
+
+Preparos.Peso_Atratividade, quando definido manualmente.
+Se a categoria for Carnes e houver Subcategoria_Proteina, utilizar o peso padrão de Hierarquia_Proteina.
+Caso nenhuma regra produza peso, o preparo não deve aparecer no simulador público.
+
+Isso é intencional.
+
+Não inventar peso padrão para resolver dado ausente.
+
+7. Hierarquia de proteínas
+
+A hierarquia automática existe SOMENTE para a categoria Carnes.
+
+Pesos:
+
+Carne Vermelha = 1,5
+Ovino = 1,3
+Suíno = 1,1
+Peixe = 0,9
+Aves = 0,7
+
+Não aplicar essa hierarquia automaticamente a outras categorias.
+
+8. Hard Cap
+
+Porcao_Maxima_Individual limita a quantidade final de um preparo.
+
+O excedente NÃO é redistribuído para os outros itens da mesma categoria neste estágio do sistema.
+
+Isso é uma limitação conhecida e aceita.
+
+Não implementar redistribuição automaticamente sem autorização.
+
+9. Logística
+
+A logística utiliza Unidade Equivalente de Volume baseada em caixas.
+
+1 caixa = 20 kg
+
+Capacidade conhecida:
+
+Master = 80 caixas
+
+As capacidades da Kombi Nova e Kombi Velha ainda estão pendentes.
+
+Não inventar esses valores.
+
+10. Conversão logística
+
+Para cálculo de peso:
+
+G
+
+Usar diretamente a quantidade calculada.
+
+ML
+
+Aproximar:
+
+1 ml = 1 g
+
+Essa aproximação é aceitável para líquidos aquosos.
+
+Unidade
+
+Usar:
+
+quantidade × Peso_Medio_Unidade_G
+
+Se Peso_Medio_Unidade_G estiver vazio:
+
+excluir o item da soma;
+gerar aviso;
+não quebrar o cálculo.
+11. Caixas necessárias
+Total_Caixas_Necessarias =
+Peso_Total_Evento_G / 20000
+
+Se o total ultrapassar a capacidade do veículo:
+
+gerar alerta;
+não bloquear o processo.
+
+O usuário decide o que fazer.
+
+12. Financeiro
+
+Margem real do evento:
+
+Margem Real =
+Valor_Total_Fechado
++ Σ Evento_Itens_Adicionais.Valor_Cobrado
+− Custo_Alimentos
+− Σ Custos_Operacionais_Evento.Valor
+
+Onde:
+
+Custo_Alimentos =
+Σ(Custo_Unitario_Snapshot × Quantidade_Confirmada)
+13. Receita adicional x custo operacional
+
+Nunca confundir:
+
+Evento_Itens_Adicionais
+
+com:
+
+Custos_Operacionais_Evento
+
+Evento_Itens_Adicionais
+
+Representa receita adicional cobrada do cliente.
+
+Exemplo:
+
+taxa de deslocamento cobrada.
+Custos_Operacionais_Evento
+
+Representa custo real da operação.
+
+Exemplos:
+
+combustível;
+salário de garçom;
+outros custos operacionais.
+14. Filosofia do sistema
+
+O sistema deve privilegiar:
+
+simplicidade;
+confiabilidade;
+baixa manutenção;
+regras explícitas;
+histórico consistente.
+
+Não introduzir complexidade apenas porque existe uma solução tecnicamente mais sofisticada.
+
+================================================================
+### FILE: docs/documentacao-tecnica-sistema-eventos.md
+================================================================
+
+# Documentação Técnica — Sistema Central de Eventos
+
+**Grupo:** Buffet Senhor Churrasco · Anjos Cerimonial · Em Plena Natureza Chácara de Eventos
+**Stakeholder / Dono do Negócio:** Pedro
+**Papel deste documento:** especificação de referência para construção do sistema, cobrindo o contexto de negócio, as decisões de arquitetura e o motivo de cada uma delas.
+
+---
+
+## 1. Contexto de Negócio
+
+O grupo é formado por **3 empresas independentes**, cada uma fechando contratos e clientes próprios (às vezes o mesmo cliente contrata mais de uma):
+
+- **Buffet Senhor Churrasco** — operação de comida, fichas técnicas e logística de carregamento para eventos.
+- **Anjos Cerimonial** — cerimonial de eventos, hoje é essencialmente gestão de contratos e informações.
+- **Em Plena Natureza Chácara de Eventos** — espaço de eventos, também essencialmente contratos e informações.
+
+**Problema central hoje:** não existe organização centralizada. A operação vive "de cabeça" — informações de eventos, contratos e observações estão espalhadas ou apenas na memória das pessoas envolvidas.
+
+**Dor mais concreta e recorrente:** no dia do evento do Buffet Senhor Churrasco, é comum esquecer itens ao carregar o carro, porque ninguém tem uma lista confiável do que precisa ir, nem sabe onde cada item está guardado.
+
+**Restrição real de execução:** Pedro é engenheiro de dados profissionalmente, mas tem **zero tempo livre nos finais de semana** para desenvolver. Toda decisão de arquitetura abaixo foi tomada para minimizar esforço de manutenção contínua, não só esforço de construção inicial.
+
+---
+
+## 2. Objetivo do Sistema
+
+Um sistema interno, full stack, que:
+
+1. Centraliza a **agenda dos eventos das 3 empresas** em um único lugar.
+2. Organiza **contratos e observações** por evento, eliminando dependência de memória.
+3. Automatiza a **geração do checklist de carregamento** do Buffet Senhor Churrasco no dia do evento, cobrindo o que pegar, onde está guardado e em qual veículo vai.
+4. É acessível **de qualquer lugar pela internet**, como um PWA.
+
+---
+
+## 3. Escopo por Fase
+
+Não é um sistema construído de uma vez — é dividido em fases para caber no tempo real disponível.
+
+### Fase 1 (prioridade atual): Central de Eventos
+- Agenda unificada das 3 empresas.
+- Upload de contrato (PDF) com **extração automática de dados** para preencher o evento.
+- Acesso de todos os 3 usuários a todas as informações.
+
+### Fase 2: Checklist de Carregamento (Buffet Senhor Churrasco)
+- Cálculo automático de itens de "kit padrão" (escaláveis por nº de convidados).
+- Itens variáveis vindos do cardápio do evento (ligado às fichas técnicas já existentes na base "senhor churrasco" no NocoDB).
+- Checklist com validação de quantidade, exibido em tela touch na cozinha/área de montagem.
+- Seleção manual do veículo de carga (Master, Kombi nova, Kombi velha).
+
+### Fase 3 (futura, não detalhada ainda): 
+- Módulo de contratos/observações mais robusto para Anjos Cerimonial e Em Plena Natureza.
+- Possível automação da geração de cardápio a partir de regras de tipo de evento + nº de convidados.
+
+Este documento detalha a **Fase 1**, com o modelo de dados já preparado para acomodar a Fase 2 sem retrabalho.
+
+---
+
+## 4. Decisões de Arquitetura e Por Quê
+
+| Decisão | Motivo |
+|---|---|
+| **Stack: Next.js (Node.js) full stack** | Escolha do Pedro — um único framework cobre frontend e backend (API routes), reduzindo a superfície de manutenção. |
+| **Banco de dados: PostgreSQL** | Já é a base de dados usada no ecossistema atual (NocoDB roda sobre Postgres); mantém consistência técnica. |
+| **PWA** | Requisito explícito — permite instalar como app no celular/tela touch, funciona bem em navegador, sem precisar publicar em loja de app. |
+| **Hospedagem: servidor doméstico "ender"** | Já existe, já tem Docker instalado e Tailscale configurado para acesso remoto seguro, custo zero. Estratégia é validar tudo ali antes de considerar migração para cloud. |
+| **Login simples por nome, sem senha** | Apenas 3 usuários de confiança, ambiente já protegido por Tailscale (não exposto publicamente). Prioriza simplicidade sobre segurança de nível corporativo, o que é adequado ao contexto. |
+| **Todos com acesso total (leitura e edição)** | Decisão explícita do negócio — não há necessidade de separar permissão por empresa neste momento. |
+| **Extração de contrato via leitura direta de texto do PDF (sem OCR)** | O contrato nasce em PDF com texto real (não é digitalizado/scaneado), e sempre segue o mesmo modelo — permite extração guiada por template, mais rápida e confiável que OCR genérico. |
+| **Confirmação manual após extração automática** | A extração por IA não é infalível; a etapa de confirmação evita que um erro de leitura vá parar direto na agenda sem revisão humana. |
+| **Portas de serviço fora da faixa 8080-8090** | Essas portas já estão em uso no servidor "ender" por outras aplicações. |
+
+---
+
+## 5. Modelo de Dados (Fase 1 + preparação para Fase 2)
+
+### `empresas`
+| Campo | Tipo | Observação |
+|---|---|---|
+| id | serial (PK) | |
+| nome | text | Buffet Senhor Churrasco / Anjos Cerimonial / Em Plena Natureza |
+
+### `eventos`
+| Campo | Tipo | Observação |
+|---|---|---|
+| id | serial (PK) | |
+| empresa_id | FK → empresas | |
+| cliente | text | |
+| data_evento | date/timestamp | |
+| tipo_evento | text | ex: casamento, aniversário, corporativo |
+| num_convidados | integer | usado no cálculo de kit padrão (Fase 2) |
+| status | text | orçado / confirmado / realizado / cancelado |
+| valor | numeric | |
+| veiculo | text (nullable) | Master / Kombi nova / Kombi velha — só relevante quando empresa = Senhor Churrasco |
+| observacoes | text | campo livre |
+
+### `contratos`
+| Campo | Tipo | Observação |
+|---|---|---|
+| id | serial (PK) | |
+| evento_id | FK → eventos | |
+| arquivo_pdf | text (path/URL) | armazenamento do PDF original |
+| dados_extraidos_raw | jsonb | resultado bruto da extração automática, para auditoria |
+| confirmado_por | text | nome do usuário que validou a extração |
+| confirmado_em | timestamp | |
+
+### `usuarios`
+| Campo | Tipo | Observação |
+|---|---|---|
+| id | serial (PK) | |
+| nome | text | login = seleção do nome, sem senha |
+
+### Preparação para Fase 2 (não implementado ainda, apenas reservado no schema):
+
+**`itens_kit_padrao`** — item, `qtd_base`, `pessoas_base`, unidade (ex: 2 detergentes a cada 50 pessoas).
+**`cardapio_evento`** — evento_id, item_id (referência à base de fichas técnicas do NocoDB "senhor churrasco"), quantidade.
+**`checklist_evento`** — consolida kit padrão calculado + cardápio do evento, com campos `separado` (bool) e `quantidade_real` (para validar contra a quantidade sugerida).
+
+> Regra de cálculo do kit padrão (Fase 2): `quantidade = TETO(convidados / pessoas_base) × qtd_base`, sempre arredondando para cima. Cada item tem sua própria proporção — não existe fórmula única.
+
+---
+
+## 6. Fluxo: Upload de Contrato → Agenda
+
+1. Usuário faz upload do PDF do contrato pela interface.
+2. Backend extrai o texto do PDF (biblioteca de parsing de texto, sem OCR).
+3. Aplica regras posicionais baseadas no modelo fixo de contrato para identificar: cliente, data, tipo de evento, nº de convidados, valor, empresa.
+4. Sistema apresenta os dados extraídos numa tela de **confirmação** — usuário revisa e corrige se necessário.
+5. Ao confirmar, o sistema grava o evento na tabela `eventos` e o contrato original na tabela `contratos`, vinculado ao evento.
+6. Evento aparece automaticamente na agenda unificada das 3 empresas.
+
+---
+
+## 7. Autenticação
+
+- Tela de login exibe os 3 nomes cadastrados; usuário seleciona o seu, sem senha.
+- Nome selecionado é usado para registrar quem confirmou cada extração de contrato (campo `confirmado_por`), mantendo rastreabilidade sem exigir senha.
+
+---
+
+## 8. Infraestrutura
+
+- **Ambiente:** servidor doméstico "ender" (Debian, Docker já instalado, Tailscale configurado).
+- **Containers previstos:** aplicação Next.js + banco PostgreSQL, cada um em container próprio.
+- **Portas:** a definir fora da faixa 8080-8090 (já ocupada por outros serviços no ender).
+- **Acesso remoto:** via Tailscale, sem exposição pública direta à internet — adequado ao volume de 3 usuários de confiança.
+
+---
+
+## 9. Riscos e Pontos de Atenção
+
+- **Zero tempo de desenvolvimento nos finais de semana**: o plano de fases existe justamente para evitar que o projeto pare no meio. Cada fase deve ser fechada e estabilizada antes de iniciar a próxima.
+- **Extração automática de contrato não é 100% infalível**: mitigado pela etapa de confirmação manual antes de gravar na agenda.
+- **Dependência do servidor doméstico**: hospedar no "ender" tem custo zero, mas depende da estabilidade da energia/rede de casa. Migração para cloud fica como opção futura caso isso vire um problema.
+- **Login sem senha**: adequado ao contexto atual (3 pessoas de confiança, acesso via Tailscale), mas não deve ser replicado se o sistema crescer para mais usuários ou acesso público.
+
+---
+
+## 10. Próximos Passos
+
+1. Validar esta documentação com o Stakeholder (Pedro).
+2. Estruturar o repositório do projeto (Next.js + Postgres + Docker Compose).
+3. Implementar o schema do banco de dados (Fase 1).
+4. Implementar a tela de login por nome.
+5. Implementar upload de contrato + extração + tela de confirmação.
+6. Implementar a agenda unificada.
+7. Deploy no servidor "ender", em portas fora de 8080-8090.
+8. Validar em uso real antes de iniciar a Fase 2 (checklist do buffet).
+
+================================================================
+### FILE: src/lib/custo-preparo.ts
+================================================================
+
+import "server-only";
+import { nocodbGet } from "@/lib/nocodb";
+import { dataSource } from "@/lib/data-source";
+
+// IDs de tabela do NocoDB (base Senhor_Churrasco_DB), confirmados via
+// /api/v2/meta/bases/.../tables — não inventar, checar o schema real antes
+// de mudar.
+const TABELA_PREPAROS = "m3yr136ykw6ju2w";
+const TABELA_COMPOSICAO = "mj1muse0q0pjli8";
+const TABELA_INSUMOS = "m2ll6qtupa1q1il";
+
+// Id do campo de link "Composição" na tabela Preparos — necessário para
+// buscar as linhas de composição pela API de links do NocoDB (o campo de
+// link não vem populado no GET normal de um registro de Preparo).
+const CAMPO_LINK_COMPOSICAO = "cokpnpukyk5tmdg";
+
+const UNIDADE_RENDIMENTO: Record<string, "g" | "ml" | "unidade"> = {
+  G: "g",
+  ML: "ml",
+  Unidade: "unidade",
+};
+
+type PreparoRegistro = {
+  Id: number;
+  "Nome Do Preparo": string;
+  Rendimento: number | null;
+  "UOM Rendimento": string | null;
+};
+
+type ComposicaoLinkRegistro = { Id: number };
+
+type ComposicaoRegistro = {
+  Id: number;
+  Quantidade: number;
+  Insumo: { Id: number } | null;
+};
+
+type InsumoRegistro = {
+  Id: number;
+  Nome: string;
+  "Custo Médio": number | null;
+  "Rendimento (%)": number | null;
+};
+
+export type CustoPreparoResultado = {
+  preparo: string;
+  custo_total_preparo: number;
+  rendimento: number;
+  unidade_rendimento: "g" | "ml" | "unidade";
+  custo_por_100_unidades: number;
+};
+
+/**
+ * Só as 3 etapas de rede do motor de custo, exatamente como documentado em
+ * docs/DECISOES.md, "Política de Falha do Motor de Cálculo". Presente SÓ
+ * quando o erro veio de timeout/falha de rede consultando o Preparo, a
+ * Composição ou o Insumo — nunca em erro de dado faltando (ex.: Rendimento
+ * não cadastrado), que continua sendo fail-fast comum (sem este campo).
+ * Categoriza a falha pro chamador (resolverItensParaPrecificacao) decidir
+ * entre excluir o item (dado faltando) ou fail-hard (rede) sem repetir a
+ * lógica de classificação em dois lugares.
+ */
+export type MotivoFalhaRede = "timeout_preparo" | "timeout_composicao" | "timeout_insumo";
+
+export type CustoPreparoErro = { erro: string; status: number; motivoFalhaRede?: MotivoFalhaRede };
+
+/**
+ * Arredonda pra centavos corrigindo antes o erro de representação binária
+ * do float (ex.: 0.15 * 29.9 vira 4.484999999999999 em vez de 4.485), que
+ * faria casos de meio-centavo exato arredondarem pra baixo por engano.
+ */
+function arredondarCentavos(valor: number): number {
+  return Math.round(Number(valor.toFixed(8)) * 100) / 100;
+}
+
+export type ItemComposicaoParaCusto = {
+  quantidade: number;
+  preco: number | null;
+  fatorCorrecao: number | null;
+};
+
+/**
+ * Núcleo puro do motor de custo (sem I/O): soma quantidade x preço
+ * corrigido de cada item da composição, seguindo docs/REGRAS_NEGOCIO.md
+ * seção 4. Separado da busca no NocoDB pra poder ser validado
+ * isoladamente.
+ */
+export function calcularCustoTotalComposicao(itens: ItemComposicaoParaCusto[]): number {
+  let custoTotal = 0;
+  for (const item of itens) {
+    // Regra de borda: Preço vazio OU Fator de Correção 0 → custo R$0
+    // (nunca dividir por zero).
+    const custoCorrigido =
+      item.preco == null || !item.fatorCorrecao ? 0 : item.preco / item.fatorCorrecao;
+    const subtotal = arredondarCentavos(item.quantidade * custoCorrigido);
+    custoTotal = arredondarCentavos(custoTotal + subtotal);
+  }
+  return custoTotal;
+}
+
+export function calcularCustoPor100Unidades(custoTotal: number, rendimento: number): number {
+  return arredondarCentavos((custoTotal / rendimento) * 100);
+}
+
+/**
+ * Subconjunto de PreparoRegistro que um chamador upstream (ex.:
+ * resolverItensPorPreparoIds, que já buscou o Preparo pra resolver
+ * peso/macro-categoria) pode passar pronto, evitando uma segunda busca do
+ * mesmo registro — causa raiz do timeout sob concorrência, ver
+ * docs/DECISOES.md, "Política de Falha do Motor de Cálculo".
+ */
+export type PreparoJaBuscado = Pick<PreparoRegistro, "Nome Do Preparo" | "Rendimento" | "UOM Rendimento">;
+
+function validarRendimento(
+  preparo: PreparoJaBuscado
+): { rendimento: number; unidade: "g" | "ml" | "unidade" } | CustoPreparoErro {
+  const rendimento = preparo["Rendimento"];
+  const unidadeOriginal = preparo["UOM Rendimento"];
+  const unidade = unidadeOriginal ? UNIDADE_RENDIMENTO[unidadeOriginal] : undefined;
+
+  if (!rendimento || rendimento <= 0) {
+    return {
+      erro: `Preparo "${preparo["Nome Do Preparo"]}" está sem Rendimento válido cadastrado.`,
+      status: 422,
+    };
+  }
+  if (!unidade) {
+    return {
+      erro: `Unidade de rendimento "${unidadeOriginal}" não suportada por este endpoint (esperado G, ML ou Unidade).`,
+      status: 422,
+    };
+  }
+  return { rendimento, unidade };
+}
+
+/**
+ * Mesma conta de calcularCustoPreparo, lendo do Postgres novo via Drizzle
+ * (DATA_SOURCE=oracle). Numeric do Postgres chega como string — convertido
+ * aqui pra number antes de entrar no núcleo puro, que não muda.
+ */
+async function calcularCustoPreparoOracle(
+  preparoId: number,
+  preparoJaBuscado?: PreparoJaBuscado
+): Promise<CustoPreparoResultado | CustoPreparoErro> {
+  let preparo: PreparoJaBuscado;
+  let itens: ItemComposicaoParaCusto[];
+  try {
+    const { db } = await import("@/db/client");
+    const { eq } = await import("drizzle-orm");
+    const { preparos } = await import("@/db/schema/preparos");
+    const { composicao } = await import("@/db/schema/composicao");
+    const { insumos } = await import("@/db/schema/insumos");
+
+    if (preparoJaBuscado) {
+      preparo = preparoJaBuscado;
+    } else {
+      const [linha] = await db.select().from(preparos).where(eq(preparos.id, preparoId));
+      if (!linha) return { erro: "Preparo não encontrado.", status: 404 };
+      preparo = {
+        "Nome Do Preparo": linha.nomePreparo,
+        Rendimento: Number(linha.rendimento),
+        "UOM Rendimento": linha.unidadeRendimento,
+      };
+    }
+
+    const linhas = await db
+      .select({
+        quantidade: composicao.quantidade,
+        preco: insumos.preco,
+        fatorCorrecao: insumos.fatorCorrecao,
+      })
+      .from(composicao)
+      .innerJoin(insumos, eq(composicao.insumoId, insumos.id))
+      .where(eq(composicao.preparoId, preparoId));
+    itens = linhas.map((l) => ({
+      quantidade: Number(l.quantidade),
+      preco: l.preco == null ? null : Number(l.preco),
+      fatorCorrecao: l.fatorCorrecao == null ? null : Number(l.fatorCorrecao),
+    }));
+  } catch (erro) {
+    // Postgres resolve Preparo + Composição/Insumo numa única consulta
+    // (join), diferente do NocoDB (3 chamadas HTTP separadas) — sem stage
+    // pra distinguir, usa "timeout_composicao" (é a consulta que de fato
+    // roda quando preparoJaBuscado já veio pronto, caso normal de
+    // resolverItensParaPrecificacao).
+    return {
+      erro: `Falha ao consultar Postgres: ${(erro as Error).message}`,
+      status: 502,
+      motivoFalhaRede: "timeout_composicao",
+    };
+  }
+
+  const validado = validarRendimento(preparo);
+  if ("erro" in validado) return validado;
+
+  const custoTotal = calcularCustoTotalComposicao(itens);
+  return {
+    preparo: preparo["Nome Do Preparo"],
+    custo_total_preparo: custoTotal,
+    rendimento: validado.rendimento,
+    unidade_rendimento: validado.unidade,
+    custo_por_100_unidades: calcularCustoPor100Unidades(custoTotal, validado.rendimento),
+  };
+}
+
+export async function calcularCustoPreparo(
+  preparoId: number,
+  preparoJaBuscado?: PreparoJaBuscado
+): Promise<CustoPreparoResultado | CustoPreparoErro> {
+  if (dataSource() === "oracle") return calcularCustoPreparoOracle(preparoId, preparoJaBuscado);
+
+  const token = process.env.NOCODB_API_TOKEN;
+  if (!token) {
+    return { erro: "NOCODB_API_TOKEN não configurado.", status: 500 };
+  }
+
+  // Cada etapa de rede tem seu próprio try/catch, tagueada com o motivo
+  // certo (docs/DECISOES.md, "Política de Falha do Motor de Cálculo") — não
+  // dá pra usar um try/catch só pra tudo e ainda saber qual das 3 etapas
+  // (Preparo/Composição/Insumo) foi a que falhou.
+  let preparo: PreparoJaBuscado | null;
+  if (preparoJaBuscado) {
+    preparo = preparoJaBuscado;
+  } else {
+    try {
+      preparo = await nocodbGet<PreparoRegistro>(
+        `/tables/${TABELA_PREPAROS}/records/${preparoId}`,
+        token
+      );
+    } catch (erro) {
+      return {
+        erro: `Falha ao consultar NocoDB: ${(erro as Error).message}`,
+        status: 502,
+        motivoFalhaRede: "timeout_preparo",
+      };
+    }
+    if (!preparo) {
+      return { erro: "Preparo não encontrado.", status: 404 };
+    }
+  }
+
+  let composicaoLinks: { list: ComposicaoLinkRegistro[] };
+  try {
+    composicaoLinks = (await nocodbGet<{ list: ComposicaoLinkRegistro[] }>(
+      `/tables/${TABELA_PREPAROS}/links/${CAMPO_LINK_COMPOSICAO}/records/${preparoId}?limit=1000`,
+      token
+    )) ?? { list: [] };
+  } catch (erro) {
+    return {
+      erro: `Falha ao consultar NocoDB: ${(erro as Error).message}`,
+      status: 502,
+      motivoFalhaRede: "timeout_composicao",
+    };
+  }
+
+  const validado = validarRendimento(preparo);
+  if ("erro" in validado) return validado;
+  const { rendimento, unidade } = validado;
+
+  let composicoes: (ComposicaoRegistro | null)[];
+  try {
+    composicoes = await Promise.all(
+      composicaoLinks.list.map((c) =>
+        nocodbGet<ComposicaoRegistro>(`/tables/${TABELA_COMPOSICAO}/records/${c.Id}`, token)
+      )
+    );
+  } catch (erro) {
+    return {
+      erro: `Falha ao consultar NocoDB: ${(erro as Error).message}`,
+      status: 502,
+      motivoFalhaRede: "timeout_composicao",
+    };
+  }
+
+  const insumoIds = [
+    ...new Set(
+      composicoes.map((c) => c?.Insumo?.Id).filter((id): id is number => typeof id === "number")
+    ),
+  ];
+
+  let insumos: (InsumoRegistro | null)[];
+  try {
+    insumos = await Promise.all(
+      insumoIds.map((id) => nocodbGet<InsumoRegistro>(`/tables/${TABELA_INSUMOS}/records/${id}`, token))
+    );
+  } catch (erro) {
+    return {
+      erro: `Falha ao consultar NocoDB: ${(erro as Error).message}`,
+      status: 502,
+      motivoFalhaRede: "timeout_insumo",
+    };
+  }
+
+  con

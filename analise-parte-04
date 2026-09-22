@@ -1,0 +1,602 @@
+valor_sugerido_total_evento: number;
+};
+
+/**
+ * Núcleo puro da precificação por cardápio selecionado (sem I/O). Reaproveita
+ * distribuirPorcoes (motor de dimensionamento, docs/REGRAS_NEGOCIO.md seção
+ * 5) pra achar a porção/volume necessário de cada item, e combina com o
+ * custo_total_preparo/rendimento de cada um (motor de custo, seção 4) pra
+ * chegar no custo total do cardápio — mesma composição já usada no Motor de
+ * Margem (src/lib/margem-orcamento.ts).
+ */
+export function calcularPrecificacaoCardapio(
+  itens: ItemCardapioPrecificacao[],
+  opcoes: OpcoesPrecificacao
+): PrecificacaoResultado {
+  const { numConvidados, regiaoMetropolitanaCuritiba } = opcoes;
+  const valorGarcom = opcoes.valorGarcom ?? VALOR_GARCOM_PADRAO;
+  const quantidadeGarcomSugerida = ceilDivisao(numConvidados, CONVIDADOS_POR_GARCOM);
+  const quantidadeGarcomUsada = opcoes.quantidadeGarcom ?? quantidadeGarcomSugerida;
+
+  const itensResolvidos: ItemResolvido[] = itens.map((item) => ({
+    preparoId: item.preparoId,
+    preparoNome: item.preparoNome,
+    headerExibicao: item.headerExibicao,
+    peso: item.peso,
+    origemPeso: "",
+    porcaoMaximaIndividual: item.porcaoMaximaIndividual,
+    macroCategoriaChave: item.macroCategoriaChave,
+    macroCategoriaNome: item.macroCategoriaNome,
+    capacidadeTeto: item.capacidadeTeto,
+    unidade: item.unidade,
+    unidadeRendimentoPreparo: item.unidadeRendimentoPreparo,
+    pesoMedioUnidadeG: item.pesoMedioUnidadeG,
+    // Não usado por distribuirPorcoes (só serve pra resolverItensPorPreparoIds
+    // repassar pra calcularCustoPreparo sem buscar o Preparo de novo) — aqui
+    // o rendimento já resolvido do motor de custo é equivalente.
+    rendimentoPreparo: item.rendimento,
+  }));
+
+  const macroCategorias = distribuirPorcoes(itensResolvidos, numConvidados);
+  const dadosCustoPorPreparoId = new Map(itens.map((item) => [item.preparoId, item]));
+
+  let custoCardapioTotal = 0;
+  for (const macro of macroCategorias) {
+    for (const item of macro.itens) {
+      const dadosCusto = dadosCustoPorPreparoId.get(item.preparo_id);
+      if (!dadosCusto) continue;
+      const custoPorUnidade = dadosCusto.custoTotalPreparo / dadosCusto.rendimento;
+      const custoItem = arredondar(custoPorUnidade * item.quantidade_para_custo);
+      custoCardapioTotal = arredondar(custoCardapioTotal + custoItem);
+    }
+  }
+
+  // Arredonda pra centavos ANTES de aplicar o markup — não depois. Sem
+  // isso, Custo_Por_Pessoa (exibido já arredondado) x 1,40 podia divergir
+  // em 1 centavo de Valor_Sugerido_Por_Pessoa (que usava o valor cru, sem
+  // arredondar) num arredondamento duplo silencioso. Achado ao expor os
+  // dois valores lado a lado no Simulador de Cardápio — ver
+  // src/lib/precificacao-cardapio.test.ts.
+  const custoCardapioPorPessoa = arredondar(custoCardapioTotal / numConvidados);
+  const valorSugeridoPorPessoa = arredondarParaCimaCentavos(custoCardapioPorPessoa * MARKUP_CARDAPIO);
+  const valorSugeridoCrianca = arredondar(valorSugeridoPorPessoa / 2);
+
+  const taxaDeslocamento = calcularTaxaDeslocamento(regiaoMetropolitanaCuritiba);
+
+  const quantidadeCopeiraSugerida = ceilDivisao(numConvidados, CONVIDADOS_POR_COPEIRA);
+  const custoCopeiraTotal = quantidadeCopeiraSugerida * VALOR_COPEIRA;
+
+  const quantidadeAssadorSugerida = ceilDivisao(numConvidados, CONVIDADOS_POR_ASSADOR);
+  const custoAssadorTotal = quantidadeAssadorSugerida * VALOR_ASSADOR;
+
+  const valorSugeridoTotalEvento = arredondar(
+    valorSugeridoPorPessoa * numConvidados + taxaDeslocamento + quantidadeGarcomUsada * valorGarcom
+  );
+
+  return {
+    custo_cardapio_total: custoCardapioTotal,
+    custo_cardapio_por_pessoa: custoCardapioPorPessoa,
+    valor_sugerido_por_pessoa: valorSugeridoPorPessoa,
+    valor_sugerido_crianca: valorSugeridoCrianca,
+    taxa_deslocamento: taxaDeslocamento,
+    quantidade_garcom_sugerida: quantidadeGarcomSugerida,
+    quantidade_garcom_usada: quantidadeGarcomUsada,
+    valor_garcom: valorGarcom,
+    quantidade_copeira_sugerida: quantidadeCopeiraSugerida,
+    custo_copeira_total: custoCopeiraTotal,
+    quantidade_assador_sugerida: quantidadeAssadorSugerida,
+    custo_assador_total: custoAssadorTotal,
+    valor_sugerido_total_evento: valorSugeridoTotalEvento,
+  };
+}
+
+export type DistribuicaoConvidados = {
+  adultos: number;
+  criancasAte5: number;
+  criancas5a10: number;
+};
+
+/**
+ * Variante de calcularPrecificacaoCardapio EXCLUSIVA do fluxo de Criar
+ * Evento (Senhor Churrasco) — decisão do Pedro de 2026-09-08, registrada
+ * em docs/DECISOES.md: a meia-entrada de criança só se aplica no Valor
+ * Sugerido Total AQUI, nunca em calcularPrecificacaoCardapio/
+ * valor_sugerido_total_evento (usado sozinho pelo Simulador de Cardápio
+ * isolado, que só tem Número de Convidados total, sem faixa etária, e não
+ * deve ser alterado).
+ *
+ * Reaproveita calcularPrecificacaoCardapio pra tudo que é compartilhado
+ * (por pessoa, criança, garçom/copeira/assador, taxa) e recalcula só o
+ * Valor_Sugerido_Total_Evento, com adultos pagando cheio e crianças
+ * pagando meia — em vez de preço cheio × todos os convidados.
+ */
+export function calcularPrecificacaoParaEvento(
+  itens: ItemCardapioPrecificacao[],
+  opcoes: OpcoesPrecificacao,
+  distribuicao: DistribuicaoConvidados
+): PrecificacaoResultado {
+  const base = calcularPrecificacaoCardapio(itens, opcoes);
+
+  const valorSugeridoTotalEvento = arredondar(
+    distribuicao.adultos * base.valor_sugerido_por_pessoa +
+      (distribuicao.criancasAte5 + distribuicao.criancas5a10) * base.valor_sugerido_crianca +
+      base.taxa_deslocamento +
+      base.quantidade_garcom_usada * base.valor_garcom
+  );
+
+  return { ...base, valor_sugerido_total_evento: valorSugeridoTotalEvento };
+}
+
+
+================================================================
+### FILE: src/lib/precificacao-evento.ts
+================================================================
+
+import "server-only";
+import { exigirToken } from "@/lib/nocodb";
+import { dataSource } from "@/lib/data-source";
+import { resolverItensPorPreparoIds } from "@/lib/dimensionamento-cardapio";
+import { calcularCustoPreparo, type MotivoFalhaRede } from "@/lib/custo-preparo";
+import {
+  calcularPrecificacaoCardapio,
+  calcularPrecificacaoParaEvento,
+  type DistribuicaoConvidados,
+  type ItemCardapioPrecificacao,
+  type OpcoesPrecificacao,
+  type PrecificacaoResultado,
+} from "@/lib/precificacao-cardapio";
+
+export type PrecificacaoEventoErro = { erro: string; status: number };
+
+/**
+ * Payload de fail-hard exato de docs/DECISOES.md, "Política de Falha do
+ * Motor de Cálculo": timeout/erro de rede em QUALQUER item do cardápio
+ * derruba o cálculo inteiro, nunca vira exclusão silenciosa com total
+ * parcial (diferente de "peso/subcategoria ausente" — dado faltando, que
+ * continua fail-fast normal, ver PrecificacaoEventoErro/itensExcluidos).
+ * Deliberadamente sem preparo_nome — o front-end já tem a lista completa
+ * dos preparos selecionados (com nome) em memória, é quem cruza o ID.
+ */
+export type FalhaCalculoErro = {
+  erro: "falha_calculo";
+  mensagem: string;
+  itens_com_falha: { preparo_id: number; motivo: MotivoFalhaRede }[];
+  status: 503;
+};
+
+function falhaCalculo(itensComFalha: { preparo_id: number; motivo: MotivoFalhaRede }[]): FalhaCalculoErro {
+  return {
+    erro: "falha_calculo",
+    mensagem: "Não foi possível calcular o cardápio agora. Tente novamente.",
+    itens_com_falha: itensComFalha,
+    status: 503,
+  };
+}
+
+export type PrecificacaoEventoResultado = {
+  resultado: PrecificacaoResultado;
+  /** Preparos selecionados que não entraram no cálculo (nome + motivo), pra avisar quem está cadastrando o evento — nunca exibido ao cliente. Só dado faltando (peso/subcategoria/rendimento) chega aqui — falha de rede é fail-hard, ver FalhaCalculoErro. */
+  itensExcluidos: { preparo: string; motivo: string }[];
+};
+
+/**
+ * Resolve peso/macro-categoria (motor de dimensionamento) e custo (motor de
+ * custo) de uma seleção de preparo_id ad-hoc — parte 100% compartilhada
+ * entre calcularPrecificacaoParaPreparos (Simulador de Cardápio) e
+ * calcularPrecificacaoEventoParaPreparos (Criar Evento). Nenhuma das duas
+ * altera esta resolução; só divergem na fórmula final aplicada depois.
+ */
+async function resolverItensParaPrecificacao(
+  preparoIds: number[],
+  token: string
+): Promise<
+  | { itensParaPrecificacao: ItemCardapioPrecificacao[]; itensExcluidos: { preparo: string; motivo: string }[] }
+  | PrecificacaoEventoErro
+  | FalhaCalculoErro
+> {
+  let itensResolvidos: Awaited<ReturnType<typeof resolverItensPorPreparoIds>>["itensResolvidos"];
+  let itensExcluidos: Awaited<ReturnType<typeof resolverItensPorPreparoIds>>["itensExcluidos"];
+  try {
+    ({ itensResolvidos, itensExcluidos } = await resolverItensPorPreparoIds(preparoIds, token));
+  } catch {
+    // Mesma política de fail-hard abaixo, mas na etapa de resolver
+    // peso/macro-categoria (antes até de chegar no motor de custo) — sem
+    // isso, uma falha de rede aqui vira uma exceção não tratada (500
+    // genérico), o exato "nunca 500/503 genérico" que a política proíbe.
+    // Sem como saber qual preparo_id individual falhou (Promise.all rejeita
+    // no primeiro erro), reporta todos os selecionados.
+    return falhaCalculo(preparoIds.map((preparoId) => ({ preparo_id: preparoId, motivo: "timeout_preparo" })));
+  }
+
+  const custosPorPreparoId = new Map<number, { custoTotalPreparo: number; rendimento: number }>();
+  const itensComFalhaDeRede: { preparo_id: number; motivo: MotivoFalhaRede }[] = [];
+  const semCusto: { preparo: string; motivo: string }[] = [];
+
+  await Promise.all(
+    itensResolvidos.map(async (item) => {
+      // resolverItensPorPreparoIds já buscou este Preparo — repassa pronto
+      // pra calcularCustoPreparo em vez de buscar o mesmo registro de novo
+      // (docs/DECISOES.md, "Política de Falha do Motor de Cálculo").
+      const custo = await calcularCustoPreparo(item.preparoId, {
+        "Nome Do Preparo": item.preparoNome,
+        Rendimento: item.rendimentoPreparo,
+        "UOM Rendimento": item.unidadeRendimentoPreparo,
+      });
+      if ("erro" in custo) {
+        if (custo.motivoFalhaRede) {
+          // Timeout/erro de rede: categoria DIFERENTE de "peso/subcategoria
+          // ausente" — não pode ser excluído e seguir com total parcial.
+          itensComFalhaDeRede.push({ preparo_id: item.preparoId, motivo: custo.motivoFalhaRede });
+        } else {
+          // Dado faltando (ex.: Rendimento não cadastrado) — mesma
+          // categoria de fail-fast já documentada, continua excluindo o
+          // item normalmente.
+          semCusto.push({ preparo: item.preparoNome, motivo: "Falha ao calcular o custo do preparo." });
+        }
+        return;
+      }
+      custosPorPreparoId.set(item.preparoId, {
+        custoTotalPreparo: custo.custo_total_preparo,
+        rendimento: custo.rendimento,
+      });
+    })
+  );
+
+  // FAIL-HARD: qualquer item com falha de rede derruba o cálculo inteiro,
+  // mesmo que outros itens tenham custo válido — nunca segue com total
+  // parcial (docs/DECISOES.md).
+  if (itensComFalhaDeRede.length > 0) {
+    return falhaCalculo(itensComFalhaDeRede);
+  }
+
+  const itensParaPrecificacao: ItemCardapioPrecificacao[] = [];
+  for (const item of itensResolvidos) {
+    const custo = custosPorPreparoId.get(item.preparoId);
+    if (!custo) continue; // dado faltando, já registrado em semCusto acima
+    itensParaPrecificacao.push({
+      preparoId: item.preparoId,
+      preparoNome: item.preparoNome,
+      headerExibicao: item.headerExibicao,
+      macroCategoriaChave: item.macroCategoriaChave,
+      macroCategoriaNome: item.macroCategoriaNome,
+      capacidadeTeto: item.capacidadeTeto,
+      unidade: item.unidade,
+      peso: item.peso,
+      porcaoMaximaIndividual: item.porcaoMaximaIndividual,
+      custoTotalPreparo: custo.custoTotalPreparo,
+      rendimento: custo.rendimento,
+      unidadeRendimentoPreparo: item.unidadeRendimentoPreparo,
+      pesoMedioUnidadeG: item.pesoMedioUnidadeG,
+    });
+  }
+
+  if (itensParaPrecificacao.length === 0) {
+    return {
+      erro:
+        "Nenhum item do cardápio selecionado pôde ser calculado (peso/macro-categoria ou custo não configurados).",
+      status: 422,
+    };
+  }
+
+  return { itensParaPrecificacao, itensExcluidos: [...itensExcluidos, ...semCusto] };
+}
+
+/**
+ * Orquestra o cálculo de precificação pra uma seleção de cardápio ad-hoc
+ * (sem Orçamento persistido) — usado EXCLUSIVAMENTE pela página do
+ * Simulador de Cardápio (número de convidados total, sem faixa etária).
+ * Comportamento e assinatura inalterados desde antes da extração do
+ * helper acima — só delega pra calcularPrecificacaoCardapio (núcleo puro,
+ * já testado), igual sempre fez.
+ */
+export async function calcularPrecificacaoParaPreparos(
+  preparoIds: number[],
+  opcoes: OpcoesPrecificacao
+): Promise<PrecificacaoEventoResultado | PrecificacaoEventoErro | FalhaCalculoErro> {
+  if (preparoIds.length === 0) {
+    return { erro: "Selecione ao menos um item do cardápio.", status: 422 };
+  }
+  if (!opcoes.numConvidados || opcoes.numConvidados <= 0) {
+    return { erro: "Informe a quantidade de convidados.", status: 422 };
+  }
+
+  const token = dataSource() === "oracle" ? "" : exigirToken();
+  const resolvido = await resolverItensParaPrecificacao(preparoIds, token);
+  if ("erro" in resolvido) return resolvido;
+
+  const resultado = calcularPrecificacaoCardapio(resolvido.itensParaPrecificacao, opcoes);
+
+  return { resultado, itensExcluidos: resolvido.itensExcluidos };
+}
+
+/**
+ * Variante EXCLUSIVA do fluxo de Criar Evento (Senhor Churrasco) — mesma
+ * resolução de itens que calcularPrecificacaoParaPreparos, mas delega pra
+ * calcularPrecificacaoParaEvento (aplica meia-entrada de criança no Valor
+ * Sugerido Total). Ver docs/DECISOES.md, decisão do Pedro de 2026-09-08.
+ */
+export async function calcularPrecificacaoEventoParaPreparos(
+  preparoIds: number[],
+  opcoes: OpcoesPrecificacao,
+  distribuicao: DistribuicaoConvidados
+): Promise<PrecificacaoEventoResultado | PrecificacaoEventoErro | FalhaCalculoErro> {
+  if (preparoIds.length === 0) {
+    return { erro: "Selecione ao menos um item do cardápio.", status: 422 };
+  }
+  if (!opcoes.numConvidados || opcoes.numConvidados <= 0) {
+    return { erro: "Informe a quantidade de convidados.", status: 422 };
+  }
+
+  const token = dataSource() === "oracle" ? "" : exigirToken();
+  const resolvido = await resolverItensParaPrecificacao(preparoIds, token);
+  if ("erro" in resolvido) return resolvido;
+
+  const resultado = calcularPrecificacaoParaEvento(resolvido.itensParaPrecificacao, opcoes, distribuicao);
+
+  return { resultado, itensExcluidos: resolvido.itensExcluidos };
+}
+
+
+================================================================
+### FILE: src/lib/margem-orcamento.ts
+================================================================
+
+import "server-only";
+import { exigirToken, nocodbGet } from "@/lib/nocodb";
+import { calcularDimensionamentoOrcamento } from "@/lib/dimensionamento-cardapio";
+import { calcularCustoPreparo } from "@/lib/custo-preparo";
+import { calcularPrecificacaoParaPreparos } from "@/lib/precificacao-evento";
+import { dataSource } from "@/lib/data-source";
+
+// IDs de tabela/campo do NocoDB (base Senhor_Churrasco_DB) — confirmados
+// via /api/v2/meta ao criar o schema (docs/DECISOES.md, seção
+// "Arquitetura Financeira do Orçamento").
+const TABELA_ORCAMENTOS = "mpobqls8ibt3ay3";
+const TABELA_ITENS_ADICIONAIS = "m8hw626eihfsnzs";
+const CAMPO_LINK_ITENS_ADICIONAIS = "c4j5xet2j10a9y1"; // Orcamentos.Orcamento_Itens_Adicionais
+
+type OrcamentoRegistro = {
+  Id: number;
+  Num_Convidados: number | null;
+  Valor_Base_Por_Pessoa: number | null;
+  Desconto_Tipo: string | null;
+  Desconto_Valor: number | null;
+};
+
+type ItemAdicionalLinkRegistro = { Id: number };
+type ItemAdicionalRegistro = {
+  Id: number;
+  Descricao: string | null;
+  Valor: number | null;
+};
+
+export type MargemResultado = {
+  orcamento_id: number;
+  receita_projetada: number;
+  custo_projetado: number;
+  margem_projetada: number;
+  detalhe: {
+    valor_base: number;
+    itens_adicionais: number;
+    desconto_aplicado: number;
+  };
+  avisos: string[];
+};
+
+export type MargemErro = { erro: string; status: number };
+
+function arredondar(valor: number): number {
+  return Math.round(Number(valor.toFixed(8)) * 100) / 100;
+}
+
+/**
+ * Desconto_Tipo "Percentual" incide sobre o valor base (Valor_Base_Por_Pessoa
+ * x Num_Convidados), antes de somar itens adicionais — convenção comum de
+ * negócio (desconto na diária, não nas taxas extras). Não documentado
+ * explicitamente em docs/BRIEFING.MD/DECISOES.md; se a intenção for outra,
+ * ajustar aqui.
+ */
+function calcularDescontoAplicado(
+  valorBase: number,
+  descontoTipo: string | null,
+  descontoValor: number | null
+): number {
+  if (!descontoTipo || descontoTipo === "Nenhum" || !descontoValor) return 0;
+  if (descontoTipo === "Valor Fixo") return descontoValor;
+  if (descontoTipo === "Percentual") return arredondar(valorBase * (descontoValor / 100));
+  return 0;
+}
+
+type ReceitaProjetada = {
+  numConvidados: number;
+  valorBase: number;
+  totalItensAdicionais: number;
+  descontoAplicado: number;
+  receitaProjetada: number;
+};
+
+async function calcularReceitaNocodb(orcamentoId: number): Promise<ReceitaProjetada | MargemErro> {
+  const token = exigirToken();
+
+  const orcamento = await nocodbGet<OrcamentoRegistro>(
+    `/tables/${TABELA_ORCAMENTOS}/records/${orcamentoId}`,
+    token
+  );
+  if (!orcamento) {
+    return { erro: "Orçamento não encontrado.", status: 404 };
+  }
+
+  const numConvidados = orcamento.Num_Convidados;
+  const valorBasePorPessoa = orcamento.Valor_Base_Por_Pessoa;
+  if (!numConvidados || numConvidados <= 0) {
+    return { erro: "Orçamento está sem Num_Convidados válido cadastrado.", status: 422 };
+  }
+  if (valorBasePorPessoa == null) {
+    return { erro: "Orçamento está sem Valor_Base_Por_Pessoa cadastrado.", status: 422 };
+  }
+
+  const itensAdicionaisLink = await nocodbGet<{ list: ItemAdicionalLinkRegistro[] }>(
+    `/tables/${TABELA_ORCAMENTOS}/links/${CAMPO_LINK_ITENS_ADICIONAIS}/records/${orcamentoId}?limit=1000`,
+    token
+  );
+  const itensAdicionais = await Promise.all(
+    (itensAdicionaisLink?.list ?? []).map((item) =>
+      nocodbGet<ItemAdicionalRegistro>(`/tables/${TABELA_ITENS_ADICIONAIS}/records/${item.Id}`, token)
+    )
+  );
+  const totalItensAdicionais = arredondar(
+    itensAdicionais.reduce((soma, item) => soma + (item?.Valor ?? 0), 0)
+  );
+
+  const valorBase = arredondar(valorBasePorPessoa * numConvidados);
+  const descontoAplicado = calcularDescontoAplicado(
+    valorBase,
+    orcamento.Desconto_Tipo,
+    orcamento.Desconto_Valor
+  );
+  const receitaProjetada = arredondar(valorBase + totalItensAdicionais - descontoAplicado);
+
+  return { numConvidados, valorBase, totalItensAdicionais, descontoAplicado, receitaProjetada };
+}
+
+/**
+ * DATA_SOURCE=oracle: aplica a Lacuna 1 já decidida (docs/DECISOES.md,
+ * "Arquitetura Financeira do Orçamento" + docs/schema-fisico-detalhado.md).
+ * Valor_Base_Por_Pessoa é IGNORADO (dado morto do modelo antigo): o valor
+ * sugerido por pessoa é calculado em tempo real pela precificação por
+ * cardápio, multiplicado por Num_Convidados, somado aos itens adicionais,
+ * e o desconto incide sobre esse TOTAL, nunca sobre o valor por pessoa.
+ * Taxa de deslocamento e garçom ficam de fora (nunca entram no valor por
+ * pessoa e o Orçamento não guarda região/quantidade de garçom).
+ */
+async function calcularReceitaOracle(orcamentoId: number): Promise<ReceitaProjetada | MargemErro> {
+  let numConvidados: number;
+  let preparoIds: number[];
+  let totalItensAdicionais: number;
+  let descontoTipo: string | null;
+  let descontoValor: number | null;
+  try {
+    const { db } = await import("@/db/client");
+    const { eq } = await import("drizzle-orm");
+    const { orcamentos, itensOrcamento } = await import("@/db/schema/orcamentos");
+    const { orcamentoItensAdicionais } = await import("@/db/schema/catalogo-complementar");
+
+    const [orcamento] = await db.select().from(orcamentos).where(eq(orcamentos.id, orcamentoId));
+    if (!orcamento) return { erro: "Orçamento não encontrado.", status: 404 };
+    numConvidados = orcamento.numConvidados;
+    descontoTipo = orcamento.descontoTipo;
+    descontoValor = orcamento.descontoValor == null ? null : Number(orcamento.descontoValor);
+
+    const itens = await db
+      .select({ preparoId: itensOrcamento.preparoId })
+      .from(itensOrcamento)
+      .where(eq(itensOrcamento.orcamentoId, orcamentoId));
+    preparoIds = [...new Set(itens.map((i) => i.preparoId))];
+
+    const adicionais = await db
+      .select({ valor: orcamentoItensAdicionais.valor })
+      .from(orcamentoItensAdicionais)
+      .where(eq(orcamentoItensAdicionais.orcamentoId, orcamentoId));
+    totalItensAdicionais = arredondar(adicionais.reduce((soma, i) => soma + Number(i.valor), 0));
+  } catch (erro) {
+    return { erro: `Falha ao consultar Postgres: ${(erro as Error).message}`, status: 502 };
+  }
+
+  if (!numConvidados || numConvidados <= 0) {
+    return { erro: "Orçamento está sem Num_Convidados válido cadastrado.", status: 422 };
+  }
+
+  const precificacao = await calcularPrecificacaoParaPreparos(preparoIds, {
+    numConvidados,
+    regiaoMetropolitanaCuritiba: false,
+  });
+  if ("erro" in precificacao) return precificacao;
+
+  const valorBase = arredondar(precificacao.resultado.valor_sugerido_por_pessoa * numConvidados);
+  const totalAntesDoDesconto = arredondar(valorBase + totalItensAdicionais);
+  const descontoAplicado = calcularDescontoAplicado(totalAntesDoDesconto, descontoTipo, descontoValor);
+  const receitaProjetada = arredondar(totalAntesDoDesconto - descontoAplicado);
+
+  return { numConvidados, valorBase, totalItensAdicionais, descontoAplicado, receitaProjetada };
+}
+
+export async function calcularMargemProjetada(
+  orcamentoId: number
+): Promise<MargemResultado | MargemErro> {
+  const receita =
+    dataSource() === "oracle"
+      ? await calcularReceitaOracle(orcamentoId)
+      : await calcularReceitaNocodb(orcamentoId);
+  if ("erro" in receita) return receita;
+  const { valorBase, totalItensAdicionais, descontoAplicado, receitaProjetada } = receita;
+
+  const dimensionamento = await calcularDimensionamentoOrcamento(orcamentoId);
+  if ("erro" in dimensionamento) {
+    return dimensionamento;
+  }
+
+  const avisos: string[] = dimensionamento.itens_excluidos.map(
+    (item) => `${item.preparo}: excluído do custo projetado (${item.motivo})`
+  );
+
+  let custoProjetado = 0;
+  for (const macro of dimensionamento.macro_categorias) {
+    for (const item of macro.itens) {
+      const custoPreparo = await calcularCustoPreparo(item.preparo_id);
+      if ("erro" in custoPreparo) {
+        avisos.push(`${item.preparo}: falha ao calcular custo (${custoPreparo.erro})`);
+        continue;
+      }
+      const custoPorUnidade = custoPreparo.custo_total_preparo / custoPreparo.rendimento;
+      custoProjetado = arredondar(custoProjetado + custoPorUnidade * item.volume_necessario_total);
+    }
+  }
+  custoProjetado = arredondar(custoProjetado);
+
+  const margemProjetada = arredondar(receitaProjetada - custoProjetado);
+
+  return {
+    orcamento_id: orcamentoId,
+    receita_projetada: receitaProjetada,
+    custo_projetado: custoProjetado,
+    margem_projetada: margemProjetada,
+    detalhe: {
+      valor_base: valorBase,
+      itens_adicionais: totalItensAdicionais,
+      desconto_aplicado: descontoAplicado,
+    },
+    avisos,
+  };
+}
+
+
+================================================================
+### FILE: src/db/schema/index.ts
+================================================================
+
+export * from "./nucleo-existente";
+export * from "./insumos";
+export * from "./preparos";
+export * from "./composicao";
+export * from "./cardapio-referencia";
+export * from "./orcamentos";
+export * from "./catalogo-complementar";
+
+
+================================================================
+### FILE: src/db/client.ts
+================================================================
+
+import "server-only";
+import { drizzle } from "drizzle-orm/node-postgres";
+import { pool } from "@/lib/db";
+import * as schema from "./schema";
+
+/**
+ * Reaproveita o Pool já existente (src/lib/db.ts) em vez de abrir uma
+ * segunda conexão — nenhum consumidor usa este client ainda (schema
+ * só desenhado nesta sessão, ETL e drizzle-kit push ficam para uma
+ * etapa futura, aprovada separadamente).
+ */
+export const db = drizzle(pool, { schema });
+

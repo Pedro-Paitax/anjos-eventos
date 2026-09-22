@@ -19,6 +19,9 @@ const vinagrete: ItemResolvido = {
   macroCategoriaNome: "Carboidratos Densos",
   capacidadeTeto: 150, // real (Macro_Categorias)
   unidade: "g",
+  unidadeRendimentoPreparo: "ML", // real — Vinagrete rende em ML, mesmo conceito de "g/ml" da macro, sem conversão
+  pesoMedioUnidadeG: null,
+  rendimentoPreparo: 1500, // real
 };
 
 const arrozComHardCap: ItemResolvido = {
@@ -32,6 +35,9 @@ const arrozComHardCap: ItemResolvido = {
   macroCategoriaNome: "Carboidratos Densos",
   capacidadeTeto: 150, // real
   unidade: "g",
+  unidadeRendimentoPreparo: "G", // real
+  pesoMedioUnidadeG: null,
+  rendimentoPreparo: 1000, // real
 };
 
 const alcatra: ItemResolvido = {
@@ -45,6 +51,35 @@ const alcatra: ItemResolvido = {
   macroCategoriaNome: "Proteínas Principais",
   capacidadeTeto: 400, // real
   unidade: "g",
+  unidadeRendimentoPreparo: "G", // real
+  pesoMedioUnidadeG: null,
+  rendimentoPreparo: 1000, // real
+};
+
+// docs/DECISOES.md, "Correção do Bug de Mistura de Unidades": Pão de Alho
+// (real, id=6) rende em Unidade dentro da macro "Entradas e Petiscos"
+// (g). Peso_Medio_Unidade_G é FICTÍCIO — o campo existe no schema
+// (criado nesta sessão) mas ainda não foi preenchido com o valor real de
+// nenhum preparo (vetada qualquer derivação automática).
+const paoDeAlhoComPesoMedio: ItemResolvido = {
+  preparoId: 6,
+  preparoNome: "Pão de Alho",
+  headerExibicao: "Entradas Quentes",
+  peso: 1,
+  origemPeso: "Peso_Atratividade (fictício - teste)",
+  porcaoMaximaIndividual: null,
+  macroCategoriaChave: "Entradas e Petiscos",
+  macroCategoriaNome: "Entradas e Petiscos",
+  capacidadeTeto: 120, // real
+  unidade: "g",
+  unidadeRendimentoPreparo: "Unidade",
+  pesoMedioUnidadeG: 50, // fictício - teste
+  rendimentoPreparo: 10, // fictício - teste
+};
+
+const paoDeAlhoSemPesoMedio: ItemResolvido = {
+  ...paoDeAlhoComPesoMedio,
+  pesoMedioUnidadeG: null,
 };
 
 describe("distribuirPorcoes", () => {
@@ -99,5 +134,39 @@ describe("distribuirPorcoes", () => {
     expect(resultado.map((g) => g.macro_categoria).sort()).toEqual(
       ["Carboidratos Densos", "Proteínas Principais"].sort()
     );
+  });
+
+  it("preparo medido em g/ml não sofre conversão — quantidade_para_custo == volume_necessario_total", () => {
+    const resultado = distribuirPorcoes([vinagrete], NUM_CONVIDADOS);
+    const item = resultado[0].itens[0];
+    expect(item.quantidade_para_custo).toBe(item.volume_necessario_total);
+  });
+});
+
+// docs/DECISOES.md, "Correção do Bug de Mistura de Unidades".
+describe("distribuirPorcoes — conversão de Unidade dentro de macro g/ml", () => {
+  it("com Peso_Medio_Unidade_G preenchido, converte a porção por pessoa (não o volume total) pra contagem de unidades (TETO)", () => {
+    const resultado = distribuirPorcoes([paoDeAlhoComPesoMedio], NUM_CONVIDADOS);
+    const item = resultado[0].itens[0];
+
+    // Sozinho na macro: porcao_final = 120g/pessoa -> volume = 120*61 = 7320g
+    expect(item.porcao_final).toBe(120);
+    expect(item.volume_necessario_total).toBe(120 * NUM_CONVIDADOS);
+    // TETO(120g por pessoa / 50g por unidade) = 3 unidades/pessoa (não dá
+    // pra servir 2,4 unidades) * 61 convidados = 183 — não "7320 unidades"
+    // (o bug antigo, que tratava o volume TOTAL como contagem direta)
+    expect(item.quantidade_para_custo).toBe(3 * NUM_CONVIDADOS);
+    expect(item.quantidade_para_custo).toBeLessThan(item.volume_necessario_total);
+  });
+
+  it("sem Peso_Medio_Unidade_G, o núcleo puro cai de volta pro volume bruto (proteção real fica em resolverItensPorPreparoIds, não aqui)", () => {
+    const resultado = distribuirPorcoes([paoDeAlhoSemPesoMedio], NUM_CONVIDADOS);
+    const item = resultado[0].itens[0];
+
+    // distribuirPorcoes é núcleo puro e não bloqueia sozinho — a exclusão
+    // fail-fast documentada em docs/DECISOES.md acontece antes, na camada
+    // de resolução (I/O), que nunca deveria entregar aqui um item nessa
+    // combinação sem o campo preenchido.
+    expect(item.quantidade_para_custo).toBe(item.volume_necessario_total);
   });
 });

@@ -35,6 +35,22 @@ function extrairDadosPreparo(formData: FormData): DadosPreparoForm | { erro: str
     return { erro: "Preencha nome, categoria, rendimento e unidade do rendimento." };
   }
 
+  const pesoMedioUnidadeG = paraNumero(formData.get("pesoMedioUnidadeG"));
+  // docs/DECISOES.md, "Correção do Bug de Mistura de Unidades": obrigatório
+  // pra qualquer Preparo com Unidade_Rendimento = Unidade — bloqueio de
+  // formulário, não aviso. Simplificação necessária: esta tela não captura
+  // Macro_Categoria (vínculo feito manualmente no NocoDB, ver
+  // docs/BANCO.md), então não dá pra checar aqui se a macro é
+  // especificamente g/ml — exige o campo sempre que Rendimento é por
+  // Unidade, mais conservador que o texto literal da decisão (nunca
+  // permite menos do que ela pede).
+  if (unidadeRendimento === "Unidade" && (pesoMedioUnidadeG == null || pesoMedioUnidadeG <= 0)) {
+    return {
+      erro:
+        "Peso médio por unidade (g) é obrigatório quando a unidade do rendimento é \"Unidade\" — sem ele o motor de custo não consegue converter a porção calculada em contagem de unidades.",
+    };
+  }
+
   return {
     nome,
     categoria,
@@ -46,6 +62,7 @@ function extrairDadosPreparo(formData: FormData): DadosPreparoForm | { erro: str
     pesoAtratividade: paraNumero(formData.get("pesoAtratividade")),
     subcategoriaProteina: paraTexto(formData.get("subcategoriaProteina")),
     porcaoMaximaIndividual: paraNumero(formData.get("porcaoMaximaIndividual")),
+    pesoMedioUnidadeG,
   };
 }
 

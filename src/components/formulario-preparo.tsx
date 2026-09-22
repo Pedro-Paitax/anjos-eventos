@@ -33,6 +33,9 @@ export function FormularioPreparo({
   const [categoria, setCategoria] = useState(
     valoresIniciais?.categoria ?? CATEGORIAS_PREPARO[0]
   );
+  const [unidadeRendimento, setUnidadeRendimento] = useState(
+    valoresIniciais?.unidadeRendimento ?? UNIDADES_RENDIMENTO_PREPARO[0]
+  );
 
   return (
     <form action={formAction} className="flex flex-col gap-8">
@@ -120,7 +123,8 @@ export function FormularioPreparo({
               id="unidadeRendimento"
               name="unidadeRendimento"
               required
-              defaultValue={valoresIniciais?.unidadeRendimento ?? UNIDADES_RENDIMENTO_PREPARO[0]}
+              value={unidadeRendimento}
+              onChange={(e) => setUnidadeRendimento(e.target.value)}
               className={campoClasse}
             >
               {UNIDADES_RENDIMENTO_PREPARO.map((u) => (
@@ -132,6 +136,29 @@ export function FormularioPreparo({
           </div>
         </div>
 
+        {unidadeRendimento === "Unidade" && (
+          <div className="flex flex-col gap-1.5 sm:max-w-xs">
+            <label htmlFor="pesoMedioUnidadeG" className={rotuloClasse}>
+              Peso médio por unidade (g)
+            </label>
+            <input
+              id="pesoMedioUnidadeG"
+              name="pesoMedioUnidadeG"
+              type="number"
+              step="0.01"
+              min="0.01"
+              required
+              defaultValue={valoresIniciais?.pesoMedioUnidadeG ?? ""}
+              className={campoClasse}
+            />
+            <p className="text-sm text-paper-dim">
+              Obrigatório pra preparo vendido por Unidade — sem isso o motor
+              de custo não sabe converter a porção calculada (em g/ml) em
+              contagem de unidades (docs/DECISOES.md).
+            </p>
+          </div>
+        )}
+
         <div className="flex flex-col gap-1.5">
           <label htmlFor="modoPreparo" className={rotuloClasse}>
             Modo de Preparo
@@ -140,6 +167,7 @@ export function FormularioPreparo({
             id="modoPreparo"
             name="modoPreparo"
             rows={5}
+            required
             defaultValue={valoresIniciais?.modoPreparo ?? ""}
             className={campoClasse}
           />

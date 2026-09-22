@@ -10,7 +10,7 @@ import {
 } from "@/lib/formatacao";
 import { campoClasse, rotuloClasse, secaoTituloClasse } from "@/components/formulario-evento";
 import { SeletorCardapio, VALOR_SALVO } from "@/components/seletor-cardapio";
-import { calcularPrecificacaoAction } from "@/app/actions/precificacao";
+import { calcularPrecificacaoEventoAction } from "@/app/actions/precificacao";
 import { obterItensCardapioModeloAction } from "@/app/actions/cardapio-modelo";
 import type { CardapioModeloResumo } from "@/lib/cardapios-modelo";
 import {
@@ -21,6 +21,16 @@ import {
 } from "@/lib/precificacao-constantes";
 
 const DEBOUNCE_MS = 600;
+
+/**
+ * Payload de fail-hard (docs/DECISOES.md, "Política de Falha do Motor de
+ * Cálculo") tem `mensagem` amigável separada de `erro` (que ali é o código
+ * "falha_calculo", não texto pra exibir) — os demais erros usam `erro` como
+ * a própria mensagem, igual sempre foi.
+ */
+function mensagemDeErro(resposta: { erro: string; mensagem?: string }): string {
+  return resposta.mensagem ?? resposta.erro;
+}
 
 type ValoresIniciaisCardapio = Pick<Evento, (typeof VALOR_SALVO)[CategoriaCardapio]>;
 
@@ -82,6 +92,11 @@ export function FormularioEventoChurrasco({
   const [precoCriancaMeia, setPrecoCriancaMeia] = useState(
     valoresIniciais?.preco_crianca_meia?.toString() ?? ""
   );
+  // Valor Sugerido Total vem sempre do servidor (calcularPrecificacaoEventoAction,
+  // com meia-entrada de criança já aplicada) — nunca recalculado no client,
+  // pra não duplicar a lógica em dois lugares (docs/DECISOES.md, decisão do
+  // Pedro de 2026-09-08).
+  const [valorSugeridoTotal, setValorSugeridoTotal] = useState(0);
   const [valorGarcom, setValorGarcom] = useState(
     valoresIniciais?.valor_garcom?.toString() ?? String(VALOR_GARCOM_PADRAO)
   );
@@ -132,6 +147,12 @@ export function FormularioEventoChurrasco({
   // aparecem aqui, são internos ao Motor de Margem.
   const [calculandoPrecificacao, setCalculandoPrecificacao] = useState(false);
   const [erroPrecificacao, setErroPrecificacao] = useState<string | null>(null);
+  // Itens que o motor descartou do cálculo (peso/macro-categoria/custo não
+  // configurados) — precisa ficar visível, nunca só silenciosamente sumir
+  // do preço. Achado em 2026-09-09 (docs/PENDENCIAS_NOTURNAS.md): um
+  // cardápio de teste teve mais da metade dos itens excluídos sem nenhum
+  // aviso, o que mascarou um valor sugerido completamente errado.
+  const [itensExcluidos, setItensExcluidos] = useState<{ preparo: string; motivo: string }[]>([]);
 
   const precificacaoAtiva = preparoIdsSelecionados.length > 0 && numConvidados > 0;
 
@@ -141,36 +162,47 @@ export function FormularioEventoChurrasco({
     const timer = setTimeout(() => {
       setCalculandoPrecificacao(true);
       setErroPrecificacao(null);
-      calcularPrecificacaoAction({
+      calcularPrecificacaoEventoAction({
         preparoIds: preparoIdsSelecionados,
         numConvidados,
         regiaoMetropolitanaCuritiba: regiaoMetropolitana,
         quantidadeGarcom: paraNumero(qtdGarcons) || undefined,
         valorGarcom: paraNumero(valorGarcom) || undefined,
+        distribuicaoConvidados: {
+          adultos: paraNumero(qtdAdultos),
+          criancasAte5: paraNumero(qtdCriancasAte5),
+          criancas5a10: paraNumero(qtdCriancas5a10),
+        },
       })
         .then((resposta) => {
           if ("erro" in resposta) {
-            setErroPrecificacao(resposta.erro);
+            setErroPrecificacao(mensagemDeErro(resposta));
+            setItensExcluidos([]);
             return;
           }
           setPrecoPessoa(String(resposta.resultado.valor_sugerido_por_pessoa));
           setPrecoCriancaMeia(String(resposta.resultado.valor_sugerido_crianca));
+          setValorSugeridoTotal(resposta.resultado.valor_sugerido_total_evento);
+          setItensExcluidos(resposta.itensExcluidos);
         })
         .catch(() => setErroPrecificacao("Falha ao calcular o valor sugerido."))
         .finally(() => setCalculandoPrecificacao(false));
     }, DEBOUNCE_MS);
 
     return () => clearTimeout(timer);
-  }, [precificacaoAtiva, preparoIdsSelecionados, numConvidados, regiaoMetropolitana, qtdGarcons, valorGarcom]);
+  }, [
+    precificacaoAtiva,
+    preparoIdsSelecionados,
+    numConvidados,
+    regiaoMetropolitana,
+    qtdGarcons,
+    valorGarcom,
+    qtdAdultos,
+    qtdCriancasAte5,
+    qtdCriancas5a10,
+  ]);
 
-  const valorSugerido =
-    paraNumero(qtdAdultos) * paraNumero(precoPessoa) +
-    (paraNumero(qtdCriancasAte5) + paraNumero(qtdCriancas5a10)) *
-      paraNumero(precoCriancaMeia) +
-    paraNumero(qtdGarcons) * paraNumero(valorGarcom) +
-    taxaDeslocamento;
-
-  const valorSugeridoFormatado = valorSugerido.toLocaleString("pt-BR", {
+  const valorSugeridoTotalFormatado = valorSugeridoTotal.toLocaleString("pt-BR", {
     style: "currency",
     currency: "BRL",
   });
@@ -481,6 +513,22 @@ export function FormularioEventoChurrasco({
         {precificacaoAtiva && erroPrecificacao && (
           <p className="text-sm text-ember">{erroPrecificacao}</p>
         )}
+        {precificacaoAtiva && itensExcluidos.length > 0 && (
+          <div className="rounded-[2px] border border-ember/40 bg-ember/10 p-3 text-sm text-ember">
+            <p className="font-medium">
+              Atenção: {itensExcluidos.length}{" "}
+              {itensExcluidos.length === 1 ? "item selecionado não entrou" : "itens selecionados não entraram"}{" "}
+              no cálculo do Valor Sugerido — o preço acima NÃO reflete o cardápio inteiro:
+            </p>
+            <ul className="mt-1 list-disc pl-5">
+              {itensExcluidos.map((item) => (
+                <li key={item.preparo}>
+                  {item.preparo} — {item.motivo}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
           <div className="flex flex-col gap-1.5">
@@ -542,8 +590,8 @@ export function FormularioEventoChurrasco({
               type="text"
               readOnly
               disabled
-              value={valorSugeridoFormatado}
-              title="Calculado automaticamente a partir de convidados, preço sugerido por pessoa, garçons e taxa de deslocamento. Apenas referência."
+              value={valorSugeridoTotalFormatado}
+              title="Calculado pelo servidor: adultos pagam o preço cheio por pessoa, crianças pagam meia-entrada, mais garçom e taxa de deslocamento. Apenas referência."
               className={`${campoClasse} cursor-not-allowed text-paper-dim`}
             />
           </div>

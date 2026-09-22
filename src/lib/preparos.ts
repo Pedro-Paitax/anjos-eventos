@@ -1,6 +1,7 @@
 import "server-only";
 import { CATEGORIAS_CARDAPIO, type CategoriaCardapio, type Preparo } from "@/lib/cardapio";
 import { exigirToken, nocodbDelete, nocodbGet, nocodbPatch, nocodbPost } from "@/lib/nocodb";
+import { dataSource } from "@/lib/data-source";
 
 const NOCODB_URL =
   "http://100.77.218.36:8090/api/v2/tables/m3yr136ykw6ju2w/records?limit=1000";
@@ -17,6 +18,28 @@ export async function listarPreparosPorCategoria(): Promise<
   const vazio = Object.fromEntries(
     CATEGORIAS_CARDAPIO.map((categoria) => [categoria, [] as Preparo[]])
   ) as Record<CategoriaCardapio, Preparo[]>;
+
+  if (dataSource() === "oracle") {
+    // Mesma regra de renomear/excluir categorias, lendo via Drizzle (ordem por id, como a API do NocoDB).
+    try {
+      const { db } = await import("@/db/client");
+      const { asc } = await import("drizzle-orm");
+      const { preparos } = await import("@/db/schema/preparos");
+      const linhas = await db
+        .select({ id: preparos.id, nome: preparos.nomePreparo, categoria: preparos.categoria })
+        .from(preparos)
+        .orderBy(asc(preparos.id));
+      for (const l of linhas) {
+        if (CATEGORIAS_EXCLUIDAS.has(l.categoria)) continue;
+        const categoria = (RENOMEAR_CATEGORIA[l.categoria] ?? l.categoria) as CategoriaCardapio;
+        if (!(categoria in vazio)) continue;
+        vazio[categoria].push({ id: l.id, nome: l.nome });
+      }
+    } catch {
+      // Banco indisponível: mesmo comportamento do ramo NocoDB — cardápio vazio em vez de travar a página.
+    }
+    return vazio;
+  }
 
   const token = process.env.NOCODB_API_TOKEN;
   if (!token) return vazio;
@@ -79,6 +102,7 @@ type PreparoRegistroCompleto = {
   Peso_Atratividade: number | null;
   Subcategoria_Proteina: string | null;
   Porcao_Maxima_Individual: number | null;
+  Peso_Medio_Unidade_G: number | null;
 };
 
 type ComposicaoLinkRegistro = { Id: number };
@@ -114,6 +138,7 @@ export type PreparoDetalhado = {
   pesoAtratividade: number | null;
   subcategoriaProteina: string | null;
   porcaoMaximaIndividual: number | null;
+  pesoMedioUnidadeG: number | null;
   composicao: ComposicaoLinhaExistente[];
 };
 
@@ -128,6 +153,8 @@ export type DadosPreparoForm = {
   pesoAtratividade: number | null;
   subcategoriaProteina: string | null;
   porcaoMaximaIndividual: number | null;
+  /** Obrigatório quando unidadeRendimento === "Unidade" (docs/DECISOES.md, "Correção do Bug de Mistura de Unidades") — validado em src/app/actions/preparo.ts antes de chegar aqui. */
+  pesoMedioUnidadeG: number | null;
 };
 
 // Linha de composição vinda do formulário: `id` é `null` pra linha nova
@@ -150,10 +177,160 @@ function paraCamposNocodb(dados: DadosPreparoForm) {
     Peso_Atratividade: dados.pesoAtratividade,
     Subcategoria_Proteina: dados.categoria === "Carnes" ? dados.subcategoriaProteina : null,
     Porcao_Maxima_Individual: dados.porcaoMaximaIndividual,
+    Peso_Medio_Unidade_G: dados.unidadeRendimento === "Unidade" ? dados.pesoMedioUnidadeG : null,
   };
 }
 
+// --- DATA_SOURCE=oracle (Drizzle). Leituras validadas por equivalência; as
+// escritas NÃO foram validadas contra banco (ver docs/PENDENCIAS_NOTURNAS.md). ---
+
+const numOuNulo = (v: string | null) => (v == null ? null : Number(v));
+
+async function listarPreparosOracle(): Promise<PreparoResumo[]> {
+  const { db } = await import("@/db/client");
+  const { preparos } = await import("@/db/schema/preparos");
+  const linhas = await db.select().from(preparos);
+  return linhas
+    .map((r) => ({
+      id: r.id,
+      nome: r.nomePreparo,
+      categoria: r.categoria,
+      rendimento: numOuNulo(r.rendimento),
+      unidadeRendimento: r.unidadeRendimento,
+    }))
+    .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+}
+
+async function obterPreparoComComposicaoOracle(id: number): Promise<PreparoDetalhado | null> {
+  const { db } = await import("@/db/client");
+  const { eq, asc } = await import("drizzle-orm");
+  const { preparos } = await import("@/db/schema/preparos");
+  const { composicao } = await import("@/db/schema/composicao");
+  const [p] = await db.select().from(preparos).where(eq(preparos.id, id));
+  if (!p) return null;
+  const linhas = await db
+    .select({ id: composicao.id, insumoId: composicao.insumoId, quantidade: composicao.quantidade })
+    .from(composicao)
+    .where(eq(composicao.preparoId, id))
+    .orderBy(asc(composicao.id));
+  return {
+    id: p.id,
+    nome: p.nomePreparo,
+    categoria: p.categoria,
+    rendimento: numOuNulo(p.rendimento),
+    unidadeRendimento: p.unidadeRendimento,
+    restricoes: p.tags ?? [],
+    modoPreparo: p.modoPreparo,
+    tempoPreparoMinutos: p.tempoPreparoMinutos,
+    pesoAtratividade: numOuNulo(p.pesoAtratividade),
+    subcategoriaProteina: p.subcategoriaProteina,
+    porcaoMaximaIndividual: numOuNulo(p.porcaoMaximaIndividual),
+    pesoMedioUnidadeG: numOuNulo(p.pesoMedioUnidadeG),
+    composicao: linhas.map((l) => ({ id: l.id, insumoId: l.insumoId, quantidade: Number(l.quantidade) })),
+  };
+}
+
+/**
+ * Converte o formulário pro schema novo. O formulário (`formulario-preparo.tsx`)
+ * já restringe unidade de rendimento a G/ML/Unidade e exige Modo de Preparo
+ * (decisão do Pedro, 2026-09-22). As checagens abaixo continuam como defesa
+ * em profundidade contra chamada direta da Server Action fora do formulário.
+ */
+async function paraLinhaOracle(dados: DadosPreparoForm) {
+  const { preparos, restricaoAlimentarEnum } = await import("@/db/schema/preparos");
+  type Novo = typeof preparos.$inferInsert;
+  const categorias: readonly string[] = preparos.categoria.enumValues;
+  const unidades: readonly string[] = preparos.unidadeRendimento.enumValues;
+  const restricoes: readonly string[] = restricaoAlimentarEnum.enumValues;
+  if (!categorias.includes(dados.categoria)) throw new Error(`Categoria não suportada no Postgres novo: "${dados.categoria}"`);
+  if (!unidades.includes(dados.unidadeRendimento)) {
+    throw new Error(`Unidade de rendimento "${dados.unidadeRendimento}" não existe no Postgres novo (só G, ML, Unidade).`);
+  }
+  if (!dados.modoPreparo?.trim()) throw new Error("Modo de Preparo é obrigatório no Postgres novo (NOT NULL).");
+  for (const r of dados.restricoes) {
+    if (!restricoes.includes(r)) throw new Error(`Restrição desconhecida: "${r}"`);
+  }
+  return {
+    nomePreparo: dados.nome,
+    categoria: dados.categoria as Novo["categoria"],
+    rendimento: String(dados.rendimento),
+    unidadeRendimento: dados.unidadeRendimento as Novo["unidadeRendimento"],
+    tags: dados.restricoes.length > 0 ? (dados.restricoes as Novo["tags"]) : null,
+    modoPreparo: dados.modoPreparo,
+    tempoPreparoMinutos: dados.tempoPreparoMinutos,
+    pesoAtratividade: dados.pesoAtratividade == null ? null : String(dados.pesoAtratividade),
+    subcategoriaProteina: (dados.categoria === "Carnes" ? dados.subcategoriaProteina : null) as Novo["subcategoriaProteina"],
+    porcaoMaximaIndividual: dados.porcaoMaximaIndividual == null ? null : String(dados.porcaoMaximaIndividual),
+    pesoMedioUnidadeG:
+      dados.unidadeRendimento === "Unidade" && dados.pesoMedioUnidadeG != null ? String(dados.pesoMedioUnidadeG) : null,
+    // apresentacao_utensilio não faz parte do formulário: não é tocada aqui (update preserva o valor).
+  };
+}
+
+async function criarPreparoOracle(dados: DadosPreparoForm, linhasComposicao: ComposicaoLinhaForm[]): Promise<number> {
+  const { db } = await import("@/db/client");
+  const { preparos } = await import("@/db/schema/preparos");
+  const { composicao } = await import("@/db/schema/composicao");
+  const valores = await paraLinhaOracle(dados);
+  return db.transaction(async (tx) => {
+    const [criado] = await tx.insert(preparos).values(valores).returning({ id: preparos.id });
+    if (linhasComposicao.length) {
+      await tx.insert(composicao).values(
+        linhasComposicao.map((l) => ({ preparoId: criado.id, insumoId: l.insumoId, quantidade: String(l.quantidade) }))
+      );
+    }
+    return criado.id;
+  });
+}
+
+async function atualizarPreparoOracle(id: number, dados: DadosPreparoForm, linhasComposicao: ComposicaoLinhaForm[]): Promise<void> {
+  const { db } = await import("@/db/client");
+  const { and, eq, notInArray } = await import("drizzle-orm");
+  const { preparos } = await import("@/db/schema/preparos");
+  const { composicao } = await import("@/db/schema/composicao");
+  const valores = await paraLinhaOracle(dados);
+  await db.transaction(async (tx) => {
+    await tx.update(preparos).set(valores).where(eq(preparos.id, id));
+    const idsMantidos = linhasComposicao.map((l) => l.id).filter((x): x is number => x != null);
+    if (idsMantidos.length) {
+      await tx.delete(composicao).where(and(eq(composicao.preparoId, id), notInArray(composicao.id, idsMantidos)));
+    } else {
+      await tx.delete(composicao).where(eq(composicao.preparoId, id));
+    }
+    for (const l of linhasComposicao) {
+      if (l.id == null) {
+        await tx.insert(composicao).values({ preparoId: id, insumoId: l.insumoId, quantidade: String(l.quantidade) });
+      } else {
+        await tx
+          .update(composicao)
+          .set({ insumoId: l.insumoId, quantidade: String(l.quantidade) })
+          .where(and(eq(composicao.id, l.id), eq(composicao.preparoId, id)));
+      }
+    }
+  });
+}
+
+async function preparoEstaReferenciadoOracle(id: number): Promise<boolean> {
+  const { db } = await import("@/db/client");
+  const { eq } = await import("drizzle-orm");
+  const { itensOrcamento, itensEventoConfirmados } = await import("@/db/schema/orcamentos");
+  const [a, b] = await Promise.all([
+    db.select({ id: itensOrcamento.id }).from(itensOrcamento).where(eq(itensOrcamento.preparoId, id)).limit(1),
+    db.select({ id: itensEventoConfirmados.id }).from(itensEventoConfirmados).where(eq(itensEventoConfirmados.preparoId, id)).limit(1),
+  ]);
+  return a.length > 0 || b.length > 0;
+}
+
+async function excluirPreparoOracle(id: number): Promise<void> {
+  const { db } = await import("@/db/client");
+  const { eq } = await import("drizzle-orm");
+  const { preparos } = await import("@/db/schema/preparos");
+  // composicao tem ON DELETE CASCADE no preparo; itens de orçamento/evento têm RESTRICT.
+  await db.delete(preparos).where(eq(preparos.id, id));
+}
+
 export async function listarPreparos(): Promise<PreparoResumo[]> {
+  if (dataSource() === "oracle") return listarPreparosOracle();
   const token = exigirToken();
   const resposta = await nocodbGet<{ list: PreparoRegistroCompleto[] }>(
     `/tables/${TABELA_PREPAROS}/records?limit=1000`,
@@ -173,6 +350,7 @@ export async function listarPreparos(): Promise<PreparoResumo[]> {
 export async function obterPreparoComComposicao(
   id: number
 ): Promise<PreparoDetalhado | null> {
+  if (dataSource() === "oracle") return obterPreparoComComposicaoOracle(id);
   const token = exigirToken();
 
   const preparo = await nocodbGet<PreparoRegistroCompleto>(
@@ -213,6 +391,7 @@ export async function obterPreparoComComposicao(
     pesoAtratividade: preparo.Peso_Atratividade,
     subcategoriaProteina: preparo.Subcategoria_Proteina,
     porcaoMaximaIndividual: preparo.Porcao_Maxima_Individual,
+    pesoMedioUnidadeG: preparo.Peso_Medio_Unidade_G,
     composicao: composicao.filter((c): c is ComposicaoLinhaExistente => c !== null),
   };
 }
@@ -241,6 +420,7 @@ export async function criarPreparo(
   dados: DadosPreparoForm,
   composicao: ComposicaoLinhaForm[]
 ): Promise<number> {
+  if (dataSource() === "oracle") return criarPreparoOracle(dados, composicao);
   const token = exigirToken();
 
   const criado = await nocodbPost<{ Id: number }>(
@@ -261,6 +441,7 @@ export async function atualizarPreparo(
   dados: DadosPreparoForm,
   composicao: ComposicaoLinhaForm[]
 ): Promise<void> {
+  if (dataSource() === "oracle") return atualizarPreparoOracle(id, dados, composicao);
   const token = exigirToken();
 
   await nocodbPatch(
@@ -291,6 +472,7 @@ export async function atualizarPreparo(
 
 /** true = preparo já foi usado em orçamento/evento e não pode ser excluído. */
 export async function preparoEstaReferenciado(id: number): Promise<boolean> {
+  if (dataSource() === "oracle") return preparoEstaReferenciadoOracle(id);
   const token = exigirToken();
 
   const [itensOrcamento, itensEventos] = await Promise.all([
@@ -308,6 +490,7 @@ export async function preparoEstaReferenciado(id: number): Promise<boolean> {
 }
 
 export async function excluirPreparo(id: number): Promise<void> {
+  if (dataSource() === "oracle") return excluirPreparoOracle(id);
   const token = exigirToken();
 
   const composicaoLinks = await nocodbGet<{ list: ComposicaoLinkRegistro[] }>(

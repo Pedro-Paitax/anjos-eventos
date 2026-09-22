@@ -10,14 +10,9 @@ const funcionalidades = [
     href: "/agenda",
   },
   {
-    titulo: "Preparos",
-    descricao: "Fichas técnicas: preparos, composição e insumos.",
-    href: "/preparos",
-  },
-  {
-    titulo: "Cardápios Feitos",
-    descricao: "Cardápios pré-montados pra agilizar o Criar Evento.",
-    href: "/cardapios-modelo",
+    titulo: "Senhor Churrasco",
+    descricao: "Preparos, Cardápios Feitos e Simulador de Cardápio.",
+    href: "/senhor-churrasco",
   },
   {
     titulo: "Contratos e confirmação",
@@ -55,7 +50,7 @@ export default async function Home() {
           </p>
         </div>
 
-        <div className="grid w-full grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="grid w-full grid-cols-1 gap-4 sm:grid-cols-2">
           {funcionalidades.map((item) =>
             item.href ? (
               <Link

@@ -40,6 +40,9 @@ export type ItemCardapioPrecificacao = {
   /** custo_total_preparo do motor de custo (docs/REGRAS_NEGOCIO.md seção 4) */
   custoTotalPreparo: number;
   rendimento: number;
+  /** UOM Rendimento cru do preparo e Peso_Medio_Unidade_G — só pra alimentar a conversão de unidade do distribuirPorcoes (docs/DECISOES.md, "Correção do Bug de Mistura de Unidades"), mesmo papel de ItemResolvido. */
+  unidadeRendimentoPreparo: string;
+  pesoMedioUnidadeG: number | null;
 };
 
 export type OpcoesPrecificacao = {
@@ -95,6 +98,12 @@ export function calcularPrecificacaoCardapio(
     macroCategoriaNome: item.macroCategoriaNome,
     capacidadeTeto: item.capacidadeTeto,
     unidade: item.unidade,
+    unidadeRendimentoPreparo: item.unidadeRendimentoPreparo,
+    pesoMedioUnidadeG: item.pesoMedioUnidadeG,
+    // Não usado por distribuirPorcoes (só serve pra resolverItensPorPreparoIds
+    // repassar pra calcularCustoPreparo sem buscar o Preparo de novo) — aqui
+    // o rendimento já resolvido do motor de custo é equivalente.
+    rendimentoPreparo: item.rendimento,
   }));
 
   const macroCategorias = distribuirPorcoes(itensResolvidos, numConvidados);
@@ -106,12 +115,18 @@ export function calcularPrecificacaoCardapio(
       const dadosCusto = dadosCustoPorPreparoId.get(item.preparo_id);
       if (!dadosCusto) continue;
       const custoPorUnidade = dadosCusto.custoTotalPreparo / dadosCusto.rendimento;
-      const custoItem = arredondar(custoPorUnidade * item.volume_necessario_total);
+      const custoItem = arredondar(custoPorUnidade * item.quantidade_para_custo);
       custoCardapioTotal = arredondar(custoCardapioTotal + custoItem);
     }
   }
 
-  const custoCardapioPorPessoa = custoCardapioTotal / numConvidados;
+  // Arredonda pra centavos ANTES de aplicar o markup — não depois. Sem
+  // isso, Custo_Por_Pessoa (exibido já arredondado) x 1,40 podia divergir
+  // em 1 centavo de Valor_Sugerido_Por_Pessoa (que usava o valor cru, sem
+  // arredondar) num arredondamento duplo silencioso. Achado ao expor os
+  // dois valores lado a lado no Simulador de Cardápio — ver
+  // src/lib/precificacao-cardapio.test.ts.
+  const custoCardapioPorPessoa = arredondar(custoCardapioTotal / numConvidados);
   const valorSugeridoPorPessoa = arredondarParaCimaCentavos(custoCardapioPorPessoa * MARKUP_CARDAPIO);
   const valorSugeridoCrianca = arredondar(valorSugeridoPorPessoa / 2);
 
@@ -129,7 +144,7 @@ export function calcularPrecificacaoCardapio(
 
   return {
     custo_cardapio_total: custoCardapioTotal,
-    custo_cardapio_por_pessoa: arredondar(custoCardapioPorPessoa),
+    custo_cardapio_por_pessoa: custoCardapioPorPessoa,
     valor_sugerido_por_pessoa: valorSugeridoPorPessoa,
     valor_sugerido_crianca: valorSugeridoCrianca,
     taxa_deslocamento: taxaDeslocamento,
@@ -142,4 +157,41 @@ export function calcularPrecificacaoCardapio(
     custo_assador_total: custoAssadorTotal,
     valor_sugerido_total_evento: valorSugeridoTotalEvento,
   };
+}
+
+export type DistribuicaoConvidados = {
+  adultos: number;
+  criancasAte5: number;
+  criancas5a10: number;
+};
+
+/**
+ * Variante de calcularPrecificacaoCardapio EXCLUSIVA do fluxo de Criar
+ * Evento (Senhor Churrasco) — decisão do Pedro de 2026-09-08, registrada
+ * em docs/DECISOES.md: a meia-entrada de criança só se aplica no Valor
+ * Sugerido Total AQUI, nunca em calcularPrecificacaoCardapio/
+ * valor_sugerido_total_evento (usado sozinho pelo Simulador de Cardápio
+ * isolado, que só tem Número de Convidados total, sem faixa etária, e não
+ * deve ser alterado).
+ *
+ * Reaproveita calcularPrecificacaoCardapio pra tudo que é compartilhado
+ * (por pessoa, criança, garçom/copeira/assador, taxa) e recalcula só o
+ * Valor_Sugerido_Total_Evento, com adultos pagando cheio e crianças
+ * pagando meia — em vez de preço cheio × todos os convidados.
+ */
+export function calcularPrecificacaoParaEvento(
+  itens: ItemCardapioPrecificacao[],
+  opcoes: OpcoesPrecificacao,
+  distribuicao: DistribuicaoConvidados
+): PrecificacaoResultado {
+  const base = calcularPrecificacaoCardapio(itens, opcoes);
+
+  const valorSugeridoTotalEvento = arredondar(
+    distribuicao.adultos * base.valor_sugerido_por_pessoa +
+      (distribuicao.criancasAte5 + distribuicao.criancas5a10) * base.valor_sugerido_crianca +
+      base.taxa_deslocamento +
+      base.quantidade_garcom_usada * base.valor_garcom
+  );
+
+  return { ...base, valor_sugerido_total_evento: valorSugeridoTotalEvento };
 }

@@ -1,0 +1,1022 @@
+
+================================================================
+### FILE: AGENTS.md
+================================================================
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->
+
+
+================================================================
+### FILE: CLAUDE.md
+================================================================
+
+# Anjos Eventos
+
+Você está trabalhando no projeto Anjos Eventos.
+
+Este arquivo contém as regras principais de operação do agente.
+
+---
+
+# CONTEXTO OBRIGATÓRIO
+
+Antes de realizar alterações significativas, consulte os documentos relevantes:
+
+- `docs/BRIEFING.MD`
+- `docs/ARQUITETURA.MD`
+- `docs/BANCO.md`
+- `docs/REGRAS_NEGOCIO.md`
+
+Esses documentos contêm contexto do negócio, arquitetura, banco e regras já validadas.
+
+Não trate decisões documentadas como sugestões.
+
+---
+
+# REGRA MAIS IMPORTANTE
+
+NÃO INVENTE.
+
+Quando uma informação não estiver disponível:
+
+1. procure no código;
+2. procure na documentação;
+3. procure no banco quando aplicável;
+4. se continuar desconhecida, informe que a informação está ausente.
+
+Não crie valores fictícios apenas para fazer o código funcionar.
+
+---
+
+# PRINCÍPIOS
+
+## Simplicidade
+
+Prefira a solução mais simples que resolva corretamente o problema.
+
+Evite engenharia excessiva.
+
+## Manutenção
+
+O responsável técnico possui pouco tempo disponível para manutenção contínua.
+
+Priorize:
+
+- código simples;
+- arquitetura clara;
+- poucas dependências;
+- comportamento previsível;
+- documentação objetiva.
+
+## Não quebrar decisões existentes
+
+Antes de alterar uma regra de negócio, consulte:
+
+`docs/REGRAS_NEGOCIO.md`
+
+Se uma nova implementação entrar em conflito com uma regra documentada, não altere silenciosamente a regra.
+
+Explique o conflito.
+
+---
+
+# EFICIÊNCIA DE CONTEXTO & GRAPHIFY
+
+Para evitar consumo excessivo de tokens e saturação da janela de contexto:
+
+- **Mapeamento de Dependências:** Antes de disparar buscas amplas (`grep`, `glob` ou leituras em massa de arquivos), consulte primeiro o arquivo `GRAPH_REPORT.md` para entender conexões de módulos, rotas e componentes.
+- **Não inspecione arquivos brutos do Graphify:** Nunca leia arquivos dentro de `graphify-out/` (como `graph.json` ou `.graphify_analysis.json`). Apenas `GRAPH_REPORT.md` deve ser consultado.
+- **Respostas e Modificações Enxutas:** Não reproduza arquivos inteiros nas respostas. Apresente apenas os trechos modificados ou diffs pontuais necessários para a alteração.
+- **Escopo PWA:** Não leia nem processe arquivos binários ou estáticos em `public/icons/`, `public/images/`, `public/splash/` ou assets de mídia, exceto se solicitado explicitamente para alterar o `manifest.json`.
+
+---
+
+# PROCESSO DE TRABALHO
+
+Para tarefas pequenas:
+
+1. Entenda o pedido.
+2. Inspecione o código relacionado.
+3. Faça a alteração.
+4. Teste.
+
+Para tarefas médias ou grandes:
+
+1. Entenda o pedido.
+2. Inspecione a estrutura do projeto.
+3. Leia a documentação relevante.
+4. Identifique os arquivos afetados.
+5. Identifique possíveis impactos.
+6. Apresente um plano curto.
+7. Implemente.
+8. Execute testes, lint ou build apropriados.
+9. Revise a alteração.
+10. Explique o que foi alterado.
+
+---
+
+# BANCO DE DADOS
+
+O banco central é PostgreSQL.
+
+O NocoDB é utilizado como interface administrativa sobre o PostgreSQL.
+
+Antes de alterar banco ou código relacionado ao banco:
+
+- consulte `docs/BANCO.md`;
+- verifique o schema existente;
+- não invente tabelas ou campos;
+- não duplique estruturas existentes.
+
+Alterações destrutivas exigem atenção especial.
+
+Nunca apagar dados ou estruturas sem deixar claro o impacto.
+
+---
+
+# NEGÓCIO
+
+O sistema atende:
+
+- Buffet Senhor Churrasco
+- Anjos Cerimonial
+- Em Plena Natureza Chácara de Eventos
+
+O contexto completo está em:
+
+`docs/BRIEFING.MD`
+
+As regras funcionais estão em:
+
+`docs/REGRAS_NEGOCIO.md`
+
+---
+
+# NEXT.JS
+
+Existe um `AGENTS.md` na raiz do projeto.
+
+Ele contém regras específicas geradas pelo Next.js.
+
+Essas regras também devem ser respeitadas.
+
+Quando trabalhar com APIs ou comportamentos específicos da versão instalada do Next.js, consulte a documentação disponível no projeto quando necessário.
+
+Não assumir que APIs de versões antigas continuam válidas.
+
+---
+
+# QUALIDADE
+
+Não considerar uma tarefa concluída apenas porque o código foi escrito.
+
+Sempre que apropriado:
+
+- execute lint;
+- execute testes;
+- execute build;
+- verifique erros TypeScript;
+- verifique comportamento relacionado à alteração.
+
+Se não for possível executar alguma validação, informe isso.
+
+---
+
+# COMUNICAÇÃO
+
+Responda de forma objetiva.
+
+Ao terminar uma tarefa, informe:
+
+1. o que foi alterado;
+2. quais arquivos foram modificados;
+3. quais testes/validações foram executados;
+4. se existe algum ponto pendente.
+
+Não diga que algo foi testado se não foi realmente testado.
+
+================================================================
+### FILE: package.json
+================================================================
+
+{
+  "name": "anjos-eventos",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "test": "vitest",
+    "deploy:oracle": "bash scripts/deploy-oracle.sh"
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.45.2",
+    "next": "16.3.4",
+    "pg": "^8.13.1",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "server-only": "^0.0.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/pg": "^8.11.10",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "drizzle-kit": "^0.31.10",
+    "eslint": "^9",
+    "eslint-config-next": "16.3.4",
+    "tailwindcss": "^4",
+    "typescript": "^5",
+    "vite": "^8.2.2",
+    "vitest": "^5.0.0"
+  }
+}
+
+
+================================================================
+### FILE: .claude/commands/graphify.md
+================================================================
+
+Execute os seguintes passos para atualizar o mapa de dependências do projeto:
+1. Rode no terminal do sistema: `graphify . --code-only`
+2. Em seguida: `graphify cluster-only .`
+3. Leia as seções atualizadas de `GRAPH_REPORT.md` para guiar suas próximas alterações.
+
+================================================================
+### FILE: .claude/agents/business.md
+================================================================
+
+---
+name: business
+description: Especialista nas regras de negócio do Anjos Eventos. Use para analisar orçamento, eventos, fichas técnicas, dimensionamento, logística e financeiro.
+---
+
+# Business Agent — Anjos Eventos
+
+Você é o especialista nas regras de negócio do Anjos Eventos.
+
+Sua função é garantir que a implementação respeite as regras reais do negócio.
+
+## Documentação obrigatória
+
+Antes de analisar qualquer regra:
+
+- leia `docs/REGRAS_NEGOCIO.md`;
+- consulte `docs/BRIEFING.MD`;
+- consulte `docs/BANCO.md` quando houver impacto no banco.
+
+---
+
+# Regra principal
+
+As regras documentadas são decisões já validadas.
+
+Não substitua uma regra existente por uma "melhor prática" sem autorização.
+
+Se identificar uma possível melhoria:
+
+1. explique o problema;
+2. explique a melhoria;
+3. diga qual regra atual seria alterada;
+4. não altere automaticamente.
+
+---
+
+# Motor de custo
+
+A lógica oficial é:
+
+```text
+custo_total_preparo =
+Σ(quantidade_composição × preço_corrigido_insumo)
+Depois:
+
+custo_por_unidade_rendimento =
+custo_total_preparo / rendimento
+
+E:
+
+custo_por_pessoa =
+custo_por_unidade_rendimento × porção_por_pessoa
+
+Fator de correção 0 ou preço vazio deve resultar em custo R$0 conforme regra documentada.
+
+Dimensionamento
+
+É proibido substituir o motor por per capita estático.
+
+A porção é calculada proporcionalmente ao peso dos itens dentro do teto da macro-categoria.
+
+O Hard Cap não redistribui excedente neste estágio.
+
+Proteínas
+
+A hierarquia automática existe somente para Categoria = Carnes.
+
+Pesos:
+
+Carne Vermelha: 1,5
+Ovino: 1,3
+Suíno: 1,1
+Peixe: 0,9
+Aves: 0,7
+
+Não aplicar automaticamente a outras categorias.
+
+Dados ausentes
+
+Se uma regra depender de uma informação inexistente:
+
+não invente.
+
+Exemplo:
+
+As capacidades da Kombi Nova e Kombi Velha ainda não estão definidas.
+
+Nunca criar valores estimados para elas.
+
+Financeiro
+
+Distinguir:
+
+Receita Projetada;
+Custo Projetado;
+Margem Projetada;
+Receita adicional;
+Custos operacionais;
+Margem Real.
+
+Nunca misturar receita adicional com custo operacional.
+
+Filosofia
+
+O sistema representa um negócio real.
+
+A correção da regra de negócio é mais importante do que uma implementação tecnicamente elegante.
+
+Quando houver conflito entre simplicidade e sofisticação:
+
+preferir simplicidade, desde que a regra de negócio permaneça correta.
+
+
+
+================================================================
+### FILE: .claude/agents/database.md
+================================================================
+
+---
+name: database
+description: Especialista em banco de dados do Anjos Eventos. Use para analisar schema, relacionamentos, queries, integridade dos dados e alterações relacionadas ao PostgreSQL/NocoDB.
+---
+
+# Database Agent — Anjos Eventos
+
+Você é o especialista de banco de dados do projeto Anjos Eventos.
+
+Sua responsabilidade é analisar e trabalhar com:
+
+- PostgreSQL
+- NocoDB
+- schema
+- tabelas
+- relacionamentos
+- queries
+- integridade dos dados
+- performance
+- consistência dos dados
+- alterações de estrutura
+
+## Documentação obrigatória
+
+Antes de qualquer análise relacionada ao banco, consulte:
+
+- `docs/BANCO.md`
+- `docs/REGRAS_NEGOCIO.md`
+- `docs/BRIEFING.MD`
+
+Quando necessário, consulte também:
+
+- código em `src/`
+- arquivos em `database/`
+- configurações Docker
+
+## Regra principal
+
+Nunca invente o schema.
+
+Antes de afirmar que uma tabela, coluna ou relacionamento existe:
+
+1. consulte a documentação;
+2. procure no código;
+3. quando houver acesso ao banco, verifique o banco real.
+
+Se houver divergência entre documentação e banco real, informe a divergência.
+
+Não escolha silenciosamente qual dos dois está correto.
+
+---
+
+# Segurança
+
+Nunca execute operações destrutivas sem deixar claro o impacto.
+
+Exemplos:
+
+- DROP TABLE
+- DROP COLUMN
+- DELETE em massa
+- TRUNCATE
+- alterações que possam destruir histórico
+
+Antes dessas operações, explique:
+
+- o que será removido;
+- quais dados serão afetados;
+- quais relacionamentos podem ser afetados;
+- se existe alternativa não destrutiva.
+
+---
+
+# Histórico
+
+O sistema possui dados históricos de eventos.
+
+`Itens_Evento_Confirmados` possui snapshots:
+
+- `Quantidade_Confirmada`
+- `Custo_Unitario_Snapshot`
+
+Esses valores existem para preservar o histórico.
+
+Nunca propor recalcular retroativamente esses valores simplesmente porque os preços atuais mudaram.
+
+---
+
+# Regras de negócio
+
+Nunca alterar a lógica dos motores de negócio apenas por preferência técnica.
+
+Especialmente:
+
+- motor de custo;
+- motor de dimensionamento;
+- hierarquia de proteínas;
+- logística;
+- cálculo financeiro.
+
+Consulte `docs/REGRAS_NEGOCIO.md`.
+
+---
+
+# Filosofia
+
+Priorize:
+
+1. integridade;
+2. simplicidade;
+3. baixa manutenção;
+4. clareza;
+5. performance adequada.
+
+Evite normalizações, abstrações ou otimizações excessivamente sofisticadas sem benefício concreto.
+
+---
+
+# Ao finalizar uma análise
+
+Informe:
+
+- o que foi encontrado;
+- tabelas/colunas envolvidas;
+- possíveis impactos;
+- recomendação;
+- se alguma informação precisa ser confirmada.
+
+Não invente dados ausentes.
+
+================================================================
+### FILE: .claude/skills/implementar-feature/skill.md
+================================================================
+
+---
+name: implementar-feature
+description: Procedimento padrão para implementar novas funcionalidades no Anjos Eventos com análise prévia, respeito às regras de negócio e validação final.
+---
+
+# Skill — Implementar Feature
+
+Use este procedimento quando uma tarefa envolver a criação ou alteração significativa de uma funcionalidade do Anjos Eventos.
+
+---
+
+# Objetivo
+
+Implementar funcionalidades de forma previsível, simples e compatível com a arquitetura existente.
+
+---
+
+# ETAPA 1 — Entender
+
+Antes de escrever código:
+
+1. Leia o pedido completo.
+2. Identifique qual módulo será afetado.
+3. Identifique quais regras de negócio estão envolvidas.
+4. Identifique possíveis impactos em banco, backend e frontend.
+
+Não começar codificando imediatamente em tarefas médias ou grandes.
+
+---
+
+# ETAPA 2 — Pesquisar
+
+Inspecione o projeto.
+
+Procure:
+
+- componentes existentes;
+- funções existentes;
+- APIs existentes;
+- tipos existentes;
+- queries existentes;
+- tabelas relacionadas;
+- validações existentes;
+- testes existentes.
+
+Prefira reutilizar código existente quando apropriado.
+
+Não criar uma segunda implementação de algo que já existe.
+
+---
+
+# ETAPA 3 — Documentação
+
+Consulte:
+
+- `CLAUDE.md`
+- `docs/BRIEFING.MD`
+- `docs/ARQUITETURA.MD`
+- `docs/BANCO.md`
+- `docs/REGRAS_NEGOCIO.md`
+- `docs/DECISOES.md`
+
+Leia apenas os documentos relevantes para a tarefa quando o escopo for pequeno.
+
+---
+
+# ETAPA 4 — Verificar estado atual
+
+Determine:
+
+- o que já existe;
+- o que está parcialmente implementado;
+- o que não existe;
+- quais partes podem ser reutilizadas.
+
+Não confundir documentação com implementação.
+
+---
+
+# ETAPA 5 — Plano
+
+Para tarefas médias ou grandes, antes de implementar apresente um plano curto contendo:
+
+1. arquivos que serão alterados;
+2. arquivos que serão criados;
+3. lógica que será implementada;
+4. impactos no banco;
+5. validações que serão executadas.
+
+Não fazer alterações destrutivas sem explicar o impacto.
+
+---
+
+# ETAPA 6 — Implementação
+
+Durante a implementação:
+
+- seguir a arquitetura existente;
+- seguir as regras de negócio;
+- evitar engenharia excessiva;
+- reutilizar abstrações existentes;
+- manter TypeScript tipado;
+- evitar duplicação;
+- não introduzir dependências sem necessidade.
+
+---
+
+# ETAPA 7 — Banco
+
+Se a feature envolver banco:
+
+1. consultar `docs/BANCO.md`;
+2. verificar o schema existente;
+3. verificar relacionamentos;
+4. verificar se a alteração é realmente necessária;
+5. preservar dados históricos.
+
+Nunca assumir que uma tabela existe apenas porque aparece na documentação.
+
+---
+
+# ETAPA 8 — Validação
+
+Depois de implementar, executar as validações apropriadas.
+
+Quando disponíveis:
+
+- TypeScript;
+- ESLint;
+- testes;
+- build;
+- validação manual.
+
+Não afirmar que algo foi testado sem executar o teste.
+
+---
+
+# ETAPA 9 — Revisão
+
+Antes de concluir:
+
+- revisar os arquivos alterados;
+- procurar erros óbvios;
+- verificar se a implementação respeita as regras de negócio;
+- verificar se não foram introduzidas alterações desnecessárias.
+
+---
+
+# ETAPA 10 — Relatório
+
+Ao finalizar, informar:
+
+### Implementado
+
+O que foi feito.
+
+### Arquivos
+
+Arquivos criados ou modificados.
+
+### Validação
+
+Comandos executados e respectivos resultados.
+
+### Pendências
+
+Problemas ou decisões que ainda dependem de confirmação.
+
+---
+
+# Regra fundamental
+
+Se durante a implementação surgir uma decisão de negócio que não está documentada:
+
+NÃO INVENTAR.
+
+Registrar a dúvida e solicitar confirmação quando ela for necessária para continuar corretamente.
+
+================================================================
+### FILE: .claude/skills/alterar-banco/SKILL.md
+================================================================
+
+---
+name: alterar-banco
+description: Procedimento seguro para analisar e alterar estruturas ou operações de banco de dados no Anjos Eventos.
+---
+
+# Skill — Alterar Banco
+
+Use esta skill quando uma tarefa envolver PostgreSQL, NocoDB, tabelas, colunas, relacionamentos, queries ou estrutura de dados.
+
+---
+
+# Regra principal
+
+Banco de dados contém dados reais.
+
+Nunca alterar estrutura ou dados sem primeiro entender o impacto.
+
+---
+
+# 1. Consultar documentação
+
+Leia:
+
+- `docs/BANCO.md`
+- `docs/REGRAS_NEGOCIO.md`
+- `docs/DECISOES.md`
+
+Quando necessário:
+
+- `docs/BRIEFING.MD`
+
+---
+
+# 2. Verificar implementação
+
+Procure no código:
+
+- queries;
+- tipos;
+- repositories;
+- services;
+- APIs;
+- componentes que utilizam os dados.
+
+Determine quais partes dependem da estrutura que será alterada.
+
+---
+
+## 2.5. Camada de acesso correta
+
+Toda alteração de ESTRUTURA (nova tabela, nova coluna, novo relacionamento)
+deve ser feita através da interface/API do NocoDB, nunca via SQL direto
+(ALTER TABLE, CREATE TABLE) no Postgres por trás dele — o NocoDB gerencia
+suas próprias tabelas de junção para relacionamentos, e mudanças estruturais
+feitas fora dele ficam invisíveis para a interface até uma sincronização manual,
+podendo até colidir com o que o NocoDB já criou internamente.
+
+Alterações de DADOS (inserir, atualizar, consultar registros) podem usar a
+API REST do NocoDB (xc-token) diretamente — é assim que o backend do
+Anjos Eventos já opera.
+
+Acesso SQL direto ao Postgres é reservado para: leitura de diagnóstico
+(SELECT), ou correções pontuais em ÚLTIMO caso, com confirmação explícita
+do usuário antes de executar, e aviso claro de que a mudança pode não
+refletir na interface do NocoDB até revisão manual.
+
+# 3. Verificar banco real
+
+Quando houver acesso ao banco:
+
+- consultar schema;
+- confirmar tabela;
+- confirmar coluna;
+- confirmar tipo;
+- confirmar relacionamentos;
+- verificar constraints.
+
+Não confiar cegamente na documentação.
+
+---
+
+# 4. Classificar alteração
+
+Classifique a mudança como:
+
+### Não destrutiva
+
+Exemplos:
+
+- adicionar tabela;
+- adicionar coluna nullable;
+- adicionar índice.
+
+### Potencialmente destrutiva
+
+Exemplos:
+
+- remover coluna;
+- alterar tipo;
+- remover tabela;
+- apagar dados;
+- modificar valores históricos.
+
+Alterações potencialmente destrutivas exigem explicação explícita antes da execução.
+
+---
+
+# 5. Histórico
+
+Nunca modificar dados históricos de eventos confirmados sem autorização explícita.
+
+Snapshots devem continuar representando o estado existente no momento da confirmação.
+
+---
+
+# 6. Implementação
+
+Preferir alterações:
+
+- pequenas;
+- reversíveis quando possível;
+- fáceis de entender;
+- documentadas.
+
+Não criar abstrações de migração complexas sem necessidade.
+
+---
+
+# 7. Validação
+
+Após a alteração:
+
+- verificar schema;
+- executar queries de validação;
+- verificar aplicação;
+- executar lint/build/testes quando aplicável.
+
+---
+
+# 8. Relatório
+
+Informar:
+
+- alteração realizada;
+- tabelas/colunas afetadas;
+- impacto;
+- validações;
+- possíveis pendências.
+
+================================================================
+### FILE: docs/ARQUITETURA.MD
+================================================================
+
+# Arquitetura — Anjos Eventos
+
+## Visão geral
+
+O Anjos Eventos é um sistema interno para centralizar a operação de três empresas do grupo:
+
+- Buffet Senhor Churrasco
+- Anjos Cerimonial
+- Em Plena Natureza Chácara de Eventos
+
+O sistema deve priorizar simplicidade, confiabilidade e baixa manutenção.
+
+O responsável técnico possui experiência profissional em engenharia de dados, mas disponibilidade limitada para manutenção contínua. Portanto, soluções excessivamente sofisticadas devem ser evitadas quando uma solução simples atende ao problema.
+
+---
+
+## Stack principal
+
+### Aplicação
+
+- Next.js
+- Node.js
+- TypeScript
+
+### Banco de dados
+
+- PostgreSQL
+- NocoDB como interface administrativa sobre o PostgreSQL
+
+### Infraestrutura
+
+- Servidor doméstico
+- Debian
+- Docker
+- Docker Compose
+- Tailscale para acesso remoto
+
+---
+
+## Estrutura conceitual
+
+```text
+Cliente
+   |
+   v
+Next.js
+   |
+   +--------------------+
+   |                    |
+   v                    v
+Regras de negócio     PostgreSQL
+                           ^
+                           |
+                        NocoDB
+
+================================================================
+### FILE: docs/DECISOES.md
+================================================================
+
+# Decisões Técnicas e de Negócio — Anjos Eventos
+
+Este documento registra decisões já tomadas durante o desenvolvimento.
+
+Estas decisões não devem ser alteradas automaticamente por agentes.
+
+Uma sugestão de melhoria pode ser apresentada, mas qualquer mudança em uma decisão registrada aqui deve ser explicitamente aprovada.
+
+---
+
+# Status das decisões
+
+Uma decisão pode estar em um dos seguintes estados:
+
+- `APROVADA` — decisão definida e válida.
+- `PENDENTE` — informação ainda precisa ser definida.
+- `IMPLEMENTADA` — decisão já possui implementação correspondente.
+- `VALIDADA` — implementação foi testada e validada.
+- `DESCARTADA` — alternativa analisada e rejeitada.
+
+---
+
+# Arquitetura
+
+## Banco central
+
+Status: SUBSTITUÍDA (2026-09-16) — ver `docs/plano-migracao-postgres-vultr.md`
+
+PostgreSQL é o banco de dados central.
+
+NocoDB funciona como interface administrativa sobre o PostgreSQL.
+
+**Esta decisão não é mais válida como guia de implementação.** O ADR
+formal em `docs/plano-migracao-postgres-vultr.md` ("Migração de
+Infraestrutura e Remoção do NocoDB — Plano Consolidado") a substitui:
+NocoDB está sendo removido por completo, acesso ao banco passa a ser
+direto via Drizzle ORM contra PostgreSQL puro, numa VPS Oracle Cloud
+dedicada (identidade do provedor verificada via SSH/metadata OCI,
+não apenas alegada). Mantida aqui riscada, não apagada, por histórico —
+nenhum código novo deve ser escrito assumindo coexistência com o NocoDB
+a partir de agora.
+
+---
+
+## Stack
+
+Status: APROVADA
+
+A aplicação utiliza:
+
+- Next.js
+- Node.js
+- TypeScript
+- Docker
+- PostgreSQL
+- NocoDB
+
+Infraestrutura:
+
+- Debian
+- Docker
+- Tailscale
+
+---
+
+# Motor de dimensionamento
+
+Status: APROVADA
+
+Não utilizar per capita estático como regra principal.
+
+A quantidade deve ser calculada proporcionalmente ao peso dos itens dentro do teto da macro-categoria.
+
+---
+
+# Hard Cap
+
+Status: APROVADA
+
+O Hard Cap reduz a quantidade do item.
+
+O excedente não é redistribuído para outros itens da categoria neste estágio.
+
+Essa limitação é intencional.
+
+---
+
+# Hierarquia de proteínas
+
+Status: APROVADA
+
+A hierarquia automática aplica-se somente à categoria Carnes.
+
+Pesos:
+
+- Carne Vermelha: 2,0 (Origem: Dado Operacional)
+- Suíno: 1,0 (Origem: Dado Operacional)
+- Aves: 1,0 (Origem: Dado Operacional)
+- Ovino: 1,3 (Origem: Dado Operacional — confirmado com o sócio)
+- Peixe: 0,9 (Origem: Dado Operacional — confirmado com o sócio)
+
+A tabela Hierarquia_Proteina deve ter uma coluna Origem_Dado (Dado Operacional / Estimativa Heurística). Hoje todos os 5 valores são Dado Operacional — a distinção permanece no schema para uso em futuras calibrações que venham a ser só estimadas, não para os valores atuais.
+
+Contexto da calibração: Pedro validou com o sócio que um evento típico distribui 400g de proteína como 200g Carne Vermelha + 100g Suíno + 100g Aves (proporção 2:1:1), o que corrigiu os pesos anteriores (que colocavam Suíno acima de Aves, contrariando a prática real).
+
+---
+
+# Pesos dinâmicos por tipo de evento
+
+Status: DESCARTADA
+
+Não serão utilizados pesos diferentes de acordo com o tipo de evento.
+
+Exemplo de alternativa descartada:
+
+- casamento valorizar determinado alimento;
+- event

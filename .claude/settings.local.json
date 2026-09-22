@@ -1,0 +1,17 @@
+{
+  "enabledMcpjsonServers": [
+    "postgres"
+  ],
+  "enableAllProjectMcpServers": true,
+  "env":
+  {
+    "ANTHTROPIC_BASE_URL": "http://localhost:20128",
+    "ANTHTROPIC_AUTH_TOKEN": "omniroute",
+    "ANTHTROPIC_MODEL": "auto/best-free",
+    "ANTHTROPIC_SMALL_FAST_MODEL": "auto/best-free",
+    "ANTHTROPIC_DEFAULT_OPUS_MODEL": "auto/best-free",
+    "ANTHTROPIC_DEFAULT_SONNET_MODEL": "auto/best-free",
+    "ANTHTROPIC_DEFAULT_HAIKU_MODEL": "auto/best-free",
+    "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1"
+  }
+}
