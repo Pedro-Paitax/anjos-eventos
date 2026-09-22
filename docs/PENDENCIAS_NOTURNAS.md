@@ -830,8 +830,12 @@ escopo do corte.
 Não foi possível confirmar backup automático: sem OCI CLI/credencial nesta
 máquina, sem script de `pg_dump`/cron no repo, docs só listam como requisito.
 
-- **Backup de hardware (snapshot OCI):** Pedro está configurando
-  manualmente no console agora. Confirmar quando concluído.
+- **Backup de hardware (snapshot OCI):** decisão do Pedro (2026-09-22) —
+  **sem snapshot de hardware por ora**, custo acima do esperado no Always
+  Free Tier. Backup lógico (`pg_dump`) é a estratégia de recuperação
+  primária por ora. **Pendência NÃO bloqueante**: revisitar opções de
+  custo da política de backup da OCI quando houver tempo, sem pressão de
+  corte.
 - **Backup de dado (`pg_dump` diário off-site):** NÃO implementado. Precisa
   existir ANTES do Dia do Corte (Fase B do checklist). Não bloqueia a
   Fase A de hoje.
