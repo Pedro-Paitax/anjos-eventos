@@ -62,15 +62,25 @@ tem duas fases: **(A)** migrar os módulos pra Drizzle atrás de uma flag,
 - [x] Teste dos cálculos de referência pelo endpoint real do app
       (`scripts/paridade-endpoint.ts`, 2026-09-21: 54/54 preparos, 0
       divergências — ver docs/PENDENCIAS_NOTURNAS.md).
-- [ ] Confirmar onde o app roda pós-corte (Oracle) e preparar a imagem
-      (build fora do servidor, conforme ADR).
+- [x] Confirmar onde o app roda pós-corte (Oracle) e preparar a imagem
+      (build fora do servidor, conforme ADR). **Confirmado, definitivo,
+      pelo Pedro (2026-09-22): Oracle Cloud, mesmo servidor do banco.**
 
 ## Fase B — Dia do corte
 
 1. [ ] Avisar a equipe; janela fora de horário de evento.
-2. [ ] Snapshot do Oracle + `pg_dump` do Postgres local + dump do NocoDB
-       (ponto de retorno).
-3. [ ] **Congelar edições no NocoDB** (durante toda a janela).
+2. [~] Snapshot do Oracle + `pg_dump` do Postgres local + dump do NocoDB
+       (ponto de retorno). `pg_dump` do Postgres local (`anjos-eventos-db`,
+       69 TOC entries, 21.452 bytes) e dump do NocoDB (Postgres interno do
+       container `senhor-churrasco-db-postgres-1`, base `senhorchurrasco`,
+       1054 TOC entries, 681.189 bytes) feitos e validados
+       (`pg_restore --list`) em 2026-09-22 09:27-09:28, salvos em
+       `~/backups-anjos-eventos/` no ender. **Falta confirmação do Pedro**
+       de que o snapshot de hardware do Oracle (console OCI) está feito.
+3. [x] **Congelar edições no NocoDB** (durante toda a janela). Decisão do
+       Pedro (2026-09-22): congelamento de PROCESSO, não técnico — ninguém
+       edita manualmente no NocoDB durante a janela; o app já para de
+       escrever nele assim que `DATA_SOURCE=oracle` (passo 7).
 4. [ ] ETL completo (`scripts/etl-corte-producao.ts`; travas: `--write
        --confirmo-producao --confirmo-banco=100.121.229.81`,
        `DIA_DO_CORTE=<hoje>` e backup OK < 26h), modo truncate+reload, com `--confirmo-producao`
