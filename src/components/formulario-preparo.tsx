@@ -167,6 +167,7 @@ export function FormularioPreparo({
             id="modoPreparo"
             name="modoPreparo"
             rows={5}
+            required
             defaultValue={valoresIniciais?.modoPreparo ?? ""}
             className={campoClasse}
           />

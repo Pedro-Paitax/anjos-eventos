@@ -14,8 +14,12 @@ export const CATEGORIAS_PREPARO = [
 ] as const;
 export type CategoriaPreparo = (typeof CATEGORIAS_PREPARO)[number];
 
-// Nome real do campo no NocoDB é "UOM Rendimento".
-export const UNIDADES_RENDIMENTO_PREPARO = ["G", "ML", "Unidade", "KG", "Pessoas"] as const;
+// Nome real do campo no NocoDB é "UOM Rendimento". O NocoDB permite também
+// KG/Pessoas, mas nenhum Preparo real usa (0 registros — conferido ao vivo)
+// e o enum do Postgres novo (`unidade_rendimento_enum`,
+// src/db/schema/preparos.ts) só aceita G/ML/Unidade. Decisão do Pedro
+// (2026-09-22): restringir o formulário a essas 3, não ampliar o enum.
+export const UNIDADES_RENDIMENTO_PREPARO = ["G", "ML", "Unidade"] as const;
 export type UnidadeRendimentoPreparo = (typeof UNIDADES_RENDIMENTO_PREPARO)[number];
 
 // Nome real do campo no NocoDB é "Restrições" (mapeado aqui do "Tags" do

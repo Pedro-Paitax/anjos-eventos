@@ -231,11 +231,10 @@ async function obterPreparoComComposicaoOracle(id: number): Promise<PreparoDetal
 }
 
 /**
- * Converte o formulário pro schema novo. Duas incompatibilidades REAIS entre o
- * formulário atual e o schema Oracle (docs/schema-fisico-detalhado.md) — falha
- * explícita em vez de gravar errado; decisão de negócio pendente do Pedro:
- * (1) o formulário oferece unidade "KG"/"Pessoas", mas o enum novo só tem G/ML/Unidade;
- * (2) modo_preparo é NOT NULL no schema novo, mas o formulário aceita vazio.
+ * Converte o formulário pro schema novo. O formulário (`formulario-preparo.tsx`)
+ * já restringe unidade de rendimento a G/ML/Unidade e exige Modo de Preparo
+ * (decisão do Pedro, 2026-09-22). As checagens abaixo continuam como defesa
+ * em profundidade contra chamada direta da Server Action fora do formulário.
  */
 async function paraLinhaOracle(dados: DadosPreparoForm) {
   const { preparos, restricaoAlimentarEnum } = await import("@/db/schema/preparos");
@@ -245,9 +244,9 @@ async function paraLinhaOracle(dados: DadosPreparoForm) {
   const restricoes: readonly string[] = restricaoAlimentarEnum.enumValues;
   if (!categorias.includes(dados.categoria)) throw new Error(`Categoria não suportada no Postgres novo: "${dados.categoria}"`);
   if (!unidades.includes(dados.unidadeRendimento)) {
-    throw new Error(`Unidade de rendimento "${dados.unidadeRendimento}" não existe no Postgres novo (só G, ML, Unidade) — decisão pendente.`);
+    throw new Error(`Unidade de rendimento "${dados.unidadeRendimento}" não existe no Postgres novo (só G, ML, Unidade).`);
   }
-  if (!dados.modoPreparo?.trim()) throw new Error("Modo de Preparo é obrigatório no Postgres novo (NOT NULL) — decisão pendente.");
+  if (!dados.modoPreparo?.trim()) throw new Error("Modo de Preparo é obrigatório no Postgres novo (NOT NULL).");
   for (const r of dados.restricoes) {
     if (!restricoes.includes(r)) throw new Error(`Restrição desconhecida: "${r}"`);
   }
