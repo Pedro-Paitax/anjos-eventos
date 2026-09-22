@@ -32,24 +32,33 @@ tem duas fases: **(A)** migrar os módulos pra Drizzle atrás de uma flag,
 
 ## Fase A — Pré-requisitos (código, cada item em commit próprio)
 
-- [ ] Schema Drizzle das 6 tabelas faltantes + push no Oracle (aditivo).
-- [ ] ETL das tabelas novas (só carga em tabela vazia — não destrutivo).
-- [ ] Flag `DATA_SOURCE=nocodb|oracle`, **default `nocodb`**.
-- [ ] Migrar os 11 módulos de `src/lib/` pra Drizzle atrás da flag.
-  - Grupo A (risco financeiro — paridade valor a valor obrigatória):
-    `custo-preparo`, `dimensionamento-cardapio`, `precificacao-evento`,
-    `margem-orcamento`, `hierarquia-proteina`.
-  - Grupo B (risco baixo — equivalência de lista/contagem):
-    `cardapios-modelo`, `debug-calculo-cardapio`, `simulador-orcamento`,
-    `preparos`, `insumos`, `nocodb.ts` (só remover depois que ninguém
-    mais importar).
+- [x] Schema Drizzle das 6 tabelas faltantes + push no Oracle (aditivo).
+      Verificado ao vivo (2026-09-22, leitura só-schema): as 6 tabelas
+      existem no Oracle (`usuarios`, `contratos`, `cardapios_modelo`,
+      `cardapio_modelo_itens`, `hierarquia_proteina`,
+      `configuracoes_globais`, `orcamento_itens_adicionais`).
+- [~] ETL das tabelas novas (só carga em tabela vazia — não destrutivo).
+      4/6 carregadas (`cardapios_modelo`=6, `cardapio_modelo_itens`=90,
+      `hierarquia_proteina`=5, `configuracoes_globais`=1). `usuarios`
+      e `contratos` continuam em 0 — **intencional**, ficam pro passo
+      5 da Fase B (copiar preservando IDs, dentro da janela do corte).
+- [x] Flag `DATA_SOURCE=nocodb|oracle`, **default `nocodb`**.
+- [x] Migrar os 11 módulos de `src/lib/` pra Drizzle atrás da flag.
+      Grupo A e Grupo B migrados, leitura com paridade validada (ver
+      tabela em `docs/PENDENCIAS_NOTURNAS.md`). `nocodb.ts` continua
+      instalado: o modo `nocodb` (default e rollback) ainda o usa.
+      Escrita dos módulos do Grupo B **não validada contra banco**
+      (smoke test supervisionado fica pra Fase B).
 - [x] Modo "truncate + reload" do ETL com trava `--confirmo-producao`
       (`scripts/etl-corte-producao.ts`, commit `4148bb7`). Só o dry-run e
       as recusas das travas foram exercitados; **nunca executado com escrita**.
-- [ ] Confirmar backup do Oracle (snapshot da instância + `pg_dump`
-      diário off-site) — item do ADR ainda **pendente de confirmação**.
+- [x] Confirmar backup do Oracle (snapshot da instância + `pg_dump`
+      diário off-site). Snapshot: com o Pedro no console OCI. `pg_dump`:
+      cron 03:30 no "ender" rodou sozinho pela 1ª vez em 2026-09-22
+      (`ultimo-status.txt` = OK, 18 tabelas, upload confirmado no Drive).
 - [ ] Substituir o placeholder do Modo de Preparo da Costela (Id 32) em
-      NocoDB e Oracle.
+      NocoDB e Oracle. Precisa do texto real da receita — não inventado
+      aqui (regra "NÃO INVENTE"); pendente do Pedro.
 - [x] Teste dos cálculos de referência pelo endpoint real do app
       (`scripts/paridade-endpoint.ts`, 2026-09-21: 54/54 preparos, 0
       divergências — ver docs/PENDENCIAS_NOTURNAS.md).
