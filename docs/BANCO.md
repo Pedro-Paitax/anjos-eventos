@@ -2,388 +2,302 @@
 
 ## Banco principal
 
-O banco de dados central do sistema é PostgreSQL.
+O banco de dados central do sistema é **PostgreSQL**, acessado via **Drizzle ORM** (`src/db/schema/*.ts`, migrations em `drizzle/`).
 
-O NocoDB funciona como interface administrativa sobre o PostgreSQL.
+> **Atualização 2026-09-22 — corte de produção concluído.** O NocoDB deixou
+> de ser a fonte de dados em produção (`docs/CHECKLIST_CORTE_PRODUCAO.md`).
+> Produção roda com `DATA_SOURCE=oracle`, banco em PostgreSQL no Oracle
+> Cloud. O NocoDB e o Postgres local ("ender") continuam ligados só como
+> janela de observação/rollback (Fase C, em andamento) — não escrever
+> nenhum código novo assumindo NocoDB como fonte de verdade. Em
+> desenvolvimento local, o default de `DATA_SOURCE` continua `"nocodb"`
+> (`src/lib/data-source.ts`) até que o Postgres local de dev tenha os
+> mesmos dados carregados.
+>
+> Esta versão do documento foi reescrita a partir do schema Drizzle real
+> (`src/db/schema/*.ts`, `drizzle/0000_hot_madame_hydra.sql`,
+> `drizzle/0001_tabelas_faltantes.sql`, `database/init/01..06.sql`), não do
+> NocoDB. A versão anterior (corrigida em 2026-09-08 contra o NocoDB) está
+> obsoleta — o NocoDB é fonte legada, não a fonte de verdade do schema.
+> Ver `docs/schema-fisico-detalhado.md` para o racional de design de cada
+> tabela (por que cada tipo/constraint foi escolhido, lacunas resolvidas
+> durante o desenho).
 
-Antes de alterar estruturas ou operações relacionadas ao banco, o agente deve verificar o schema existente.
-
-> Esta versão do documento foi corrigida em 2026-09-08 a partir do schema
-> real (`GET /api/v2/meta/tables/...` e `GET /api/v2/meta/bases/.../tables`
-> no NocoDB), não de memória. Nomes de campo, opções de select e presença/
-> ausência de campos foram todos conferidos contra o banco vivo. Onde a
-> versão anterior deste documento divergia do banco real, a divergência é
-> sinalizada explicitamente abaixo (não foi corrigida em silêncio).
-
----
-
-# Tabelas principais
-
-## Empresas
-
-ID da tabela: `m3op8f60x747yun`
-
-| Campo | Tipo |
-|---|---|
-| Title | Single line text |
-| Eventos | Link → Eventos (um-para-muitos) |
-| Orcamentos | Link → Orcamentos (um-para-muitos) |
-
-**Divergência com versão anterior:** o campo de nome era documentado como
-`Nome`. No banco real o campo se chama `Title`.
+Antes de alterar estruturas ou operações relacionadas ao banco, o agente deve verificar o schema existente (código Drizzle + `information_schema` do Postgres real, quando houver acesso).
 
 ---
 
-## Eventos
+# Núcleo existente (`src/db/schema/nucleo-existente.ts`)
 
-ID da tabela: `mu7rs9mid43zhlm`
+Tabelas que já existiam fisicamente no Postgres local (`database/init/01..06.sql`) antes da migração do catálogo — nunca estiveram no NocoDB. Migradas para o Oracle no corte de produção preservando a mesma estrutura.
 
-| Campo | Tipo |
-|---|---|
-| Cliente | Single line text |
-| Empresa | Link → Empresas |
-| Data_Evento | Date |
-| Tipo_Evento | Single select |
-| Num_Convidados | Number |
-| Status | Single select |
-| Observacoes | Long text |
-| Caminho_Contrato | Single line text |
-| Orcamentos | Link → Orcamentos (um-para-muitos) |
-| Itens_Eventos_Confirmados | Link → Itens_Eventos_Confirmado (muitos-para-muitos) |
+## `empresas`
 
-**Divergência com versão anterior:** os campos `Veiculo`,
-`Valor_Base_Por_Pessoa_Fechado`, `Desconto_Tipo`, `Desconto_Valor` e
-`Valor_Total_Fechado` estavam documentados aqui e **não existem** na tabela
-Eventos do banco real, nem são referenciados em nenhum arquivo de
-`src/` (busca confirmada). Isso bate parcialmente com a pendência de
-`docs/DECISOES.md` (seção "Motor logístico") sobre remover `Veiculo` — o
-campo já não existe mais no banco, então essa parte da pendência de
-execução parece já resolvida (não confirmado se foi removida
-deliberadamente ou nunca chegou a ser criada; vale conferir com o Pedro).
-Os campos financeiros (`Valor_Base_Por_Pessoa`, `Desconto_Tipo`,
-`Desconto_Valor`) existem, mas na tabela **Orcamentos**, não em Eventos —
-ver abaixo. Não existe hoje nenhum campo `Valor_Total_Fechado` em nenhuma
-tabela da base.
+| Coluna | Tipo | Constraints |
+|---|---|---|
+| id | serial | PK |
+| nome | text | NOT NULL, UNIQUE |
+| created_at | timestamp | default now() |
 
----
+## `usuarios`
 
-## Preparos
+| Coluna | Tipo | Constraints |
+|---|---|---|
+| id | serial | PK |
+| nome | text | NOT NULL, UNIQUE |
+| created_at | timestamp | default now() |
 
-ID da tabela: `m3yr136ykw6ju2w`
+Autenticação sem senha — ver seção "Autenticação" abaixo.
 
-| Campo | Tipo |
-|---|---|
-| Nome Do Preparo | Single line text |
-| Categoria | Single select |
-| Rendimento | Number |
-| UOM Rendimento | Single select |
-| Requisitos de Logística | Multi select |
-| Restrições | Multi select |
-| Modo de Preparo | Long text |
-| Minutes | Decimal |
-| Peso_Atratividade | Number |
-| Subcategoria_Proteina | Single select |
-| Porcao_Maxima_Individual | Decimal |
-| Macro_Categoria | Link → Headers_UI (nome do campo é enganoso — ver nota abaixo) |
-| Composição | Link → Composicao (um-para-muitos) |
-| Itens_Orcamentos | Link → Itens_Orcamento (muitos-para-muitos) |
-| Itens_Eventos_Confirmados | Link → Itens_Eventos_Confirmado (muitos-para-muitos) |
-| Cardapio_Modelo_Itens | Link → Cardapio_Modelo_Itens |
+## `eventos`
 
-Categorias (Single select `Categoria`):
+42 colunas (herdadas de `database/init/01-schema.sql` + `03-evento-detalhes.sql` + `04-evento-detalhes-empresa.sql` + `05-cardapio-categorias.sql` + `06-precificacao-cardapio.sql`).
 
-- Carnes
-- Entrada
-- Guarnições
-- Massas
-- Molhos
-- Saladas
-- Sobremesa
-- Bebidas
+| Coluna | Tipo | Constraints |
+|---|---|---|
+| id | serial | PK |
+| empresa_id | integer | FK → `empresas.id`, NOT NULL |
+| cliente | text | NOT NULL |
+| data_evento | timestamp | NOT NULL |
+| tipo_evento | text | — |
+| num_convidados | integer | **só existe no espelho do Oracle, não no Postgres local** (dívida herdada, remoção planejada, ver nota no código) |
+| status | text | NOT NULL, default `'orcado'`, CHECK IN (`orcado`, `confirmado`, `realizado`, `cancelado`) |
+| valor | numeric(10,2) | — |
+| observacoes | text | — |
+| created_at / updated_at | timestamp | default now() |
+| detalhes | jsonb | — |
+| qtd_adultos, qtd_criancas_ate_5, qtd_criancas_5_a_10, qtd_fornecedores | integer | — |
+| cardapio_carnes, cardapio_acompanhamentos, cardapio_saladas, cardapio_bebidas, cardapio_entrada, cardapio_sobremesa | text | — |
+| preco_pessoa, preco_crianca_meia, valor_garcom, taxa_deslocamento | numeric(10,2) | — |
+| qtd_garcons, qtd_churrasqueiros, qtd_copeiras, quantidade_copeira_sugerida | integer | — |
+| custo_copeira_total, custo_assador_total | numeric(10,2) | uso interno (Margem Real) — nunca exibidos ao cliente |
+| contato, telefone, endereco_evento | text | — |
+| hora_chegada_equipe, hora_aperitivo, hora_almoco, hora_encerramento | time | — |
+| prazo_pagamento | date | — |
+| chave_pix | text | — |
+| caminho_contrato | text | — |
+| regiao_metropolitana_curitiba | boolean | controla `Taxa_Deslocamento` (R$250 vs R$0) |
 
-Unidades de rendimento (Single select `UOM Rendimento`):
+Índices: `empresa_id`, `data_evento`, `status`.
 
-- Unidade
-- KG
-- ML
-- Pessoas
-- G
+**Campo `Veiculo` (motor logístico)**: removido — decisão DESCARTADA em `docs/DECISOES.md` ("Motor logístico"), confirmado ausente tanto no Postgres quanto no schema real.
 
-Requisitos de Logística (Multi select):
+## `contratos`
 
-- Finalizado na Brasa
-- Finalizado na Panela
-- Finalizado no Forno
-- Precisa de Bisnaga
-- Precisa de Descartável
-- Réchaud Quadrado
-- Réchaud Redondo
-- Servido Frio
-- Servido Quente
-- Taça de Mesa de Vidro
-- Travessa (Salada)
-- Maçarico
-- Tábua pra Frios
-- Espetos
-- Taça de 170Ml Descartavel
-- Parrilha
-- Jarras
+| Coluna | Tipo | Constraints |
+|---|---|---|
+| id | serial | PK |
+| evento_id | integer | FK → `eventos.id`, ON DELETE CASCADE, NOT NULL |
+| arquivo_pdf | text | NOT NULL |
+| dados_extraidos_raw | jsonb | — |
+| confirmado_por | text | — |
+| confirmado_em | timestamp | — |
+| created_at | timestamp | default now() |
 
-Restrições (Multi select):
-
-- Sem Gluten
-- Sem Lactose
-- Vegano
-- Vegetariano
-
-Subcategoria_Proteina (Single select):
-
-- Carne Vermelha
-- Ovino
-- Suíno
-- Peixe
-- Aves
-
-**Divergência com versão anterior:**
-- `Apresentação/Utensílio` (single line text) não existe. O campo real
-  equivalente é `Requisitos de Logística` (multi select, lista fixa acima).
-- `Tags` (multi select livre) não existe. O campo real com esse papel é
-  `Restrições` (multi select, lista fixa de 4 opções — não é uma tag
-  genérica).
-- `Peso_Medio_Unidade_G` não existe na tabela.
-- `Categoria` tinha `Massas` fora da lista documentada — corrigido acima.
-- `Unidade_Rendimento` é o nome documentado; o campo real chama-se
-  `UOM Rendimento` e tem duas opções a mais (`KG`, `Pessoas`) além de
-  G/ML/Unidade.
-- **Achado não documentado antes:** existe um campo de link chamado
-  `Macro_Categoria` em Preparos, mas ele liga a **Headers_UI**, não a
-  Macro_Categorias — o nome do campo é enganoso (confirmado também em
-  comentário de código, `src/lib/dimensionamento-cardapio.ts:19`). A
-  Macro_Categoria de um preparo é resolvida indiretamente: Preparo →
-  Headers_UI (este campo) → Headers_UI.Macro_Economias → Macro_Categorias.
-  Um preparo sem esse link não aparece no motor de dimensionamento nem no
-  simulador (fica em `itens_excluidos`).
-- **Achado de processo:** `src/lib/preparos.ts` (`criarPreparo`/
-  `atualizarPreparo`, usados pela tela de cadastro) não grava esse link
-  Preparo→Headers_UI. Um preparo criado só pela tela de cadastro atual
-  fica sem macro-categoria resolvida até alguém vincular manualmente pelo
-  NocoDB (ou por chamada direta à API de Links).
+Índice: `evento_id`.
 
 ---
 
-## Insumos
+# Catálogo e Orçamento (`src/db/schema/preparos.ts`, `insumos.ts`, `composicao.ts`, `cardapio-referencia.ts`, `orcamentos.ts`, `catalogo-complementar.ts`)
 
-ID da tabela: `m2ll6qtupa1q1il`
+Migradas via `drizzle/0000_hot_madame_hydra.sql` (7 tabelas) + `drizzle/0001_tabelas_faltantes.sql` (6 tabelas). Espelham o antigo schema do NocoDB, com nomes/tipos revisados — ver `docs/schema-fisico-detalhado.md` para o racional completo de cada decisão de tipo/constraint.
 
-| Campo | Tipo |
-|---|---|
-| Nome | Single line text |
-| UDM | Single select |
-| Custo Médio | Currency |
-| Rendimento (%) | Decimal |
-| Custo Total | Formula |
-| Composição | Link → Composicao (um-para-muitos) |
+## `preparos`
 
-UDM (Single select):
+| Coluna | Tipo | Constraints |
+|---|---|---|
+| id | serial | PK |
+| nome_preparo | text | NOT NULL |
+| categoria | enum `categoria_preparo` (Bebidas, Carnes, Entrada, Guarnições, Massas, Molhos, Saladas, Sobremesa) | NOT NULL |
+| rendimento | numeric(10,3) | NOT NULL |
+| unidade_rendimento | enum `unidade_rendimento` (G, ML, Unidade) | NOT NULL |
+| apresentacao_utensilio | text | nullable (texto livre — substitui o multi-select "Requisitos de Logística" do NocoDB) |
+| tags | enum `restricao_alimentar` (Vegano, Vegetariano, Sem Gluten, Sem Lactose), array | nullable |
+| modo_preparo | text | NOT NULL |
+| tempo_preparo_minutos | integer | nullable |
+| peso_atratividade | numeric(6,2) | nullable, **sem DEFAULT deliberadamente** — fail-fast se ausente (motor de dimensionamento) |
+| subcategoria_proteina | enum (Carne Vermelha, Ovino, Suíno, Peixe, Aves) | nullable, só preenchido quando `categoria = Carnes` |
+| porcao_maxima_individual | numeric(10,3) | nullable (Hard Cap) |
+| peso_medio_unidade_g | numeric(10,3) | nullable no schema, **obrigatório por validação de aplicação** quando `unidade_rendimento = Unidade` dentro de macro em g/ml |
 
-- KG
-- Litro
-- Maço
-- Unidade
+Categoria `Saladas` **não** foi dividida em Leves/Pesadas neste campo — só o agrupamento visual (`headers_ui` → `macro_categorias`) foi dividido, ver decisão "Divisão de Saladas Leves e Pesadas" em `docs/DECISOES.md`.
 
-Fórmula de `Custo Total`:
+## `insumos`
 
-```text
-Custo Médio / Rendimento (%)
-```
+| Coluna | Tipo | Constraints |
+|---|---|---|
+| id | serial | PK |
+| nome | text | NOT NULL, UNIQUE |
+| unidade | enum `unidade_insumo` (KG, Litro, Unidade, Maço) | NOT NULL |
+| preco | numeric(10,4) | nullable (alguns insumos "grátis" têm preço vazio) — **já inclui margem interna de 10-15% sobre o custo de fornecedor**, não é preço bruto (ver `docs/DECISOES.md`) |
+| fator_correcao | numeric(4,3) | nullable — vazio ou 0 → custo tratado como R$0 (evita divisão por zero, `src/lib/custo-preparo.ts`) |
 
-Regra de borda: se `Rendimento (%)` for 0 ou `Custo Médio` estiver vazio, o
-custo deve ser tratado como R$0 para evitar divisão por zero (implementado
-em `src/lib/custo-preparo.ts`, `calcularCustoTotalComposicao`).
+"Preço Corrigido" não é coluna física — calculado em runtime em `src/lib/custo-preparo.ts`, deliberadamente (evita duas fontes de verdade divergentes).
 
-**Divergência com versão anterior:** os nomes documentados (`Unidade`,
-`Preco`, `Fator de Correção`, `Preço Corrigido`) não existem. Os campos
-reais são `UDM`, `Custo Médio`, `Rendimento (%)` e `Custo Total`
-respectivamente — mesmo papel/fórmula, nomes diferentes.
+## `composicao`
+
+| Coluna | Tipo | Constraints |
+|---|---|---|
+| id | serial | PK |
+| quantidade | numeric(10,4) | NOT NULL — mesma unidade comercial do Insumo referenciado, nunca convertida |
+| insumo_id | integer | FK → `insumos.id`, NOT NULL, sem regra de ON DELETE explícita (efeito prático = RESTRICT) |
+| preparo_id | integer | FK → `preparos.id`, ON DELETE CASCADE, NOT NULL |
+
+## `macro_categorias`
+
+| Coluna | Tipo | Constraints |
+|---|---|---|
+| id | serial | PK |
+| nome_macro | text | NOT NULL, UNIQUE |
+| capacidade_teto | numeric(8,2) | NOT NULL |
+| unidade | enum `unidade_macro` (g, ml) | NOT NULL |
+
+## `headers_ui`
+
+| Coluna | Tipo | Constraints |
+|---|---|---|
+| id | serial | PK |
+| nome_exibicao | text | NOT NULL, UNIQUE |
+| macro_categoria_id | integer | FK → `macro_categorias.id`, NOT NULL |
+
+## `header_preparo` (junção N:N nativa)
+
+| Coluna | Tipo | Constraints |
+|---|---|---|
+| header_ui_id | integer | FK → `headers_ui.id`, ON DELETE CASCADE |
+| preparo_id | integer | FK → `preparos.id`, ON DELETE CASCADE |
+
+PK composta (`header_ui_id`, `preparo_id`). No NocoDB essa relação era gerenciada internamente (tabela `nc_*`); aqui é uma tabela de junção própria.
+
+## `orcamentos`
+
+| Coluna | Tipo | Constraints |
+|---|---|---|
+| id | serial | PK |
+| evento_id | integer | FK → `eventos.id`, nullable (só preenchido quando o orçamento vira evento) |
+| empresa_id | integer | FK → `empresas.id`, NOT NULL |
+| cliente_nome | text | nullable |
+| num_convidados | integer | NOT NULL |
+| status | enum `status_orcamento` (Simulação, Enviado, Aceito, Recusado) | NOT NULL |
+| desconto_tipo | enum `desconto_tipo` (Percentual, Valor Fixo, Nenhum) | nullable |
+| desconto_valor | numeric(10,2) | nullable |
+| usar_preco_fixo_modelo | boolean | NOT NULL, default `false` — só `true` quando um Cardápio Modelo com preço fixo foi carregado |
+| criado_em / atualizado_em | timestamp | NOT NULL, default now() (atualizado pela aplicação, sem trigger de banco) |
+
+`Valor_Base_Por_Pessoa` **não existe** — removido deliberadamente (decisão "Arquitetura Financeira do Orçamento" / Lacuna 1, `docs/DECISOES.md`). `Valor_Sugerido_Por_Pessoa` nunca é persistido, sempre calculado em tempo real.
+
+## `itens_orcamento`
+
+| Coluna | Tipo | Constraints |
+|---|---|---|
+| id | serial | PK |
+| orcamento_id | integer | FK → `orcamentos.id`, NOT NULL, sem regra de ON DELETE explícita (comportamento padrão NO ACTION) |
+| preparo_id | integer | FK → `preparos.id`, ON DELETE RESTRICT, NOT NULL |
+
+Não armazena quantidade, porção nem Header_UI — tudo resolvido dinamicamente a cada cálculo.
+
+## `itens_evento_confirmados`
+
+Definição mínima — tabela fora do escopo original do desenho detalhado, existe para suportar o ON DELETE RESTRICT de `preparos` e o histórico de eventos confirmados.
+
+| Coluna | Tipo | Constraints |
+|---|---|---|
+| id | serial | PK |
+| evento_id | integer | FK → `eventos.id`, NOT NULL |
+| preparo_id | integer | FK → `preparos.id`, ON DELETE RESTRICT, NOT NULL |
+| orcamento_origem_id | integer | FK → `orcamentos.id`, nullable |
+| quantidade_confirmada | numeric(10,4) | NOT NULL |
+| custo_unitario_snapshot | numeric(10,4) | NOT NULL |
+
+Redesenho completo desta tabela segue pendente (marcado explicitamente no código como definição mínima).
+
+## `hierarquia_proteina`
+
+| Coluna | Tipo | Constraints |
+|---|---|---|
+| id | serial | PK |
+| subcategoria | enum (Carne Vermelha, Ovino, Suíno, Peixe, Aves) | NOT NULL |
+| peso_padrao | numeric(6,2) | NOT NULL |
+| origem_dado | enum `origem_dado` (Dado Operacional, Estimativa Heurística) | NOT NULL |
+
+Pesos vigentes: ver `docs/DECISOES.md`, seção "Hierarquia de proteínas" — fonte de verdade sobre os valores. `docs/REGRAS_NEGOCIO.md` reflete os mesmos valores.
+
+## `configuracoes_globais`
+
+Linha única (id=1) hoje.
+
+| Coluna | Tipo | Constraints |
+|---|---|---|
+| id | serial | PK |
+| tolerancia_troca_preco_fixo | numeric(10,2) | NOT NULL — hoje 1,99, ajustável sem deploy |
+
+## `cardapios_modelo`
+
+| Coluna | Tipo | Constraints |
+|---|---|---|
+| id | serial | PK |
+| nome | text | NOT NULL |
+| descricao | text | nullable |
+| preco_fixo_por_pessoa | numeric(10,2) | nullable — nulo = cardápio sob cálculo dinâmico (custo × 1,40) |
+
+## `cardapio_modelo_itens`
+
+| Coluna | Tipo | Constraints |
+|---|---|---|
+| id | serial | PK |
+| cardapio_modelo_id | integer | FK → `cardapios_modelo.id`, ON DELETE CASCADE, NOT NULL |
+| preparo_id | integer | FK → `preparos.id`, NOT NULL |
+
+## `orcamento_itens_adicionais`
+
+| Coluna | Tipo | Constraints |
+|---|---|---|
+| id | serial | PK |
+| descricao | text | NOT NULL |
+| valor | numeric(10,2) | NOT NULL |
+| orcamento_id | integer | FK → `orcamentos.id`, NOT NULL, sem regra de ON DELETE explícita |
+
+Representa receita adicional cobrada do cliente — ver `docs/REGRAS_NEGOCIO.md`.
 
 ---
 
-## Composicao
+# Regras de ON DELETE (resumo)
 
-ID da tabela: `mj1muse0q0pjli8`
+| Tabela filha | FK | Regra |
+|---|---|---|
+| `contratos.evento_id` | → `eventos` | CASCADE |
+| `composicao.preparo_id` | → `preparos` | CASCADE |
+| `composicao.insumo_id` | → `insumos` | NO ACTION (efeito = RESTRICT) |
+| `header_preparo.*` | → `headers_ui` / `preparos` | CASCADE (ambos os lados) |
+| `itens_orcamento.preparo_id` | → `preparos` | RESTRICT |
+| `itens_orcamento.orcamento_id` | → `orcamentos` | NO ACTION (não formalizado — candidato a CASCADE, ver `docs/schema-fisico-detalhado.md` Lacuna 5) |
+| `itens_evento_confirmados.preparo_id` | → `preparos` | RESTRICT |
+| `cardapio_modelo_itens.cardapio_modelo_id` | → `cardapios_modelo` | CASCADE |
+| `orcamento_itens_adicionais.orcamento_id` | → `orcamentos` | NO ACTION (não formalizado) |
+| `eventos.empresa_id` | → `empresas` | NO ACTION |
 
-| Campo | Tipo |
-|---|---|
-| Quantidade | Decimal |
-| Insumo | Link → Insumos |
-| Preparo | Link → Preparos |
-| Resumo | Formula (`CONCAT({Insumo}, " : ", {Quantidade})`) |
-
-`Quantidade` é expressa na mesma unidade (`UDM`) cadastrada no Insumo
-vinculado (ex.: se o Insumo está em KG, `Quantidade` é em kg, não em
-gramas).
-
----
-
-## Hierarquia_Proteina
-
-ID da tabela: `mmzb31uy5dbo7g7`
-
-Tabela de referência fixa.
-
-| Campo | Tipo |
-|---|---|
-| Subcategoria | Single select (Carne Vermelha, Ovino, Suíno, Peixe, Aves) |
-| Peso_Padrao | Decimal |
-| Origem_Dado | Single select (Dado Operacional, Estimativa Heurística) |
-
-Os valores atuais de `Peso_Padrao` devem ser lidos diretamente do NocoDB
-antes de qualquer decisão — `docs/DECISOES.md` e `docs/REGRAS_NEGOCIO.md`
-registram dois conjuntos de pesos diferentes entre si (divergência de
-documentação já sinalizada, não corrigida aqui: este documento trata só de
-nomes/tipos de campo, não da regra de negócio em si).
+`eventos` (hard delete via `src/lib/eventos.ts`, `DELETE FROM eventos`) hoje não tem restrição por status — ver `docs/REGRAS_NEGOCIO.md` seção 3.
 
 ---
 
-## Macro_Categorias
+# Autenticação
 
-ID da tabela: `me1h77whhyj9ghj`
-
-| Campo | Tipo |
-|---|---|
-| Nome_Macro | Single line text |
-| Capacidade_Categoria | Decimal |
-| UOM | Single select |
-| Headers_UI | Link → Headers_UI (muitos-para-muitos) |
-
-UOM (Single select):
-
-- g
-- ml
-- un
-
-**Divergência com versão anterior:** o campo de teto era documentado como
-`Capacidade_Teto`. O campo real chama-se `Capacidade_Categoria`. A lista de
-UOM também tinha só `g`/`ml`; o banco real também tem `un`.
+Não há senha. `usuarios` só armazena `id`/`nome`. Login é seleção de nome (`/login`), grava cookie `usuario_atual` httpOnly, `secure: false` (deliberado — app roda HTTP puro sobre Tailscale, `src/lib/usuario-atual.ts`). Sem middleware global; cada Server Action decide via `obterUsuarioAtual()`.
 
 ---
 
-## Headers_UI
+# Histórico / snapshots
 
-ID da tabela: `m1wg9dhlf23jby6`
-
-| Campo | Tipo |
-|---|---|
-| Nome_Exibicao | Single line text |
-| Macro_Economias | Link → Macro_Categorias (muitos-para-um; nome do campo também é enganoso, ver nota) |
-| Preparos | Link → Preparos (um-para-muitos) |
-| Itens_Orcamentos | Link → Itens_Orcamento (muitos-para-muitos) |
-
-Existe relação muitos-para-muitos com Preparos (via o campo `Macro_Categoria`
-de Preparos, que na prática aponta pra cá).
-
-**Nota:** o campo de link para Macro_Categorias dentro de Headers_UI se
-chama `Macro_Economias`, não `Macro_Categoria` — mais um nome de campo que
-não corresponde ao conceito de negócio que representa. Ver
-`src/lib/dimensionamento-cardapio.ts:20`.
-
----
-
-## Orcamentos
-
-ID da tabela: `mpobqls8ibt3ay3`
-
-Não estava documentada na versão anterior deste arquivo.
-
-| Campo | Tipo |
-|---|---|
-| Cliente_Nome | Single line text |
-| Evento | Link → Eventos |
-| Empresa | Link → Empresas |
-| Num_Convidados | Number |
-| Status | Single select |
-| Criado_Em | Created time |
-| Atualizado_Em | Last modified time |
-| Itens_Orcamentos1 | Link → Itens_Orcamento (um-para-muitos) |
-| Itens_Eventos_Confirmados | Link → Itens_Eventos_Confirmado (muitos-para-muitos) |
-| Valor_Base_Por_Pessoa | Decimal |
-| Desconto_Tipo | Single select (Percentual, Valor Fixo, Nenhum) |
-| Desconto_Valor | Decimal |
-| Orcamento_Itens_Adicionais | Link → Orcamento_Itens_Adicionais |
-
-Estes três últimos campos correspondem à decisão "Arquitetura Financeira do
-Orçamento" em `docs/DECISOES.md` (lá registrada como "schema pendente de
-criação") — o schema já existe no banco real; vale atualizar o status dessa
-decisão se/quando o Pedro confirmar.
-
----
-
-## Itens_Orcamento
-
-ID da tabela: `m4tc69znld4pmxa`
-
-Não estava documentada na versão anterior deste arquivo.
-
-| Campo | Tipo |
-|---|---|
-| Orcamento | Link → Orcamentos |
-| Preparo | Link → Preparos (muitos-para-muitos) |
-| Header_UI | Link → Headers_UI (muitos-para-muitos) |
-
----
-
-## Orcamento_Itens_Adicionais
-
-ID da tabela: `m8hw626eihfsnzs`
-
-Não estava documentada na versão anterior deste arquivo.
-
-| Campo | Tipo |
-|---|---|
-| Descricao | Single line text |
-| Valor | Decimal |
-| Orcamento | Link → Orcamentos |
-
-Representa receita adicional cobrada do cliente — ver
-`docs/REGRAS_NEGOCIO.md` seção 13 (não confundir com
-Custos_Operacionais_Evento, que não foi localizada como tabela própria no
-schema atual).
+Ao confirmar um orçamento como evento, `itens_evento_confirmados` congela `quantidade_confirmada` e `custo_unitario_snapshot`. Esses valores não devem ser recalculados retroativamente por alterações futuras nos preços.
 
 ---
 
 # Regra de segurança
 
-Antes de:
+Antes de criar tabela, remover tabela, alterar coluna, alterar relacionamento, alterar tipo de campo ou alterar constraint:
 
-- criar tabela;
-- remover tabela;
-- alterar coluna;
-- alterar relacionamento;
-- alterar tipo de campo;
-- alterar fórmula;
+- consultar o schema Drizzle (`src/db/schema/*.ts`) e as migrations em `drizzle/`;
+- gerar migration via `drizzle-kit` (nunca DDL manual direto no Postgres de produção sem migration correspondente versionada);
+- verificar o banco real via `information_schema` quando houver acesso.
 
-o agente deve verificar o schema atual e a documentação.
-
-Nunca assumir que a documentação está mais atualizada que o banco sem
-verificar.
-
----
-
-# Histórico
-
-Quando um orçamento é confirmado como evento, determinadas informações
-devem ser congeladas para preservar o histórico.
-
-A tabela real é **Itens_Eventos_Confirmado** (ID `mw4uoldmjxp7bbe`), não
-`Itens_Evento_Confirmados` como o nome sugeria antes:
-
-| Campo | Tipo |
-|---|---|
-| Evento | Link → Eventos (muitos-para-muitos) |
-| Preparo | Link → Preparos (muitos-para-muitos) |
-| Orcamento_Origem | Link → Orcamentos (muitos-para-muitos) |
-| Quantidade_Confirmada | Number |
-| Custo_Unitario_Snapshot | Decimal |
-
-Esses valores representam o estado confirmado do evento e não devem ser
-recalculados retroativamente por alterações futuras nos preços.
+Nunca assumir que a documentação está mais atualizada que o schema Drizzle/banco real sem verificar.
