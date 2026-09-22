@@ -56,9 +56,9 @@ tem duas fases: **(A)** migrar os módulos pra Drizzle atrás de uma flag,
       diário off-site). Snapshot: com o Pedro no console OCI. `pg_dump`:
       cron 03:30 no "ender" rodou sozinho pela 1ª vez em 2026-09-22
       (`ultimo-status.txt` = OK, 18 tabelas, upload confirmado no Drive).
-- [ ] Substituir o placeholder do Modo de Preparo da Costela (Id 32) em
-      NocoDB e Oracle. Precisa do texto real da receita — não inventado
-      aqui (regra "NÃO INVENTE"); pendente do Pedro.
+- [x] Substituir o placeholder do Modo de Preparo da Costela (Id 32) em
+      NocoDB e Oracle. Texto real da receita fornecido pelo Pedro
+      (2026-09-22); gravado e conferido idêntico nos dois lados.
 - [x] Teste dos cálculos de referência pelo endpoint real do app
       (`scripts/paridade-endpoint.ts`, 2026-09-21: 54/54 preparos, 0
       divergências — ver docs/PENDENCIAS_NOTURNAS.md).

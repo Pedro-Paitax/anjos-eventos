@@ -902,7 +902,7 @@ tabelas novas vazias. **ETL das 6 tabelas NÃO autorizado** (aguarda o backup
 | `precificacao-evento` | só deixa de exigir token NocoDB no modo oracle | herda a paridade acima |
 | Grupo B `insumos` | migrado (leitura + escrita) | leitura **VALIDADA**: 122 = 122. Escrita NÃO validada contra banco |
 | Grupo B `cardapios-modelo` | migrado (leitura + escrita) | leitura **VALIDADA**: 6 cardápios e 90 itens idênticos. Escrita NÃO validada |
-| Grupo B `preparos` | migrado (leitura + escrita) | leitura **VALIDADA**: 54 preparos, listas por categoria e composição idênticas. Escrita NÃO validada; 2 incompatibilidades form x schema (abaixo) |
+| Grupo B `preparos` | migrado (leitura + escrita) | leitura **VALIDADA**: 54 preparos, listas por categoria e composição idênticas. Escrita NÃO validada contra banco (as 2 incompatibilidades form x schema foram resolvidas em código, abaixo) |
 | Grupo B `debug-calculo-cardapio` | migrado (só deixa de exigir token NocoDB no modo oracle; orquestra funções já migradas) | **VALIDADA** por equivalência: 7 fatias de cardápio modelo (6 cardápios), resultado idêntico campo a campo, 0 divergências, 0 inconclusivos. Amostra, não os ~90 itens: cardápio inteiro estoura o timeout de 5s do NocoDB, então a fatia é dividida até o NocoDB responder (1ª rodada: 1 fatia falhou só por timeout do NocoDB, não por valor) |
 | Grupo B `simulador-orcamento` | migrado (Lacuna 1: `valor_total_estimado` = valor sugerido por pessoa em tempo real × convidados, `Valor_Base_Por_Pessoa` ignorado; erro público genérico) | **sem dado para paridade de valor** (0 Orçamentos no Oracle, 1 placeholder no NocoDB). Só equivalência de "Orçamento inexistente": 404 idêntico nos dois modos |
 | `margem-orcamento` | migrado (Lacuna 1 aplicada, ver abaixo) | sem dado: 0 Orçamentos no Oracle, 1 placeholder no NocoDB. Não testado contra dado |
@@ -961,19 +961,25 @@ agora sobre dimensionamento/custo já migrados). Modo nocodb preservado
 literalmente. **Sem teste contra dado**: não há Orçamento real em nenhum dos
 lados.
 
-**Grupo B — escrita NÃO validada contra banco e 2 decisões do Pedro pendentes.**
-Só as leituras têm teste de equivalência (escrever em produção está fora do
-escopo autorizado). As escritas (`criar/atualizar/excluir` de preparo,
-cardápio modelo e insumo) foram implementadas em transação Drizzle, mas
-nunca executadas: validar num smoke test supervisionado, com backup, na
-Fase B. Em `preparos`, o formulário atual conflita com o schema novo, e o
-modo oracle **falha explicitamente** em vez de gravar errado:
-1. O formulário oferece unidade de rendimento `KG`/`Pessoas`; o enum novo só
-   tem `G`/`ML`/`Unidade`. Decidir: adicionar ao enum ou restringir o formulário.
-2. `modo_preparo` é NOT NULL no schema novo; o formulário aceita vazio (mesma
-   causa do caso da Costela). Decidir: obrigar no formulário ou tornar nullable.
-`apresentacao_utensilio` não faz parte do formulário e não é alterada em updates.
-`nocodb.ts` NÃO foi removido: o modo `nocodb` (default e rollback) ainda o usa.
+**Grupo B — escrita NÃO validada contra banco; as 2 decisões do Pedro sobre
+`preparos` foram tomadas e aplicadas (2026-09-22).** Só as leituras têm
+teste de equivalência (escrever em produção está fora do escopo
+autorizado). As escritas (`criar/atualizar/excluir` de preparo, cardápio
+modelo e insumo) foram implementadas em transação Drizzle, mas nunca
+executadas: validar num smoke test supervisionado, com backup, na Fase B.
+As duas incompatibilidades formulário×schema de `preparos` foram
+resolvidas no formulário, não no schema:
+1. `UNIDADES_RENDIMENTO_PREPARO` (`src/lib/preparos-opcoes.ts`) restrito a
+   `G`/`ML`/`Unidade` — `KG`/`Pessoas` removidos do `<select>`. Confirmado
+   ao vivo: 0 Preparos reais usavam `KG`/`Pessoas` (39 G, 8 Unidade, 7 ML).
+2. `modoPreparo` agora `required` no `<textarea>`
+   (`src/components/formulario-preparo.tsx`).
+As checagens em `paraLinhaOracle` (`src/lib/preparos.ts`) continuam como
+defesa em profundidade contra chamada direta da Server Action fora do
+formulário — não removidas, só o texto do erro atualizado (não citam mais
+"decisão pendente"). `apresentacao_utensilio` não faz parte do formulário e
+não é alterada em updates. `nocodb.ts` NÃO foi removido: o modo `nocodb`
+(default e rollback) ainda o usa.
 
 Aviso: `custo-preparo`/`dimensionamento` em modo oracle ignoram o token do
 NocoDB, mas o cache por tag (`/api/revalidate`, webhook do NocoDB) deixa de
@@ -1023,25 +1029,7 @@ continua apontando pro sistema antigo (`.env.local`, não alterado) —
 nenhum corte de produção foi feito. Eixo 2 continua ADIADO (ver seção
 acima desta mesma sessão).
 
-## 🔴 PRIORIDADE ALTA — Costela (Id 32) migrada com Modo de Preparo PLACEHOLDER, não a receita real
-
-Decisão do Pedro (2026-09-17, ele não tinha o texto real disponível no
-momento): preencher `Modo de Preparo` com um marcador explícito em vez
-de bloquear a migração indefinidamente. Texto gravado no NocoDB
-(Preparo Id 32) e — depois do `--write` — também no Oracle:
-
-> [PENDENTE - modo de preparo a ser preenchido pelo Pedro. Placeholder
-> inserido em 2026-09-16 para destravar a migração de dado; NÃO é a
-> receita real da Costela e não deve ser usado como referência de
-> cozinha até ser substituído.]
-
-**Ação pendente**: assim que o Pedro fornecer o texto real, substituir
-em DOIS lugares — NocoDB (Preparo Id 32) e Oracle (`UPDATE preparos SET
-modo_preparo = '...' WHERE id = 32`, já que o registro existe nos dois
-sistemas em paralelo até o corte final de produção). Não remover este
-item da lista até isso ser feito.
-
-## 🔴 Sessão 2026-09-17 (continuação) — --write bloqueado: "Costela" sem Modo de Preparo
+## Sessão 2026-09-17 (continuação) — --write bloqueado: "Costela" sem Modo de Preparo
 
 Autorizado o `--write`. Rodou, mas **falhou e fez rollback limpo**
 (transação única funcionou exatamente como desenhado — nada ficou
