@@ -42,6 +42,23 @@ a partir de agora.
 
 ---
 
+## Corte de Produção NocoDB → Oracle Cloud
+
+Status: IMPLEMENTADA (2026-09-22) — Fase C (observação) em andamento
+
+Corte de produção concluído: `DATA_SOURCE=oracle` em produção, app rodando
+via PM2 na VPS Oracle Cloud, banco PostgreSQL no Oracle como fonte real.
+Detalhes completos em `docs/CHECKLIST_CORTE_PRODUCAO.md`.
+
+NocoDB e o PostgreSQL local ("ender") continuam ligados como janela de
+observação/rollback (Fase C, 48-72h) — não são mais dependência de
+produção, apenas rede de segurança temporária. Desligamento definitivo
+do Postgres "ender" como fonte e configuração de snapshot de hardware da
+instância Oracle seguem PENDENTES de aprovação/confirmação do Pedro —
+não executar sem decisão explícita dele.
+
+---
+
 ## Stack
 
 Status: APROVADA
@@ -250,6 +267,22 @@ Não existe alternativa nativa mais segura disponível na plataforma atual.
 
 ---
 
+# Exclusão de Evento
+
+Status: APROVADA (2026-09-22, auditoria de documentação — comportamento
+existente confirmado como intencional, não gap de processo)
+
+A exclusão de evento (`src/lib/eventos.ts`, hard delete incondicional,
+acionada por `botao-excluir-evento.tsx`) não tem restrição por status —
+`orcado`, `confirmado`, `realizado` e `cancelado` são todos excludíveis
+da mesma forma. Confirmado pelo Pedro como comportamento intencional.
+
+Melhoria futura (não é requisito atual): considerar restringir ou exigir
+confirmação adicional para exclusão de eventos já `confirmado`/
+`realizado`. Não implementar sem nova decisão explícita.
+
+---
+
 # Garçom — RESOLVIDA (ver "Precificação por Cardápio Selecionado + Custo de Equipe Fixa")
 
 Status: RESOLVIDA
@@ -303,6 +336,16 @@ separadamente. O REVALIDATE_SECRET usado nos testes foi um valor de teste
 ("teste-local-nao-usar-em-producao") — trocar por segredo real gerado
 antes de configurar o webhook em produção.
 
+**Atualização 2026-09-22 (auditoria de documentação)**: com o corte de
+produção concluído, as edições relevantes de catálogo passam a acontecer
+no Oracle/Postgres, não mais no NocoDB — o webhook NocoDB →
+`/api/revalidate` provavelmente ficou obsoleto como gatilho de
+invalidação de cache. Proposta (não executada aqui — é mudança de
+infraestrutura, fora do escopo de uma auditoria de documentação):
+avaliar descomissionamento deste webhook e desenhar o gatilho de
+invalidação equivalente para escritas via Drizzle, quando o Pedro
+aprovar.
+
 ---
 
 # Arquitetura Financeira do Orçamento
@@ -333,6 +376,24 @@ Margem Projetada = Receita Projetada − Custo Projetado (nunca armazenada)
 Nenhuma rota destinada ao simulador público deve expor Custo Projetado nem
 qualquer dado de custo interno — ver seção "Contrato do Simulador de
 Orçamento" abaixo.
+
+---
+
+# Incidência de desconto sobre o orçamento
+
+Status: APROVADA (2026-09-22, auditoria de documentação)
+
+`Desconto_Aplicado` incide sobre o valor **já somado com os itens
+adicionais** (Valor_Sugerido_Por_Pessoa × Num_Convidados + Σ Itens
+Adicionais), não sobre o valor base isolado. Fecha a pendência
+sinalizada em comentário de código em `src/lib/margem-orcamento.ts`
+(`calcularDescontoAplicado`).
+
+Nota: o caminho legado NocoDB (`calcularReceitaNocodb`, em
+descontinuação) ainda aplica o desconto antes de somar os itens
+adicionais — divergência conhecida do caminho legado, não corrigida
+(fora do escopo desta auditoria de documentação; caminho sendo
+descontinuado junto com o NocoDB).
 
 ---
 

@@ -24,15 +24,24 @@ Sua responsabilidade é analisar e trabalhar com:
 
 Antes de qualquer análise relacionada ao banco, consulte:
 
-- `docs/BANCO.md`
+- `docs/BANCO.md` (schema Drizzle/PostgreSQL real)
+- `docs/schema-fisico-detalhado.md` (racional de design/lacunas)
+- `docs/DECISOES.md` (fonte de verdade de status/valores em caso de divergência)
 - `docs/REGRAS_NEGOCIO.md`
 - `docs/BRIEFING.MD`
+
+O acesso ao banco hoje é via Drizzle ORM (`src/db/schema/*.ts`, migrations
+em `drizzle/`), atrás da flag `DATA_SOURCE=nocodb|oracle`
+(`src/lib/data-source.ts`) — NocoDB é fonte legada, em descomissionamento
+(corte de produção concluído em 2026-09-22, ver
+`docs/CHECKLIST_CORTE_PRODUCAO.md`).
 
 Quando necessário, consulte também:
 
 - código em `src/`
-- arquivos em `database/`
-- configurações Docker
+- arquivos em `database/` (núcleo existente: empresas/usuarios/eventos/contratos)
+- migrations em `drizzle/`
+- configurações Docker (hoje só usadas para Postgres local de dev)
 
 ## Regra principal
 

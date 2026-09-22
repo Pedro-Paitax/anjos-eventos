@@ -105,9 +105,13 @@ Para tarefas médias ou grandes:
 
 # BANCO DE DADOS
 
-O banco central é PostgreSQL.
+O banco central é PostgreSQL, acessado via Drizzle ORM.
 
-O NocoDB é utilizado como interface administrativa sobre o PostgreSQL.
+O NocoDB foi a interface administrativa original, mas está sendo
+descontinuado: o corte de produção para PostgreSQL/Oracle Cloud direto
+foi concluído em 2026-09-22 (ver `docs/CHECKLIST_CORTE_PRODUCAO.md` e
+`docs/DECISOES.md`, seção "Corte de Produção NocoDB → Oracle Cloud").
+Não escrever código novo assumindo NocoDB como fonte de verdade.
 
 Antes de alterar banco ou código relacionado ao banco:
 

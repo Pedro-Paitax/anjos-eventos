@@ -1,36 +1,30 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Anjos Eventos
 
-## Getting Started
+Sistema interno de gestão de eventos, cardápios e orçamentos para três empresas do grupo:
 
-First, run the development server:
+- Buffet Senhor Churrasco
+- Anjos Cerimonial
+- Em Plena Natureza Chácara de Eventos
+
+Stack: Next.js (App Router) + TypeScript + Drizzle ORM + PostgreSQL.
+
+## Documentação
+
+A documentação do projeto vive em `docs/`. Comece por `docs/INDEX.md` — ele indica quais documentos são canônicos (fonte de verdade de arquitetura, banco e regras de negócio) e quais são material histórico.
+
+Regras de operação do agente (Claude Code) estão em `CLAUDE.md`.
+
+## Rodando localmente
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Variáveis de ambiente: ver `.env.example`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Testes:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+npx vitest run
+```
