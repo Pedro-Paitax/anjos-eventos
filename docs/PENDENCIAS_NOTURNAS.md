@@ -848,9 +848,11 @@ retenção de 30 dias. Conta de serviço descartada: sem cota em Drive pessoal.
   --list` -> upload -> conferência de tamanho no Drive; arquivo baixado do
   Drive lista as 18 tabelas e traz 54/122/236 linhas de preparos/insumos/
   composição (bate com o Oracle). Cron diário 03:30 no `ender` instalado.
-  **Falta a 1ª execução automática (2026-09-22 03:30)** confirmar
-  `~/backups-anjos-eventos/ultimo-status.txt` = OK. Retenção de 30 dias só
-  foi exercitada em dry-run (ainda não há arquivo com 30 dias).
+  **1ª execução automática confirmada (2026-09-22 03:31:50-03:00):**
+  `ultimo-status.txt` = `OK 2026-09-22T03:32:52-03:00
+  anjos-eventos-2026-09-22.dump (68090 bytes); 3 backup(s) no Drive`. Cron
+  funcionando sem intervenção. Retenção de 30 dias só foi exercitada em
+  dry-run (ainda não há arquivo com 30 dias).
   Sem alerta de falha: se o cron falhar, só se descobre lendo
   `ultimo-status.txt`/`backup.log`. Snapshot de hardware (OCI) segue com o
   Pedro no console.
