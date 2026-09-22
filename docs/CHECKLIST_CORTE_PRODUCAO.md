@@ -91,18 +91,26 @@ tem duas fases: **(A)** migrar os módulos pra Drizzle atrás de uma flag,
 6. [x] `scripts/verificar-eixo1-oracle.ts` — os 3 valores precisam bater.
        **Batem os 3**: Vinagrete R$16,96, Alcatra Grelhada R$64,93, Arroz
        Branco com Alho Crispy R$20,07.
-7. [ ] Mudanças de configuração (as únicas):
-   - `DATABASE_URL=postgresql://app_user:…@100.121.229.81:5432/app_db`
-     (`.env` do servidor / `docker-compose.yml`)
-   - `DATA_SOURCE=oracle`
-   - `NOCODB_API_TOKEN` **mantido** (rollback precisa dele)
-   - `.env.local` (dev) não muda
-8. [ ] Deploy da imagem já construída; container precisa alcançar o
-       Postgres do Oracle.
-9. [ ] Smoke test: login, Simulador, Criar Evento, Cardápios Feitos,
-       `/api/preparos/2/custo` = R$16,96.
-10. [ ] NocoDB e Postgres do ender **continuam ligados** (congelado, não
+7. [x] Mudanças de configuração (as únicas) — **sem Docker/nginx/domínio,
+       decisão do Pedro**: acesso só via nome Tailscale + porta, igual
+       ao padrão de `ender:3001`.
+   - `DATABASE_URL` apontando pro Oracle, `DATA_SOURCE=oracle`,
+     `NOCODB_API_TOKEN` mantido — nas `env` do `ecosystem.config.js` do
+     PM2 (não Docker, servidor não tinha Docker instalado).
+   - `.env.local` (dev) não muda.
+8. [x] Deploy via PM2 (build fora do servidor, no ender, a partir de
+       `git archive HEAD`). Sem Docker — servidor não tinha Docker
+       instalado; PM2 já estava presente de uma configuração anterior
+       nunca usada. `pm2 start` + `pm2 save`, processo `online`.
+9. [x] Smoke test: login (5 usuários, via Server Action real), Simulador
+       de Cardápio, Criar Evento, Cardápios Feitos — todos `200` com
+       conteúdo real. `/api/preparos/2/custo` = **R$16,96** (endpoint
+       real do app, não script). **Todos passaram.**
+10. [x] NocoDB e Postgres do ender **continuam ligados** (nada
         desligado).
+
+**Acesso ao app pós-corte: `http://oracle:3001`** (nome Tailscale
+MagicDNS do nó Oracle). **CORTE DE PRODUÇÃO CONCLUÍDO (2026-09-22).**
 
 ## Fase C — Observação (48–72h)
 

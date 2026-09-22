@@ -911,6 +911,67 @@ tabelas novas vazias. **ETL das 6 tabelas NÃO autorizado** (aguarda o backup
 | Grupo B `simulador-orcamento` | migrado (Lacuna 1: `valor_total_estimado` = valor sugerido por pessoa em tempo real × convidados, `Valor_Base_Por_Pessoa` ignorado; erro público genérico) | **sem dado para paridade de valor** (0 Orçamentos no Oracle, 1 placeholder no NocoDB). Só equivalência de "Orçamento inexistente": 404 idêntico nos dois modos |
 | `margem-orcamento` | migrado (Lacuna 1 aplicada, ver abaixo) | sem dado: 0 Orçamentos no Oracle, 1 placeholder no NocoDB. Não testado contra dado |
 
+**LOTE 4 DA FASE B EXECUTADO — DATA_SOURCE=oracle + DEPLOY + SMOKE TEST
+COMPLETO (2026-09-22, ~10:10, autorizado pelo Pedro). CORTE DE PRODUÇÃO
+CONCLUÍDO.**
+
+**Achado que mudou o escopo**: o checklist original pressupunha deploy
+via Docker ("build fora do servidor" + "container"), mas o servidor
+Oracle nunca teve Docker instalado — só Postgres nativo, Node 20 e PM2
+(instalados em sessão anterior, nunca usados). Não existia nginx, `git`
+nem porta de app aberta no firewall. Decisão do Pedro (2026-09-22):
+sem Docker, sem nginx, sem domínio — acesso só via nome Tailscale +
+porta (`oracle:3001`), igual ao padrão já usado pra `ender:3001` hoje.
+
+**Acesso SSH ao servidor Oracle**: até então nunca usado nesta migração
+por este agente. `Windows Lite BR` (usuário local) estava bloqueado pela
+política do Tailscale SSH; `opc@100.121.229.81` (usuário padrão de
+instância Oracle Cloud) funcionou após uma verificação adicional via
+navegador (aprovada pelo Pedro). O Tailscale SSH gerencia a chave do
+host pelo próprio tailnet — não há prompt clássico de fingerprint
+OpenSSH nesse modelo.
+
+**Deploy**: build feito no ender a partir de `git archive HEAD`
+(commit `4213a41`, checkout limpo, sem lixo do working tree) — mesmo
+padrão já usado por `scripts/paridade-endpoint.ts`. `npm ci
+--legacy-peer-deps` + `npm run build` (output `standalone`, já
+configurado em `next.config.ts`). Bundle (62MB: `server.js` +
+`node_modules` mínimo + `public` + `.next/static`) transferido via
+`scp` (não `rsync` — não instalado no ender) para
+`~/anjos-eventos-app/` no Oracle. `ecosystem.config.js` do PM2 criado
+com `DATABASE_URL` (Oracle, mesma do `.env`), `DATA_SOURCE=oracle`,
+`NOCODB_API_TOKEN` (mantido, pra rollback), `PORT=3001`,
+`HOSTNAME=0.0.0.0`. Firewall: nenhuma mudança necessária — `tailscale0`
+já estava na zona `trusted` (ACCEPT irrestrito) desde a configuração
+inicial do servidor. `pm2 start` + `pm2 save`: processo `online`, sem
+erros nos logs (`✓ Ready in 0ms`).
+
+**Smoke test completo (todos os itens pedidos pelo Pedro, via app real,
+não script)**:
+1. **Login**: `/login` lista os 5 usuários corretos (Pedrinho, Pedro,
+   Ivonete, Matheus, Nicolly). Server Action testada via `curl`
+   replicando o protocolo RSC exato do form (multipart + campo
+   `$ACTION_ID_...`) — `POST /login` com `usuarioId=2` devolveu
+   `303 See Other`, `Set-Cookie: usuario_atual=2`, `Location: /`.
+2. **Simulador de Cardápio** (`/simulador-cardapio`): `200`, conteúdo
+   real renderizado (campo Convidados, título Simulador).
+3. **Criar Evento** (`/agenda/novo`): `200`, lista as 3 empresas reais
+   (Buffet Senhor Churrasco, Anjos Cerimonial, Em Plena Natureza
+   Chácara de Eventos).
+4. **Cardápios Feitos** (`/cardapios-modelo`): `200`, os 6 cardápios
+   reais aparecem (Cardápio 01-05 + Costela Fogo de Chão).
+5. **`GET /api/preparos/2/custo`** (endpoint real do app, não script):
+   `{"preparo":"Vinagrete","custo_total_preparo":16.96,...}` —
+   **R$16,96, bate exatamente**.
+
+**Acesso final confirmado pro Pedro testar no navegador dele:
+`http://oracle:3001`** (nome Tailscale MagicDNS do nó Oracle,
+confirmado via `tailscale status`).
+
+**NocoDB e Postgres do ender continuam ligados**, como instruído — nada
+foi desligado. Desligamento só depois de 48-72h de estabilidade
+observada (Fase C do checklist), com aprovação do Pedro.
+
 **LOTE 3 DA FASE B EXECUTADO — usuarios/contratos copiados + Eixo 1
 validado (2026-09-22, ~09:44, autorizado pelo Pedro):** 5 `usuarios`
 copiados do Postgres local (`anjos-eventos-db`) pro Oracle preservando
