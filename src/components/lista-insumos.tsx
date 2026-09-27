@@ -3,7 +3,11 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { InsumoResumo } from "@/lib/insumos";
-import { calcularPrecoCorrigido, arredondarCentavos } from "@/lib/custo-preparo";
+
+// Preço corrigido já vem calculado do servidor (calcularPrecoCorrigido em
+// src/lib/custo-preparo.ts, que depende de "server-only" — não pode ser
+// importado num "use client"). Ver src/app/insumos/page.tsx.
+export type InsumoComPrecoCorrigido = InsumoResumo & { precoCorrigido: number };
 
 const campoFiltroClasse =
   "rounded-[2px] border border-paper-ink/20 bg-transparent px-3 py-2 text-sm text-paper-ink placeholder:text-paper-ink/40 focus:border-brass focus:outline-none";
@@ -13,18 +17,14 @@ function formatarReais(valor: number | null): string {
   return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
-function LinhaInsumo({ insumo }: { insumo: InsumoResumo }) {
-  const precoCorrigido = arredondarCentavos(
-    calcularPrecoCorrigido(insumo.preco, insumo.fatorCorrecao)
-  );
-
+function LinhaInsumo({ insumo }: { insumo: InsumoComPrecoCorrigido }) {
   return (
     <li className="flex flex-col gap-2 px-6 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
       <div>
         <p className="font-display text-lg italic">{insumo.nome}</p>
         <p className="text-sm text-paper-ink/70">
           {insumo.udm} · {formatarReais(insumo.preco)} · fator{" "}
-          {insumo.fatorCorrecao ?? "—"} · corrigido {formatarReais(precoCorrigido)}
+          {insumo.fatorCorrecao ?? "—"} · corrigido {formatarReais(insumo.precoCorrigido)}
         </p>
       </div>
       <Link
@@ -37,7 +37,7 @@ function LinhaInsumo({ insumo }: { insumo: InsumoResumo }) {
   );
 }
 
-export function ListaInsumos({ insumos }: { insumos: InsumoResumo[] }) {
+export function ListaInsumos({ insumos }: { insumos: InsumoComPrecoCorrigido[] }) {
   const [buscaNome, setBuscaNome] = useState("");
 
   const insumosFiltrados = useMemo(() => {

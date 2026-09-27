@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { obterUsuarioAtual } from "@/lib/usuario-atual";
 import { listarInsumosDetalhado } from "@/lib/insumos";
+import { calcularPrecoCorrigido, arredondarCentavos } from "@/lib/custo-preparo";
 import { CabecalhoPagina } from "@/components/cabecalho-pagina";
 import { ListaInsumos } from "@/components/lista-insumos";
 
@@ -10,7 +11,16 @@ export default async function InsumosPage() {
     redirect("/login");
   }
 
-  const insumos = await listarInsumosDetalhado();
+  const insumosDetalhado = await listarInsumosDetalhado();
+  // Preço corrigido calculado aqui (Server Component) porque
+  // calcularPrecoCorrigido depende de "server-only" — não pode ser
+  // importado no ListaInsumos ("use client").
+  const insumos = insumosDetalhado.map((insumo) => ({
+    ...insumo,
+    precoCorrigido: arredondarCentavos(
+      calcularPrecoCorrigido(insumo.preco, insumo.fatorCorrecao)
+    ),
+  }));
 
   return (
     <main className="venue-glow flex flex-1 flex-col items-center px-6 py-16">
