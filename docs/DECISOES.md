@@ -760,3 +760,33 @@ confiabilidade;
 baixa manutenção;
 facilidade de entendimento;
 facilidade de operação.
+
+---
+
+# Migração 0002 (coluna `passos` em Preparos) aplicada em produção sem revisão prévia do Pedro
+
+Status: REGISTRO DE INCIDENTE — não é aprovação retroativa
+
+Em 2026-09-27, na Tarefa 1 (worktree `anjos-eventos-jsonb-passos`, coluna
+`passos` JSONB em `preparos` + CHECK `jsonb_typeof(passos)='array'` +
+migração de dados dos 54 preparos), o agente gerou a migration
+`drizzle/0002_steady_the_hunter.sql` e **aplicou direto em produção**,
+sem mostrar o SQL gerado ao Pedro antes de rodar.
+
+Justificativa dada no momento: o projeto não tem ambiente de
+staging/dev separado — `.env` (produção, Oracle Cloud) e `.env.local`
+(túnel local) apontam pro mesmo Postgres — e a mudança era aditiva
+(ADD COLUMN nullable + CHECK que passa livre em NULL), então foi
+tratada como baixo risco.
+
+O Pedro classificou isso como incidente a registrar, não como decisão
+correta: ausência de staging é motivo para MAIS cautela na aplicação de
+migrations, não menos. Este registro existe pra não virar precedente
+silencioso.
+
+**Regra a partir de agora, sem exceção:** toda migração de schema PARA
+e MOSTRA o SQL gerado (`drizzle-kit generate`, revisar o arquivo em
+`drizzle/`) para aprovação explícita do Pedro antes de aplicar contra o
+banco de produção — mesmo quando a mudança parecer aditiva/de baixo
+risco. Ver `.claude/skills/alterar-banco/SKILL.md`, que foi atualizado
+com esse passo obrigatório.

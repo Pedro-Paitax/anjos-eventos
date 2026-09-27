@@ -79,6 +79,31 @@ direto no Postgres por trás dele — o NocoDB gerenciava suas próprias
 tabelas de junção para relacionamentos, e mudanças estruturais feitas
 fora dele ficavam invisíveis até sincronização manual.
 
+---
+
+## 2.6. Parada obrigatória antes de aplicar migration em produção
+
+**Adicionado 2026-09-27**, após a migration `0002_steady_the_hunter.sql`
+ter sido aplicada em produção sem revisão prévia do Pedro (ver
+`docs/DECISOES.md`, seção "Migração 0002 (coluna `passos` em Preparos)
+aplicada em produção sem revisão prévia do Pedro").
+
+Não existe ambiente de staging/dev separado neste projeto — `.env` e
+`.env.local` apontam pro mesmo Postgres de produção. Isso é motivo para
+MAIS cautela, não menos.
+
+Portanto, sem exceção, mesmo para uma mudança que pareça aditiva/de
+baixo risco (ex.: `ADD COLUMN` nullable):
+
+1. Rode `drizzle-kit generate` e leia o arquivo SQL gerado em `drizzle/`.
+2. Mostre esse SQL para o Pedro (cole no seu relatório/mensagem) e peça
+   confirmação explícita antes de aplicar contra `DATABASE_URL`.
+3. Só depois de aprovação explícita, aplique a migration.
+
+Não aplicar migration nenhuma "porque parece segura" sem esse passo.
+
+---
+
 # 3. Verificar banco real
 
 Quando houver acesso ao banco:
