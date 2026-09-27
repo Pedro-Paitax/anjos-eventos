@@ -4,6 +4,160 @@ Histórico das sessões autônomas. Pendências de sessões já revisadas pelo
 Pedro ficam marcadas como resolvidas; o que ainda depende dele fica em
 aberto, com prioridade.
 
+## Sessão 2026-09-27 (tarde/noite) — Preço Fixo + Exportação de Ficha Técnica — 2 tarefas, SEM deploy ainda
+
+Fila de 2 tarefas independentes pedida pelo Pedro, com dois freios
+inegociáveis: (1) parar e mostrar SQL antes de aplicar qualquer migration
+em produção; (2) só fazer deploy único ao final, depois de smoke test
+completo, revertendo pro backup anterior (sem tentar corrigir sozinho) se
+o smoke test falhar. **Nenhuma das duas tarefas precisou de migration de
+schema** — o primeiro freio não chegou a ser testado por essa via.
+**DEPLOY AINDA NÃO FEITO** — ver seção própria abaixo.
+
+### ⚠️ Achado inesperado: outra sessão do Claude Code rodando no mesmo diretório
+
+Logo no início, encontrei mudanças não commitadas em
+`src/components/seletor-cardapio.tsx`, `formulario-evento-churrasco.tsx`,
+`simulador-cardapio.tsx` e `simulador-cardapio/page.tsx` implementando
+quase exatamente a Tarefa 1 (mesmos nomes de variável, mesmos comentários)
+— e um dev server já rodando na porta 3000 (PID 11520/30896). Via
+`ListAgents`, encontrei 2 sessões-irmãs no mesmo diretório: `13-4e`
+(iniciada minutos antes desta conversa, oscilando entre "busy"/"idle" o
+tempo todo) e `anjos-eventos-31` (rodando há 7h, idle). A explicação mais
+provável: uma sessão anterior (antes do `/clear` que abriu esta conversa)
+já tinha recebido essa mesma instrução e implementado a Tarefa 1, mas não
+chegou a commitar antes do `/clear`. Mandei uma mensagem pra `13-4e`
+avisando o que encontrei e perguntando se estava mexendo ativamente nos
+mesmos arquivos — sem resposta até o fim desta sessão. **Risco real que o
+Pedro precisa saber**: se ele abriu duas sessões autônomas em paralelo
+pedindo a mesma tarefa, há risco de trabalho duplicado ou de uma sessão
+sobrescrever/conflitar com a outra. Não commitei nada até verificar (via
+`tsc`/`eslint`/`vitest`) que o código já presente estava correto e
+completo — estava. Recomendo ao Pedro confirmar quantas sessões
+autônomas estavam de fato rodando esta noite antes de assumir que só uma
+fila foi executada.
+
+### Tarefa 1 — Preço fixo do Cardápio Pré-Montado — CONCLUÍDA (código já estava pronto, só validei e commitei)
+
+Commit `30e5402`. Quando um Cardápio Modelo com `Preco_Fixo_Por_Pessoa`
+preenchido é selecionado (Criar Evento e Simulador de Cardápio), o campo
+"Preço por pessoa" é pré-preenchido com esse valor fixo em vez do valor
+dinâmico — permanece editável, pré-preenchido uma única vez ao aplicar o
+template (sem lógica de tolerância/quebra de pacote, conforme pedido
+explicitamente). Sem preço fixo no template, mantém o comportamento
+dinâmico de sempre. O Simulador de Cardápio **não tinha, até então,
+nenhum seletor de Cardápio Pré-Montado** (gap real — Etapa 3 do Motor de
+Pacotes Fixos estava pausada desde 2026-09-08, ver seção mais abaixo
+"AGUARDANDO RETOMADA") — adicionei o mesmo seletor que já existia em
+Criar Evento, e transformei "Preço Sugerido por Pessoa" (que lá era só
+texto read-only) num campo editável, no mesmo padrão.
+
+**Validação**: `tsc --noEmit` 0 erros, `eslint` 0 erros/warnings, `vitest
+run` 57 passed / 12 skipped (nenhuma regressão). **Não consegui validar no
+navegador** — ver "Bloqueio de ambiente" abaixo.
+
+**Decisão não pedida explicitamente, documentada pra revisão**: no
+Simulador, o "Total do evento" continua sempre vindo do motor (não
+recalculado a partir do "Preço por pessoa" editado manualmente) — mesmo
+comportamento que já existia em Criar Evento (lá o Valor Sugerido Total
+também nunca foi amarrado ao campo editável de preço por pessoa, é
+"apenas referência"). Não uni os dois porque `docs/DECISOES.md` já
+registra explicitamente que a fórmula de Total diverge por tela por
+design ("NÃO UNIFICAR").
+
+### Tarefa 2 — Exportação de Ficha Técnica por Evento — CÓDIGO CONCLUÍDO, mas com um gap real de dado que impede teste ponta a ponta
+
+Commit `547495f`. Botão "Exportar Fichas Técnicas" na tela do Evento
+(`src/app/agenda/[id]/page.tsx`), visível quando
+`itens_evento_confirmados` tem linhas pro evento. Abre
+`/agenda/[id]/fichas-tecnicas` (`target="_blank"`) — página HTML
+otimizada pra impressão (usa "Imprimir → Salvar como PDF" nativo do
+navegador, sem biblioteca de PDF nova — não precisei, o motivo de não
+precisar: é HTML simples com CSS de impressão, o `window.print()` do
+`BotaoImprimir` resolve). `src/lib/ficha-tecnica-evento.ts` calcula, por
+Preparo do cardápio confirmado:
+
+```
+Fator_Multiplicador = (Quantidade_Confirmada_do_Evento × 1,10) / Rendimento_Original
+```
+
+aplicado a cada linha de Composição, com Rendimento ajustado e Passos
+(JSONB, numerados por `ordem`) — cai pro texto bruto de `modo_preparo`
+quando o Preparo ainda não tem `passos` estruturado ou a validação Zod
+falha.
+
+**🔴 Gap real encontrado, não inventado nem contornado**: consultei o
+Postgres real (`SELECT count(*) FROM itens_evento_confirmados`) — **0
+linhas, para todos os eventos, hoje**. Confirmei também que nenhum código
+da aplicação escreve nessa tabela (só há uma checagem de
+`ON DELETE RESTRICT` em `src/lib/preparos.ts`) — não existe hoje nenhum
+fluxo de "confirmar orçamento → evento" que gere esses snapshots. Ou
+seja: **o botão "Exportar Fichas Técnicas" não vai aparecer pra nenhum
+evento real até esse fluxo existir**. Isso não é um bug da minha
+implementação — é uma lacuna de produto anterior a esta tarefa (a própria
+`docs/BANCO.md` já registrava "redesenho completo desta tabela segue
+pendente").
+
+**O que fiz em vez de inventar dado**: escrevi testes unitários
+(`src/lib/ficha-tecnica-evento.test.ts`, 5 testes, todos passando) com
+dados sintéticos pra validar a fórmula, o arredondamento, a ordenação de
+insumos e a validação/fallback dos passos. Também validei manualmente via
+`mcp__postgres__query` (só leitura) que o formato real das colunas
+(`preparos.rendimento`, `preparos.passos` JSONB, `composicao`/`insumos`)
+bate exatamente com o que o código espera, usando um Preparo real
+(Vinagrete, id 2) como referência de forma/shape — sem inserir nenhuma
+linha de teste no banco. **Não inseri dado sintético em
+`itens_evento_confirmados`** pra simular um "evento com cardápio
+confirmado" porque `.env`/`.env.local` apontam pro mesmo Postgres de
+produção (sem staging, mesmo motivo já registrado na memória de
+`alterar-banco`) — inserir uma linha fake nessa tabela seria escrever
+dado fictício em produção sem autorização, o que o `CLAUDE.md` proíbe
+("não crie valores fictícios"). **Pergunta pro Pedro**: quer que eu, numa
+próxima sessão, (a) insira e depois remova uma linha sintética de teste
+pra validar a tela ponta a ponta (com sua autorização explícita), ou (b)
+espere até existir um evento real confirmado por outro meio?
+
+**Validação**: `tsc --noEmit` 0 erros, `eslint` 0 erros/warnings, `vitest
+run` inclui os 5 testes novos, todos passando. **Não testei no navegador
+com um evento real** (pedido explicitamente pelo Pedro) — impossível hoje
+por causa do gap acima, e também bloqueado pelo problema de ambiente
+abaixo.
+
+### 🔴 Bloqueio de ambiente — dev server compartilhado quebrado (Turbopack + share de rede), não corrigido
+
+Ao tentar abrir o navegador pra testar as duas tarefas, o dev server já
+rodando na porta 3000 (de uma das sessões-irmãs) retornou erro 500 em
+qualquer rota:
+
+```
+TurbopackInternalError: failed to create junction point at
+"\\?\UNC\ender\Compartilhado\anjos_eventos\.next\dev\node_modules\pg-..."
+-> Acesso negado (os error 5)
+```
+
+Mesma classe de problema já registrada nesta sessão de memória em
+2026-09-15 (EPERM em `rmdir`/symlink no compartilhamento de rede Z:\ →
+`\\ender\Compartilhado\anjos_eventos`). Não tentei consertar (não é meu
+dev server, é de uma sessão-irmã, e reinstalar `node_modules`/apagar
+`.next` sem coordenar arriscava piorar o estado dela). Reportei no aviso
+que mandei pra `13-4e`. **Efeito prático**: não consegui abrir nenhuma
+tela no navegador nesta sessão — toda a validação das duas tarefas ficou
+em `tsc`/`eslint`/`vitest` + revisão manual de código + verificação
+direta no Postgres (só leitura), não em uso real da tela. Não afirmo que
+testei no navegador porque não testei.
+
+### Deploy — ainda NÃO feito, aguardando confirmação de infraestrutura
+
+Antes de rodar o deploy único combinado (só depois do smoke test
+completo, com reversão automática pro backup anterior em caso de falha),
+mandei um fork investigar se existe script de deploy/smoke
+test/rollback já estabelecido, pra não inventar um procedimento. Resposta
+ainda não chegou até o fim desta sessão — **deploy não foi tentado**. Se
+esta sessão encerrar antes de eu processar essa resposta, o próximo passo
+é: ler o relatório do fork, e só então decidir se dá pra rodar o deploy
+com segurança ou se falta peça (ex.: smoke test automatizado
+inexistente) que precisa da decisão do Pedro antes.
+
 ## Sessão 2026-09-16 (manhã) — ADR aplicado + schema Drizzle nativo desenhado (sem push, sem ETL)
 
 Continuação direta do bloqueio registrado logo abaixo. O Pedro enviou os
