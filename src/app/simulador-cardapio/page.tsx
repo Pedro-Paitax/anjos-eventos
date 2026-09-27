@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { obterUsuarioAtual } from "@/lib/usuario-atual";
 import { listarPreparosPorCategoria } from "@/lib/preparos";
+import { listarCardapiosModelo } from "@/lib/cardapios-modelo";
 import { CabecalhoPagina } from "@/components/cabecalho-pagina";
 import { SimuladorCardapio } from "@/components/simulador-cardapio";
 
@@ -11,6 +12,7 @@ export default async function SimuladorCardapioPage() {
   }
 
   const preparosPorCategoria = await listarPreparosPorCategoria();
+  const cardapiosModelo = await listarCardapiosModelo();
 
   return (
     <main className="venue-glow flex flex-1 flex-col items-center px-6 py-16">
@@ -22,7 +24,10 @@ export default async function SimuladorCardapioPage() {
         />
 
         <div className="rounded-[2px] bg-ink-soft/60 p-6 shadow-[0_20px_40px_-24px_rgba(0,0,0,0.6)]">
-          <SimuladorCardapio preparosPorCategoria={preparosPorCategoria} />
+          <SimuladorCardapio
+            preparosPorCategoria={preparosPorCategoria}
+            cardapiosModelo={cardapiosModelo}
+          />
         </div>
       </div>
     </main>

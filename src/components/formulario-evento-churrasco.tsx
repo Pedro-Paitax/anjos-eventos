@@ -9,7 +9,11 @@ import {
   paraInputTime,
 } from "@/lib/formatacao";
 import { campoClasse, rotuloClasse, secaoTituloClasse } from "@/components/formulario-evento";
-import { SeletorCardapio, VALOR_SALVO } from "@/components/seletor-cardapio";
+import {
+  SeletorCardapio,
+  paraValoresIniciaisCardapio,
+  type ValoresIniciaisCardapio,
+} from "@/components/seletor-cardapio";
 import { calcularPrecificacaoEventoAction } from "@/app/actions/precificacao";
 import { obterItensCardapioModeloAction } from "@/app/actions/cardapio-modelo";
 import type { CardapioModeloResumo } from "@/lib/cardapios-modelo";
@@ -32,8 +36,6 @@ function mensagemDeErro(resposta: { erro: string; mensagem?: string }): string {
   return resposta.mensagem ?? resposta.erro;
 }
 
-type ValoresIniciaisCardapio = Pick<Evento, (typeof VALOR_SALVO)[CategoriaCardapio]>;
-
 type FormularioEventoChurrascoProps = {
   empresaId: number;
   valoresIniciais?: Evento;
@@ -42,24 +44,6 @@ type FormularioEventoChurrascoProps = {
   action: (formData: FormData) => void;
   rotuloEnvio: string;
 };
-
-/** Monta um valoresIniciais sintético (Nome, ", "-joined por categoria) a
- * partir de uma lista de preparo_id — usado só pra pré-popular o seletor ao
- * escolher um Cardápio Pré-Montado, sem criar nenhum vínculo permanente. */
-function paraValoresIniciaisCardapio(
-  preparoIds: number[],
-  preparosPorCategoria: Record<CategoriaCardapio, Preparo[]>
-): ValoresIniciaisCardapio {
-  const idsSelecionados = new Set(preparoIds);
-  const resultado: Record<string, string | null> = {};
-  for (const categoria of Object.keys(VALOR_SALVO) as CategoriaCardapio[]) {
-    const nomes = preparosPorCategoria[categoria]
-      .filter((p) => idsSelecionados.has(p.id))
-      .map((p) => p.nome);
-    resultado[VALOR_SALVO[categoria]] = nomes.length > 0 ? nomes.join(", ") : null;
-  }
-  return resultado as ValoresIniciaisCardapio;
-}
 
 function paraNumero(texto: string): number {
   const valor = Number(texto);
@@ -115,6 +99,15 @@ export function FormularioEventoChurrasco({
   const [aplicandoTemplate, setAplicandoTemplate] = useState(false);
   const [erroTemplate, setErroTemplate] = useState<string | null>(null);
 
+  // Preço fixo do Cardápio Modelo selecionado (Preco_Fixo_Por_Pessoa), quando
+  // houver — pré-preenche "Preço por pessoa" no lugar do valor dinâmico, uma
+  // única vez ao aplicar o template. Continua editável; o recálculo dinâmico
+  // do servidor (abaixo) para de sobrescrever o campo enquanto este estiver
+  // preenchido. Intencionalmente simples: nenhuma lógica de tolerância/quebra
+  // de pacote ao editar itens depois (docs/REGRAS_NEGOCIO.md, seção 4 — fora
+  // de escopo desta etapa).
+  const [precoFixoSelecionado, setPrecoFixoSelecionado] = useState<number | null>(null);
+
   async function aplicarTemplate(idTexto: string) {
     const id = Number(idTexto);
     if (!id) return;
@@ -129,6 +122,14 @@ export function FormularioEventoChurrasco({
       }
       setCardapioBase(paraValoresIniciaisCardapio(resposta.preparoIds, preparosPorCategoria));
       setChaveSeletorCardapio((k) => k + 1);
+
+      const cardapioSelecionado = cardapiosModelo.find((c) => c.id === id);
+      if (cardapioSelecionado?.precoFixoPorPessoa != null) {
+        setPrecoPessoa(String(cardapioSelecionado.precoFixoPorPessoa));
+        setPrecoFixoSelecionado(cardapioSelecionado.precoFixoPorPessoa);
+      } else {
+        setPrecoFixoSelecionado(null);
+      }
     } catch {
       setErroTemplate("Falha ao carregar o cardápio pré-montado.");
     } finally {
@@ -180,7 +181,11 @@ export function FormularioEventoChurrasco({
             setItensExcluidos([]);
             return;
           }
-          setPrecoPessoa(String(resposta.resultado.valor_sugerido_por_pessoa));
+          // Preço fixo do Cardápio Modelo prevalece sobre o valor dinâmico —
+          // pré-preenchido uma vez em aplicarTemplate, não sobrescrito aqui.
+          if (precoFixoSelecionado == null) {
+            setPrecoPessoa(String(resposta.resultado.valor_sugerido_por_pessoa));
+          }
           setPrecoCriancaMeia(String(resposta.resultado.valor_sugerido_crianca));
           setValorSugeridoTotal(resposta.resultado.valor_sugerido_total_evento);
           setItensExcluidos(resposta.itensExcluidos);
@@ -200,6 +205,7 @@ export function FormularioEventoChurrasco({
     qtdAdultos,
     qtdCriancasAte5,
     qtdCriancas5a10,
+    precoFixoSelecionado,
   ]);
 
   const valorSugeridoTotalFormatado = valorSugeridoTotal.toLocaleString("pt-BR", {
@@ -508,7 +514,9 @@ export function FormularioEventoChurrasco({
         <p className="text-sm text-paper-dim">
           {calculandoPrecificacao
             ? "Calculando valor sugerido a partir do cardápio…"
-            : "Preço por pessoa e preço criança meia vêm do custo real do cardápio selecionado (+ 40%) — pré-preenchidos, mas editáveis."}
+            : precoFixoSelecionado != null
+              ? "Preço por pessoa pré-preenchido com o preço fixo do Cardápio Pré-Montado selecionado — editável."
+              : "Preço por pessoa e preço criança meia vêm do custo real do cardápio selecionado (+ 40%) — pré-preenchidos, mas editáveis."}
         </p>
         {precificacaoAtiva && erroPrecificacao && (
           <p className="text-sm text-ember">{erroPrecificacao}</p>

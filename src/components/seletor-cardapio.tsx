@@ -32,10 +32,29 @@ function dividir(valor: string | null | undefined): string[] {
 // Subconjunto de Evento que o seletor realmente usa — permite montar um
 // valoresIniciais sintético (ex.: a partir de um Cardápio Pré-Montado) sem
 // precisar de um Evento completo.
-type ValoresIniciaisCardapio = Pick<
+export type ValoresIniciaisCardapio = Pick<
   Evento,
   (typeof VALOR_SALVO)[CategoriaCardapio]
 >;
+
+/** Monta um valoresIniciais sintético (Nome, ", "-joined por categoria) a
+ * partir de uma lista de preparo_id — usado pra pré-popular o SeletorCardapio
+ * ao escolher um Cardápio Pré-Montado (Criar Evento e Simulador de
+ * Cardápio), sem criar nenhum vínculo permanente. */
+export function paraValoresIniciaisCardapio(
+  preparoIds: number[],
+  preparosPorCategoria: Record<CategoriaCardapio, Preparo[]>
+): ValoresIniciaisCardapio {
+  const idsSelecionados = new Set(preparoIds);
+  const resultado: Record<string, string | null> = {};
+  for (const categoria of Object.keys(VALOR_SALVO) as CategoriaCardapio[]) {
+    const nomes = preparosPorCategoria[categoria]
+      .filter((p) => idsSelecionados.has(p.id))
+      .map((p) => p.nome);
+    resultado[VALOR_SALVO[categoria]] = nomes.length > 0 ? nomes.join(", ") : null;
+  }
+  return resultado as ValoresIniciaisCardapio;
+}
 
 function selecaoInicial(valoresIniciais?: ValoresIniciaisCardapio): SelecaoCardapio {
   return Object.fromEntries(

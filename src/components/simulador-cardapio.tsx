@@ -4,8 +4,14 @@ import { useEffect, useState } from "react";
 import type { CategoriaCardapio, Preparo } from "@/lib/cardapio";
 import type { PrecificacaoResultado } from "@/lib/precificacao-cardapio";
 import { campoClasse, rotuloClasse, secaoTituloClasse } from "@/components/formulario-evento";
-import { SeletorCardapio } from "@/components/seletor-cardapio";
+import {
+  SeletorCardapio,
+  paraValoresIniciaisCardapio,
+  type ValoresIniciaisCardapio,
+} from "@/components/seletor-cardapio";
 import { calcularDebugCardapioAction, calcularPrecificacaoAction } from "@/app/actions/precificacao";
+import { obterItensCardapioModeloAction } from "@/app/actions/cardapio-modelo";
+import type { CardapioModeloResumo } from "@/lib/cardapios-modelo";
 import { calcularTaxaDeslocamento, sugerirQuantidadeGarcom, VALOR_GARCOM_PADRAO } from "@/lib/precificacao-constantes";
 
 type ResultadoDebug = Awaited<ReturnType<typeof calcularDebugCardapioAction>>;
@@ -33,14 +39,63 @@ function mensagemDeErro(resposta: { erro: string; mensagem?: string }): string {
 
 export function SimuladorCardapio({
   preparosPorCategoria,
+  cardapiosModelo,
 }: {
   preparosPorCategoria: Record<CategoriaCardapio, Preparo[]>;
+  cardapiosModelo: CardapioModeloResumo[];
 }) {
   const [numConvidados, setNumConvidados] = useState("");
   const [regiaoMetropolitana, setRegiaoMetropolitana] = useState(false);
   const [qtdGarcons, setQtdGarcons] = useState("");
   const [valorGarcom, setValorGarcom] = useState(String(VALOR_GARCOM_PADRAO));
   const [preparoIdsSelecionados, setPreparoIdsSelecionados] = useState<number[]>([]);
+
+  // "Começar de um Cardápio Pré-Montado": mesmo padrão do Criar Evento — só
+  // pré-popula o seletor (via remount, trocando a key), sem vínculo
+  // permanente. Ver formulario-evento-churrasco.tsx pro mesmo mecanismo.
+  const [cardapioBase, setCardapioBase] = useState<ValoresIniciaisCardapio | undefined>(
+    undefined
+  );
+  const [chaveSeletorCardapio, setChaveSeletorCardapio] = useState(0);
+  const [aplicandoTemplate, setAplicandoTemplate] = useState(false);
+  const [erroTemplate, setErroTemplate] = useState<string | null>(null);
+
+  // Preço por pessoa editável — pré-preenchido pelo cálculo dinâmico do
+  // servidor, ou pelo Preco_Fixo_Por_Pessoa do Cardápio Modelo selecionado,
+  // quando houver (docs/REGRAS_NEGOCIO.md, seção 4). Intencionalmente
+  // simples: sem lógica de tolerância/quebra de pacote ao editar itens
+  // depois — fora de escopo desta etapa.
+  const [precoPessoa, setPrecoPessoa] = useState("");
+  const [precoFixoSelecionado, setPrecoFixoSelecionado] = useState<number | null>(null);
+
+  async function aplicarTemplate(idTexto: string) {
+    const id = Number(idTexto);
+    if (!id) return;
+
+    setAplicandoTemplate(true);
+    setErroTemplate(null);
+    try {
+      const resposta = await obterItensCardapioModeloAction(id);
+      if ("erro" in resposta) {
+        setErroTemplate(resposta.erro);
+        return;
+      }
+      setCardapioBase(paraValoresIniciaisCardapio(resposta.preparoIds, preparosPorCategoria));
+      setChaveSeletorCardapio((k) => k + 1);
+
+      const cardapioSelecionado = cardapiosModelo.find((c) => c.id === id);
+      if (cardapioSelecionado?.precoFixoPorPessoa != null) {
+        setPrecoPessoa(String(cardapioSelecionado.precoFixoPorPessoa));
+        setPrecoFixoSelecionado(cardapioSelecionado.precoFixoPorPessoa);
+      } else {
+        setPrecoFixoSelecionado(null);
+      }
+    } catch {
+      setErroTemplate("Falha ao carregar o cardápio pré-montado.");
+    } finally {
+      setAplicandoTemplate(false);
+    }
+  }
 
   const [resultado, setResultado] = useState<PrecificacaoResultado | null>(null);
   const [calculando, setCalculando] = useState(false);
@@ -86,13 +141,26 @@ export function SimuladorCardapio({
           }
           setResultado(resposta.resultado);
           setItensExcluidos(resposta.itensExcluidos);
+          // Preço fixo do Cardápio Modelo prevalece sobre o valor dinâmico —
+          // pré-preenchido uma vez em aplicarTemplate, não sobrescrito aqui.
+          if (precoFixoSelecionado == null) {
+            setPrecoPessoa(String(resposta.resultado.valor_sugerido_por_pessoa));
+          }
         })
         .catch(() => setErro("Falha ao calcular o valor sugerido."))
         .finally(() => setCalculando(false));
     }, DEBOUNCE_MS);
 
     return () => clearTimeout(timer);
-  }, [simulacaoAtiva, preparoIdsSelecionados, numConvidadosNumero, regiaoMetropolitana, qtdGarcons, valorGarcom]);
+  }, [
+    simulacaoAtiva,
+    preparoIdsSelecionados,
+    numConvidadosNumero,
+    regiaoMetropolitana,
+    qtdGarcons,
+    valorGarcom,
+    precoFixoSelecionado,
+  ]);
 
   async function alternarCalculos() {
     if (mostrarCalculos) {
@@ -142,8 +210,38 @@ export function SimuladorCardapio({
         <p className="text-sm text-paper-dim">
           Puxando da base de fichas técnicas.
         </p>
+
+        {cardapiosModelo.length > 0 && (
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="cardapioModeloBase" className={rotuloClasse}>
+              Começar de um Cardápio Pré-Montado (opcional)
+            </label>
+            <select
+              id="cardapioModeloBase"
+              defaultValue=""
+              disabled={aplicandoTemplate}
+              onChange={(e) => aplicarTemplate(e.target.value)}
+              className={campoClasse}
+            >
+              <option value="">— Selecionar —</option>
+              {cardapiosModelo.map((cardapio) => (
+                <option key={cardapio.id} value={cardapio.id}>
+                  {cardapio.nome}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-paper-dim">
+              Só pré-preenche os itens abaixo — você ainda pode adicionar ou
+              remover livremente.
+            </p>
+            {erroTemplate && <p className="text-sm text-ember">{erroTemplate}</p>}
+          </div>
+        )}
+
         <SeletorCardapio
+          key={chaveSeletorCardapio}
           preparosPorCategoria={preparosPorCategoria}
+          valoresIniciais={cardapioBase}
           onSelecaoIdsChange={setPreparoIdsSelecionados}
         />
       </section>
@@ -231,6 +329,14 @@ export function SimuladorCardapio({
         )}
 
         {simulacaoAtiva && resultado && (
+          <p className="text-sm text-paper-dim">
+            {precoFixoSelecionado != null
+              ? "Preço por pessoa pré-preenchido com o preço fixo do Cardápio Pré-Montado selecionado — editável."
+              : "Preço por pessoa vem do custo real do cardápio selecionado (+ 40%) — pré-preenchido, mas editável."}
+          </p>
+        )}
+
+        {simulacaoAtiva && resultado && (
           <div className="grid grid-cols-2 gap-5 sm:grid-cols-4">
             <div className="flex flex-col gap-1.5">
               <p className={rotuloClasse}>Custo por Pessoa</p>
@@ -239,10 +345,18 @@ export function SimuladorCardapio({
               </p>
             </div>
             <div className="flex flex-col gap-1.5">
-              <p className={rotuloClasse}>Preço Sugerido por Pessoa</p>
-              <p className="font-display text-2xl italic text-paper">
-                {formatarMoeda(resultado.valor_sugerido_por_pessoa)}
-              </p>
+              <label htmlFor="precoPessoa" className={rotuloClasse}>
+                Preço por pessoa (R$)
+              </label>
+              <input
+                id="precoPessoa"
+                type="number"
+                min={0}
+                step="0.01"
+                value={precoPessoa}
+                onChange={(e) => setPrecoPessoa(e.target.value)}
+                className={campoClasse}
+              />
             </div>
             <div className="flex flex-col gap-1.5">
               <p className={rotuloClasse}>Criança (meia)</p>
