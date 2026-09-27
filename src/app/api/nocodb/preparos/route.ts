@@ -20,7 +20,7 @@ export async function GET() {
   if (!resposta.ok) {
     const texto = await resposta.text();
     return NextResponse.json(
-      { erro: `NocoDB respondeu ${resposta.status}`, detalhe: texto },
+      { erro: `Base de fichas técnicas respondeu ${resposta.status}`, detalhe: texto },
       { status: 502 }
     );
   }
