@@ -146,17 +146,31 @@ em `tsc`/`eslint`/`vitest` + revisão manual de código + verificação
 direta no Postgres (só leitura), não em uso real da tela. Não afirmo que
 testei no navegador porque não testei.
 
-### Deploy — ainda NÃO feito, aguardando confirmação de infraestrutura
+### Deploy — NÃO feito, decisão deliberada de não seguir sem confirmação de infraestrutura
 
 Antes de rodar o deploy único combinado (só depois do smoke test
 completo, com reversão automática pro backup anterior em caso de falha),
 mandei um fork investigar se existe script de deploy/smoke
-test/rollback já estabelecido, pra não inventar um procedimento. Resposta
-ainda não chegou até o fim desta sessão — **deploy não foi tentado**. Se
-esta sessão encerrar antes de eu processar essa resposta, o próximo passo
-é: ler o relatório do fork, e só então decidir se dá pra rodar o deploy
-com segurança ou se falta peça (ex.: smoke test automatizado
-inexistente) que precisa da decisão do Pedro antes.
+test/rollback já estabelecido, pra não inventar um procedimento. O fork
+ficou rodando mais de 25 minutos sem terminar (ambiente de rede lento,
+mesma classe de lentidão já registrada nesta sessão — um `Glob` chegou a
+dar timeout de 20s buscando `src/lib/*passos*`) — não recebi o relatório
+dele até o fim desta sessão. Encerrei a espera sem forçar o deploy sem
+essa informação: **deploy não foi tentado, decisão deliberada, não
+esquecimento**. Também notei, via `ListAgents`, um número crescente de
+sessões-irmãs e sub-agentes que eu não iniciei aparecendo no mesmo
+diretório ao longo da sessão (`observer-sessions-*`, um terceiro fork não
+lançado por mim) — sinal de que este ambiente tem bastante atividade
+concorrente fora do meu controle esta noite; mais um motivo pra não
+arriscar um deploy sem visibilidade total do que mais pode estar
+mexendo em produção ao mesmo tempo.
+
+**Próximo passo, quando o Pedro voltar**: confirmar manualmente (ou pedir
+pra eu confirmar numa sessão nova, sem concorrência) (1) se existe
+script/comando de deploy pro Oracle Cloud e smoke test automatizado já
+prontos, e (2) se as sessões-irmãs encontradas eram esperadas (múltiplas
+filas autônomas rodando de propósito) ou não. Só depois disso faz
+sentido tentar o deploy único das duas tarefas acima.
 
 ## Sessão 2026-09-16 (manhã) — ADR aplicado + schema Drizzle nativo desenhado (sem push, sem ETL)
 
