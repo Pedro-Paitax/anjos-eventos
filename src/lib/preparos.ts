@@ -12,6 +12,13 @@ const RENOMEAR_CATEGORIA: Record<string, string> = {
 
 const CATEGORIAS_EXCLUIDAS = new Set(["Molhos"]);
 
+function ordenarPorNome(vazio: Record<CategoriaCardapio, Preparo[]>) {
+  for (const categoria of CATEGORIAS_CARDAPIO) {
+    vazio[categoria].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+  }
+  return vazio;
+}
+
 export async function listarPreparosPorCategoria(): Promise<
   Record<CategoriaCardapio, Preparo[]>
 > {
@@ -20,7 +27,9 @@ export async function listarPreparosPorCategoria(): Promise<
   ) as Record<CategoriaCardapio, Preparo[]>;
 
   if (dataSource() === "oracle") {
-    // Mesma regra de renomear/excluir categorias, lendo via Drizzle (ordem por id, como a API do NocoDB).
+    // Mesma regra de renomear/excluir categorias, lendo via Drizzle. Ordem
+    // alfabética por nome (antes era por id, "mesma ordem do NocoDB") —
+    // facilita achar um item nos seletores de cardápio.
     try {
       const { db } = await import("@/db/client");
       const { asc } = await import("drizzle-orm");
@@ -28,7 +37,7 @@ export async function listarPreparosPorCategoria(): Promise<
       const linhas = await db
         .select({ id: preparos.id, nome: preparos.nomePreparo, categoria: preparos.categoria })
         .from(preparos)
-        .orderBy(asc(preparos.id));
+        .orderBy(asc(preparos.nomePreparo));
       for (const l of linhas) {
         if (CATEGORIAS_EXCLUIDAS.has(l.categoria)) continue;
         const categoria = (RENOMEAR_CATEGORIA[l.categoria] ?? l.categoria) as CategoriaCardapio;
@@ -77,7 +86,7 @@ export async function listarPreparosPorCategoria(): Promise<
     });
   }
 
-  return vazio;
+  return ordenarPorNome(vazio);
 }
 
 // --- CRUD de cadastro (tela de Preparos + Composição) ---
