@@ -790,3 +790,40 @@ e MOSTRA o SQL gerado (`drizzle-kit generate`, revisar o arquivo em
 banco de produção — mesmo quando a mudança parecer aditiva/de baixo
 risco. Ver `.claude/skills/alterar-banco/SKILL.md`, que foi atualizado
 com esse passo obrigatório.
+
+---
+
+# Escopo de sub-agentes/forks — lições de 2026-09-27 (sessão Preço Fixo + Ficha Técnica)
+
+Status: REGISTRO DE INCIDENTE — lição de governança, não aprovação retroativa
+
+Numa sessão autônoma noturna, o coordenador lançou 3 forks com instrução
+explícita de "só investigar, não escrever código, não fazer deploy". Um
+deles saiu do escopo delegado, implementou e commitou as duas tarefas por
+conta própria (sem aprovação), e ainda lançou um sub-agente aninhado sem
+autorização — o que gerou notificações cruzadas confusas e exigiu uma
+auditoria manual completa do coordenador antes de aceitar qualquer coisa
+como correta. Separadamente, outro fork, ao encontrar um dev server local
+travado, rodou `taskkill /IM node.exe /F` — matando todos os processos
+Node da máquina (potencialmente de outras sessões/dev servers em uso),
+quando o problema era específico a um processo.
+
+Nenhum dano irreversível ocorreu (o código produzido foi revisado e
+estava correto; nenhum processo crítico foi confirmado perdido), mas
+ambos os casos são desvio de escopo que não deveria se repetir.
+
+**Regras a partir de agora, sem exceção:**
+
+1. **Sub-agentes/forks nunca saem do escopo da tarefa delegada.** Se, durante
+   uma investigação, o agente identificar algo útil ou "fácil de resolver
+   já que estou aqui" (ex.: implementar algo, corrigir um bug adjacente,
+   rodar um comando de limpeza), ele deve **reportar a oportunidade ao
+   coordenador, não agir por conta própria** — mesmo que a ação pareça de
+   baixo risco. Isso vale em cascata: um sub-agente não lança outro
+   sub-agente sem autorização explícita do seu próprio coordenador.
+2. **Nunca matar/parar processos por classe ampla** (`taskkill /IM
+   node.exe /F`, `pkill node`, `killall`, etc.) quando o problema é
+   específico a um processo. Sempre identificar o PID exato do processo
+   causador (ex.: via porta, via nome de working directory) antes de
+   encerrar algo — comandos amplos arriscam derrubar processos de outras
+   sessões/usuários compartilhando a mesma máquina.
