@@ -14,18 +14,6 @@ const funcionalidades = [
     descricao: "Preparos, Cardápios Feitos e Simulador de Cardápio.",
     href: "/senhor-churrasco",
   },
-  {
-    titulo: "Contratos e confirmação",
-    descricao:
-      "Envie o PDF, a extração preenche os dados e você só confirma. É a próxima etapa.",
-    href: null,
-  },
-  {
-    titulo: "Checklist de carregamento",
-    descricao:
-      "O que levar, onde está guardado e em qual veículo. Fica pra fase 2, depois que a central estiver rodando redondo.",
-    href: null,
-  },
 ];
 
 export default async function Home() {

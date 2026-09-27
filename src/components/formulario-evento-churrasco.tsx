@@ -445,7 +445,7 @@ export function FormularioEventoChurrasco({
       <section className="flex flex-col gap-5">
         <h3 className={secaoTituloClasse}>Cardápio</h3>
         <p className="text-sm text-paper-dim">
-          Puxando da base de fichas técnicas do NocoDB.
+          Puxando da base de fichas técnicas.
         </p>
 
         {cardapiosModelo.length > 0 && (
@@ -635,7 +635,7 @@ export function FormularioEventoChurrasco({
           </div>
           <div className="flex flex-col gap-1.5">
             <label htmlFor="qtdChurrasqueiros" className={rotuloClasse}>
-              Quantidade de churrasqueiros (Assador)
+              Quantidade de assadores
             </label>
             <input
               id="qtdChurrasqueiros"
