@@ -10,6 +10,11 @@ const funcionalidades = [
     href: "/preparos",
   },
   {
+    titulo: "Insumos",
+    descricao: "Preço, unidade e fator de correção de cada insumo.",
+    href: "/insumos",
+  },
+  {
     titulo: "Cardápios Feitos",
     descricao: "Cardápios pré-montados pra agilizar o Criar Evento.",
     href: "/cardapios-modelo",
@@ -36,7 +41,7 @@ export default async function SenhorChurrascoPage() {
           voltarPara={{ href: "/", rotulo: "← Início" }}
         />
 
-        <div className="grid w-full grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="grid w-full grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {funcionalidades.map((item) => (
             <Link
               key={item.titulo}
