@@ -1,8 +1,10 @@
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { obterUsuarioAtual } from "@/lib/usuario-atual";
 import { obterEvento } from "@/lib/eventos";
 import { listarPreparosPorCategoria } from "@/lib/preparos";
 import { listarCardapiosModelo } from "@/lib/cardapios-modelo";
+import { eventoTemCardapioConfirmado } from "@/lib/ficha-tecnica-evento";
 import { atualizarEventoAction } from "@/app/actions/evento";
 import { CabecalhoPagina } from "@/components/cabecalho-pagina";
 import { FormularioEventoChurrasco } from "@/components/formulario-evento-churrasco";
@@ -32,6 +34,7 @@ export default async function EventoPage({ params }: PaginaEventoProps) {
   }
 
   const atualizarComId = atualizarEventoAction.bind(null, evento.id);
+  const temCardapioConfirmado = await eventoTemCardapioConfirmado(evento.id);
 
   return (
     <main className="venue-glow flex flex-1 flex-col items-center px-6 py-16">
@@ -40,7 +43,20 @@ export default async function EventoPage({ params }: PaginaEventoProps) {
           titulo={evento.cliente}
           subtitulo={evento.empresa_nome}
           voltarPara={{ href: "/agenda", rotulo: "← Agenda" }}
-          acao={<BotaoExcluirEvento eventoId={evento.id} clienteNome={evento.cliente} />}
+          acao={
+            <div className="flex items-center gap-3">
+              {temCardapioConfirmado && (
+                <Link
+                  href={`/agenda/${evento.id}/fichas-tecnicas`}
+                  target="_blank"
+                  className="rounded-[2px] border border-paper-dim/30 px-4 py-2 text-sm text-paper transition hover:border-paper-dim hover:bg-paper/5"
+                >
+                  Exportar Fichas Técnicas
+                </Link>
+              )}
+              <BotaoExcluirEvento eventoId={evento.id} clienteNome={evento.cliente} />
+            </div>
+          }
         />
 
         <div className="rounded-[2px] bg-ink-soft/60 p-6 shadow-[0_20px_40px_-24px_rgba(0,0,0,0.6)]">
