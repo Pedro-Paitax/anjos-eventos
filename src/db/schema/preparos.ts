@@ -19,7 +19,8 @@
  * Preparo futuro usar KG/Pessoas antes do ETL rodar, o enum precisa
  * ser expandido primeiro.
  */
-import { pgTable, serial, text, numeric, integer, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, numeric, integer, pgEnum, jsonb, check } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 
 export const categoriaPreparoEnum = pgEnum("categoria_preparo", [
   "Bebidas",
@@ -49,27 +50,41 @@ export const restricaoAlimentarEnum = pgEnum("restricao_alimentar", [
   "Sem Lactose",
 ]);
 
-export const preparos = pgTable("preparos", {
-  id: serial("id").primaryKey(),
-  nomePreparo: text("nome_preparo").notNull(),
-  categoria: categoriaPreparoEnum("categoria").notNull(),
-  rendimento: numeric("rendimento", { precision: 10, scale: 3 }).notNull(),
-  unidadeRendimento: unidadeRendimentoEnum("unidade_rendimento").notNull(),
-  /**
-   * Substitui "Requisitos de Logística" (multi-select fixo do NocoDB)
-   * por texto livre — decisão já registrada no schema lógico
-   * ("decidido explicitamente aberto"). O ETL precisa concatenar os
-   * valores multi-select existentes num texto equivalente; não é uma
-   * migração 1:1 de tipo.
-   */
-  apresentacaoUtensilio: text("apresentacao_utensilio"),
-  tags: restricaoAlimentarEnum("tags").array(),
-  modoPreparo: text("modo_preparo").notNull(),
-  tempoPreparoMinutos: integer("tempo_preparo_minutos"),
-  /** Sem default deliberadamente — fail-fast se não preenchido (docs/DECISOES.md, Motor de dimensionamento). */
-  pesoAtratividade: numeric("peso_atratividade", { precision: 6, scale: 2 }),
-  subcategoriaProteina: subcategoriaProteinaEnum("subcategoria_proteina"),
-  porcaoMaximaIndividual: numeric("porcao_maxima_individual", { precision: 10, scale: 3 }),
-  /** Obrigatório por validação de aplicação (não constraint de banco — Lacuna 4) quando unidadeRendimento = "Unidade" dentro de macro em g/ml. */
-  pesoMedioUnidadeG: numeric("peso_medio_unidade_g", { precision: 10, scale: 3 }),
-});
+export const preparos = pgTable(
+  "preparos",
+  {
+    id: serial("id").primaryKey(),
+    nomePreparo: text("nome_preparo").notNull(),
+    categoria: categoriaPreparoEnum("categoria").notNull(),
+    rendimento: numeric("rendimento", { precision: 10, scale: 3 }).notNull(),
+    unidadeRendimento: unidadeRendimentoEnum("unidade_rendimento").notNull(),
+    /**
+     * Substitui "Requisitos de Logística" (multi-select fixo do NocoDB)
+     * por texto livre — decisão já registrada no schema lógico
+     * ("decidido explicitamente aberto"). O ETL precisa concatenar os
+     * valores multi-select existentes num texto equivalente; não é uma
+     * migração 1:1 de tipo.
+     */
+    apresentacaoUtensilio: text("apresentacao_utensilio"),
+    tags: restricaoAlimentarEnum("tags").array(),
+    /** Fonte oficial até 100% dos preparos serem aprovados em `passos` (Pedro, 2026-09-27) — nunca remover antes disso. */
+    modoPreparo: text("modo_preparo").notNull(),
+    /**
+     * Estruturação de `modoPreparo` em passos, formato Zod em
+     * src/lib/passos-preparo.ts: array de {ordem, descricao,
+     * tempo_estimado_min}. Nullable — convive com `modoPreparo` durante
+     * a migração/revisão (Pedro, 2026-09-27), não é NOT NULL ainda.
+     */
+    passos: jsonb("passos"),
+    tempoPreparoMinutos: integer("tempo_preparo_minutos"),
+    /** Sem default deliberadamente — fail-fast se não preenchido (docs/DECISOES.md, Motor de dimensionamento). */
+    pesoAtratividade: numeric("peso_atratividade", { precision: 6, scale: 2 }),
+    subcategoriaProteina: subcategoriaProteinaEnum("subcategoria_proteina"),
+    porcaoMaximaIndividual: numeric("porcao_maxima_individual", { precision: 10, scale: 3 }),
+    /** Obrigatório por validação de aplicação (não constraint de banco — Lacuna 4) quando unidadeRendimento = "Unidade" dentro de macro em g/ml. */
+    pesoMedioUnidadeG: numeric("peso_medio_unidade_g", { precision: 10, scale: 3 }),
+  },
+  (table) => [
+    check("passos_eh_array", sql`${table.passos} IS NULL OR jsonb_typeof(${table.passos}) = 'array'`),
+  ]
+);

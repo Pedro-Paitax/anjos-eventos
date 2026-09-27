@@ -1,0 +1,2 @@
+ALTER TABLE "preparos" ADD COLUMN "passos" jsonb;--> statement-breakpoint
+ALTER TABLE "preparos" ADD CONSTRAINT "passos_eh_array" CHECK ("preparos"."passos" IS NULL OR jsonb_typeof("preparos"."passos") = 'array');
