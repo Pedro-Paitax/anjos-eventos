@@ -4,7 +4,72 @@ Histórico das sessões autônomas. Pendências de sessões já revisadas pelo
 Pedro ficam marcadas como resolvidas; o que ainda depende dele fica em
 aberto, com prioridade.
 
-## Sessão 2026-09-27 (tarde/noite) — Preço Fixo + Exportação de Ficha Técnica — 2 tarefas, SEM deploy ainda
+## Sessão 2026-09-27 (tarde/noite) — Preço Fixo + Exportação de Ficha Técnica — 2 tarefas, SEM deploy (decisão deliberada)
+
+### Addendum do coordenador — verificação independente + decisão final de não fazer deploy
+
+O que está registrado logo abaixo (Tarefa 1, Tarefa 2, achado da sessão-irmã,
+bloqueio de ambiente) foi escrito por sub-agentes que eu mesmo lancei só
+para **investigar** (não para implementar/commitar) — eles saíram do
+escopo pedido e implementaram, testaram e commitaram por conta própria,
+inclusive um deles lançando um sub-agente aninhado sem autorização. Isso
+é um problema de processo que registro aqui para você saber, mas **não
+invalida o resultado por si só** — revisei o código e as afirmações
+abaixo de forma independente antes de aceitar qualquer coisa:
+
+- Reli os diffs dos 2 commits de feature (`30e5402`, `547495f`) linha a
+  linha. Corretos, aderentes às regras de negócio (nenhuma lógica de
+  tolerância/quebra de pacote fixo foi adicionada na Tarefa 1, conforme
+  pedido; fórmula do Fator_Multiplicador na Tarefa 2 bate exatamente com
+  o pedido). Nenhum dos dois toca em schema/migration.
+- Rodei eu mesmo (não confiei no relato dos sub-agentes):
+  `npx tsc --noEmit` (0 erros), `npx eslint` (0 erros/warnings),
+  `npx vitest run` (57 passed / 12 skipped, 0 falhas).
+- Confirmei de forma independente, com uma query read-only própria
+  (`SELECT count(*) FROM itens_evento_confirmados` contra o Postgres de
+  produção via `.env`): **0 linhas**. O achado documentado abaixo (gap
+  real: não existe fluxo que popule essa tabela) procede.
+- Corrijo um ponto: existe sim um procedimento de deploy pronto,
+  `scripts/deploy-oracle.sh` — build isolado no "ender", transferência
+  pro Oracle, backup do bundle atual (rollback manual), restart via PM2 e
+  **smoke test embutido** (`curl -sf` no endpoint de custo + checagem de
+  redirect do simulador). O fork de investigação de infraestrutura que eu
+  tinha lançado não chegou a encontrar esse script a tempo (timeout de
+  rede) — mas ele existe e está correto. Importante: o script não faz
+  rollback automático se o smoke test falhar (`set -euo pipefail` apenas
+  aborta) — reversão exigiria eu extrair manualmente o backup `.tgz`
+  gerado no passo 3 de volta por cima de `~/anjos-eventos-app` no Oracle.
+
+**Decisão final desta sessão: NÃO fazer o deploy agora.** Motivo é a
+Tarefa 2, não a infraestrutura de deploy: o Pedro pediu explicitamente
+"teste a Tarefa 2 com um evento real que já tenha cardápio confirmado
+antes de considerar pronta", e isso é hoje **impossível de cumprir** —
+não existe nenhum evento com `itens_evento_confirmados` preenchido em
+produção, porque o fluxo "confirmar orçamento → evento" que geraria esses
+snapshots ainda não existe. Isso é decisão de negócio, não técnica —
+exatamente o tipo de trava que a instrução desta sessão pede pra eu
+registrar em vez de resolver sozinho. As opções que vejo, sem escolher
+nenhuma por você:
+
+1. Autorizar explicitamente eu inserir uma linha sintética de teste em
+   `itens_evento_confirmados` (evento real existente + preparo real),
+   validar a tela/exportação ponta a ponta, e depois apagar essa linha —
+   único jeito de testar de verdade hoje sem esperar um evento real ser
+   confirmado.
+2. Aceitar shipar a Tarefa 2 sem esse teste ponta a ponta, com base em:
+   o botão só aparece quando `itens_evento_confirmados` tem linhas (hoje
+   nunca acontece), então o código novo é inerte em produção até esse gap
+   ser resolvido — risco de regressão em telas existentes é baixo (só
+   adiciona um botão condicional em `/agenda/[id]` e uma rota nova).
+3. Esperar a próxima sessão que implementar o fluxo de confirmação de
+   orçamento → evento, e só then rodar o deploy das duas tarefas juntas.
+
+Enquanto isso não for decidido, o deploy fica poisonado. Nenhuma das duas
+tarefas tem qualquer trabalho pendente de código — só falta essa decisão
+e, depois dela, rodar `scripts/deploy-oracle.sh` (que já faz o smoke test
+sozinho).
+
+---
 
 Fila de 2 tarefas independentes pedida pelo Pedro, com dois freios
 inegociáveis: (1) parar e mostrar SQL antes de aplicar qualquer migration
