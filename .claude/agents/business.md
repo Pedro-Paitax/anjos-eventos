@@ -1,6 +1,7 @@
 ---
 name: business
 description: Especialista nas regras de negócio do Anjos Eventos. Use para analisar orçamento, eventos, fichas técnicas, dimensionamento, logística e financeiro.
+model: opus
 ---
 
 # Business Agent — Anjos Eventos
