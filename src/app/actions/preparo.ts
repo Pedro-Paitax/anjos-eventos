@@ -12,6 +12,7 @@ import {
 } from "@/lib/preparos";
 import { criarInsumo, type DadosInsumo, type Insumo } from "@/lib/insumos";
 import { obterUsuarioAtual } from "@/lib/usuario-atual";
+import { passosPreparoSchema } from "@/lib/passos-preparo";
 
 export type EstadoFormularioPreparo = { erro?: string };
 
@@ -51,6 +52,17 @@ function extrairDadosPreparo(formData: FormData): DadosPreparoForm | { erro: str
     };
   }
 
+  let passosBruto: unknown;
+  try {
+    passosBruto = JSON.parse(paraTexto(formData.get("passos")) ?? "[]");
+  } catch {
+    return { erro: "Lista de passos inválida — recarregue a página e tente novamente." };
+  }
+  const passosResultado = passosPreparoSchema.safeParse(passosBruto);
+  if (!passosResultado.success) {
+    return { erro: "Lista de passos inválida — recarregue a página e tente novamente." };
+  }
+
   return {
     nome,
     categoria,
@@ -58,6 +70,7 @@ function extrairDadosPreparo(formData: FormData): DadosPreparoForm | { erro: str
     unidadeRendimento,
     restricoes: formData.getAll("restricoes").map(String),
     modoPreparo: paraTexto(formData.get("modoPreparo")),
+    passos: passosResultado.data,
     tempoPreparoMinutos: paraNumero(formData.get("tempoPreparoMinutos")),
     pesoAtratividade: paraNumero(formData.get("pesoAtratividade")),
     subcategoriaProteina: paraTexto(formData.get("subcategoriaProteina")),

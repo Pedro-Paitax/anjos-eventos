@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useMemo, useState } from "react";
 import type { PreparoDetalhado } from "@/lib/preparos";
 import type { Insumo } from "@/lib/insumos";
 import {
@@ -11,6 +11,11 @@ import {
 } from "@/lib/preparos-opcoes";
 import { campoClasse, rotuloClasse, secaoTituloClasse } from "@/components/formulario-evento";
 import { ComposicaoPreparo } from "@/components/composicao-preparo";
+import {
+  EditorPassosPreparo,
+  linhasIniciaisDePassos,
+  linhasParaPassos,
+} from "@/components/editor-passos-preparo";
 import type { EstadoFormularioPreparo } from "@/app/actions/preparo";
 
 type FormularioPreparoProps = {
@@ -36,6 +41,10 @@ export function FormularioPreparo({
   const [unidadeRendimento, setUnidadeRendimento] = useState(
     valoresIniciais?.unidadeRendimento ?? UNIDADES_RENDIMENTO_PREPARO[0]
   );
+  const [linhasPassos, setLinhasPassos] = useState(() =>
+    linhasIniciaisDePassos(valoresIniciais?.passos ?? [])
+  );
+  const passosParaEnvio = useMemo(() => linhasParaPassos(linhasPassos), [linhasPassos]);
 
   return (
     <form action={formAction} className="flex flex-col gap-8">
@@ -172,6 +181,9 @@ export function FormularioPreparo({
             className={campoClasse}
           />
         </div>
+
+        <input type="hidden" name="passos" value={JSON.stringify(passosParaEnvio)} />
+        <EditorPassosPreparo linhas={linhasPassos} onMudar={setLinhasPassos} />
 
         <div className="flex flex-col gap-1.5">
           <p className={rotuloClasse}>Tags (restrições)</p>
