@@ -4,7 +4,7 @@ import { obterUsuarioAtual } from "@/lib/usuario-atual";
 import { obterEvento } from "@/lib/eventos";
 import { listarPreparosPorCategoria } from "@/lib/preparos";
 import { listarCardapiosModelo } from "@/lib/cardapios-modelo";
-import { eventoTemCardapioConfirmado } from "@/lib/ficha-tecnica-evento";
+import { eventoTemCardapioConfirmado, listarPreparosConfirmadosEvento } from "@/lib/ficha-tecnica-evento";
 import { atualizarEventoAction } from "@/app/actions/evento";
 import { CabecalhoPagina } from "@/components/cabecalho-pagina";
 import { FormularioEventoChurrasco } from "@/components/formulario-evento-churrasco";
@@ -35,6 +35,9 @@ export default async function EventoPage({ params }: PaginaEventoProps) {
 
   const atualizarComId = atualizarEventoAction.bind(null, evento.id);
   const temCardapioConfirmado = await eventoTemCardapioConfirmado(evento.id);
+  const cardapioConfirmado = temCardapioConfirmado
+    ? await listarPreparosConfirmadosEvento(evento.id)
+    : null;
 
   return (
     <main className="venue-glow flex flex-1 flex-col items-center px-6 py-16">
@@ -66,6 +69,7 @@ export default async function EventoPage({ params }: PaginaEventoProps) {
               valoresIniciais={evento}
               preparosPorCategoria={await listarPreparosPorCategoria()}
               cardapiosModelo={await listarCardapiosModelo()}
+              cardapioConfirmado={cardapioConfirmado}
               action={atualizarComId}
               rotuloEnvio="Salvar alterações"
             />

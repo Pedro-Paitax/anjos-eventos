@@ -155,6 +155,30 @@ export async function obterFichasTecnicasEvento(eventoId: number): Promise<Ficha
   return fichas.sort((a, b) => a.nomePreparo.localeCompare(b.nomePreparo, "pt-BR"));
 }
 
+/**
+ * Cardápio confirmado (nomes de Preparo, distintos) — fallback de leitura na
+ * tela do Evento (docs/PENDENCIAS_NOTURNAS.md, "Máquina de Estados
+ * Orçamento → Evento Confirmado", item 5): eventos do fluxo novo não gravam
+ * mais os campos de texto livre (cardapio_carnes etc.), então a Agenda
+ * precisa deste JOIN estruturado pra exibir o cardápio.
+ */
+export async function listarPreparosConfirmadosEvento(
+  eventoId: number
+): Promise<{ preparoId: number; preparoNome: string }[]> {
+  const { db } = await import("@/db/client");
+  const { eq } = await import("drizzle-orm");
+  const { itensEventoConfirmados } = await import("@/db/schema/orcamentos");
+  const { preparos } = await import("@/db/schema/preparos");
+
+  const linhas = await db
+    .selectDistinct({ preparoId: preparos.id, preparoNome: preparos.nomePreparo })
+    .from(itensEventoConfirmados)
+    .innerJoin(preparos, eq(itensEventoConfirmados.preparoId, preparos.id))
+    .where(eq(itensEventoConfirmados.eventoId, eventoId));
+
+  return linhas.sort((a, b) => a.preparoNome.localeCompare(b.preparoNome, "pt-BR"));
+}
+
 /** Controla a visibilidade do botão "Exportar Fichas Técnicas" na tela do Evento. */
 export async function eventoTemCardapioConfirmado(eventoId: number): Promise<boolean> {
   const { db } = await import("@/db/client");

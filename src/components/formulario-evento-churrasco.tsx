@@ -41,6 +41,13 @@ type FormularioEventoChurrascoProps = {
   valoresIniciais?: Evento;
   preparosPorCategoria: Record<CategoriaCardapio, Preparo[]>;
   cardapiosModelo: CardapioModeloResumo[];
+  /**
+   * Cardápio confirmado via Orçamento (docs/PENDENCIAS_NOTURNAS.md, "Máquina
+   * de Estados Orçamento → Evento Confirmado") — quando presente, o cardápio
+   * vira somente-leitura aqui (trocar item exige um novo Orçamento). Null =
+   * evento sem snapshot (ex.: legado), cai no seletor editável de sempre.
+   */
+  cardapioConfirmado?: { preparoId: number; preparoNome: string }[] | null;
   action: (formData: FormData) => void;
   rotuloEnvio: string;
 };
@@ -55,6 +62,7 @@ export function FormularioEventoChurrasco({
   valoresIniciais,
   preparosPorCategoria,
   cardapiosModelo,
+  cardapioConfirmado,
   action,
   rotuloEnvio,
 }: FormularioEventoChurrascoProps) {
@@ -450,43 +458,63 @@ export function FormularioEventoChurrasco({
       {/* Cardápio */}
       <section className="flex flex-col gap-5">
         <h3 className={secaoTituloClasse}>Cardápio</h3>
-        <p className="text-sm text-paper-dim">
-          Puxando da base de fichas técnicas.
-        </p>
 
-        {cardapiosModelo.length > 0 && (
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="cardapioModeloBase" className={rotuloClasse}>
-              Começar de um Cardápio Pré-Montado (opcional)
-            </label>
-            <select
-              id="cardapioModeloBase"
-              defaultValue=""
-              disabled={aplicandoTemplate}
-              onChange={(e) => aplicarTemplate(e.target.value)}
-              className={campoClasse}
-            >
-              <option value="">— Selecionar —</option>
-              {cardapiosModelo.map((cardapio) => (
-                <option key={cardapio.id} value={cardapio.id}>
-                  {cardapio.nome}
-                </option>
-              ))}
-            </select>
-            <p className="text-xs text-paper-dim">
-              Só pré-preenche os itens abaixo — você ainda pode adicionar ou
-              remover livremente.
+        {cardapioConfirmado && cardapioConfirmado.length > 0 ? (
+          <div className="flex flex-col gap-2 rounded-[2px] border border-paper-dim/20 bg-ink-soft p-3">
+            <p className="text-xs font-medium uppercase tracking-wide text-paper-dim/70">
+              Cardápio confirmado via Orçamento — somente leitura
             </p>
-            {erroTemplate && <p className="text-sm text-ember">{erroTemplate}</p>}
+            <p className="text-xs text-paper-dim">
+              Trocar item exige um novo Orçamento (Máquina de Estados
+              Orçamento → Evento Confirmado).
+            </p>
+            <ul className="list-disc pl-5 text-sm text-paper">
+              {cardapioConfirmado.map((item) => (
+                <li key={item.preparoId}>{item.preparoNome}</li>
+              ))}
+            </ul>
           </div>
-        )}
+        ) : (
+          <>
+            <p className="text-sm text-paper-dim">
+              Puxando da base de fichas técnicas.
+            </p>
 
-        <SeletorCardapio
-          key={chaveSeletorCardapio}
-          preparosPorCategoria={preparosPorCategoria}
-          valoresIniciais={cardapioBase ?? valoresIniciais}
-          onSelecaoIdsChange={setPreparoIdsSelecionados}
-        />
+            {cardapiosModelo.length > 0 && (
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="cardapioModeloBase" className={rotuloClasse}>
+                  Começar de um Cardápio Pré-Montado (opcional)
+                </label>
+                <select
+                  id="cardapioModeloBase"
+                  defaultValue=""
+                  disabled={aplicandoTemplate}
+                  onChange={(e) => aplicarTemplate(e.target.value)}
+                  className={campoClasse}
+                >
+                  <option value="">— Selecionar —</option>
+                  {cardapiosModelo.map((cardapio) => (
+                    <option key={cardapio.id} value={cardapio.id}>
+                      {cardapio.nome}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-paper-dim">
+                  Só pré-preenche os itens abaixo — você ainda pode adicionar ou
+                  remover livremente.
+                </p>
+                {erroTemplate && <p className="text-sm text-ember">{erroTemplate}</p>}
+              </div>
+            )}
+
+            <SeletorCardapio
+              key={chaveSeletorCardapio}
+              preparosPorCategoria={preparosPorCategoria}
+              valoresIniciais={cardapioBase ?? valoresIniciais}
+              onSelecaoIdsChange={setPreparoIdsSelecionados}
+            />
+          </>
+        )}
       </section>
 
       {/* Região / deslocamento */}
