@@ -1677,3 +1677,93 @@ alteração.
 novas presentes: `qtd_adultos`, `qtd_criancas_ate_5`,
 `qtd_criancas_5_a_10`, `valor_negociado` — todas nullable, como
 projetado. Migração 0003 está **aplicada em produção**.
+
+## 2026-09-28 (manhã) — Teste ponta a ponta em produção, autorizado pelo Pedro
+
+Autorizado explicitamente ("Passo 2 — Com a migração aplicada, teste
+ponta a ponta em produção, autorizado por mim"). Executado pelo
+navegador (clique real na UI), contra o Postgres de produção, com o
+usuário "Pedro".
+
+**Infra do teste**: `next dev --webpack` (mesma correção de Turbopack em
+path UNC de sessões anteriores), com `DATABASE_URL`/`DATA_SOURCE=oracle`
+setados via variável de ambiente do shell — **achado importante**:
+`.env.local` (Postgres local, porta 5433) tem prioridade sobre `.env`
+(Oracle) na ordem de carregamento do Next.js, então rodar `next dev` sem
+essa variável explícita conecta no banco local errado, não em produção.
+Isso passou despercebido na primeira tentativa (erro
+`ECONNREFUSED ::1:5433`) e foi corrigido antes de qualquer escrita.
+
+Achado à parte, sem relação com o teste: havia um `next dev` órfão de
+sessão anterior rodando na porta 3000 (PID 19772, mesmo diretório do
+projeto) — identifiquei o PID exato via `netstat`/`tasklist` antes de
+encerrar (`taskkill /PID 19772 /F`), conforme a regra registrada em
+`docs/DECISOES.md` sobre nunca matar processo por classe ampla.
+
+### Senhor Churrasco (Orçamento #1 → Evento #6)
+
+1. `/agenda/novo?empresa=1` → cliente "TESTE - apagar", 4 adultos,
+   template "Cardápio 01" (14 itens carregados automaticamente) →
+   "Gerar Orçamento" → `/orcamentos/1`, status Simulação, cardápio
+   fixado com os 14 itens certos.
+2. Passo 3 (`/orcamentos/1`): Valor Sugerido recalculado em tempo real
+   a partir do custo ATUAL dos 14 preparos (R$48,72/pessoa, R$424,88
+   total — confirmado por screenshot) — preenchi Data e hora e cliquei
+   "Aprovar e Confirmar Evento".
+3. Resultado: redirecionado pra `/agenda/6`. `eventos.id=6`,
+   `status='confirmado'`, `valor='424.88'`. `orcamentos.id=1`,
+   `status='Aceito'`, `evento_id=6`. `itens_evento_confirmados`: **14
+   linhas pro evento 6, todas com `custo_unitario_snapshot` preenchido
+   e > 0** (query read-only). Botão "Exportar Fichas Técnicas" visível
+   na tela do evento; `/agenda/6/fichas-tecnicas` renderizou cada
+   preparo com Rendimento ajustado escalado (+10% de buffer sobre a
+   quantidade real, ex.: Alcatra Grelhada 586,65 g), Insumos e Modo de
+   Preparo numerado. Fallback de leitura em `/agenda/6` mostrou a lista
+   somente-leitura com os 14 nomes certos.
+
+### Anjos Cerimonial (Orçamento #2 → Evento #7)
+
+1. `/agenda/novo?empresa=2` → formulário genérico confirmado (sem
+   seção de cardápio) → cliente "TESTE - apagar", 50 adultos, valor
+   negociado R$8.000,00 → `/orcamentos/2`, status Simulação, sem seção
+   de cardápio/deslocamento/preço por pessoa (branch `ehChurrasco`
+   funcionou corretamente).
+2. Passo 3: preenchi Data e hora, "Valor total do evento" já
+   pré-preenchido com os R$8.000,00 negociados, cliquei "Aprovar e
+   Confirmar Evento".
+3. Resultado: `/agenda/7`. `eventos.id=7`, `status='confirmado'`,
+   `valor='8000.00'`. `orcamentos.id=2`, `status='Aceito'`,
+   `evento_id=7`, `valor_negociado='8000.00'`. **Zero** linhas em
+   `itens_evento_confirmados` pro evento 7 (confirmado por query) —
+   sem botão "Exportar Fichas Técnicas" na tela do evento, como
+   esperado (empresa sem cardápio de preparos).
+
+### Evento legado (id=5) — confirmado intocado
+
+Conferido por leitura direta antes e depois de todo o teste: `id=5,
+cliente="A", status="confirmado"` — idêntico, nenhuma linha alterada.
+
+### Limpeza — registros de teste apagados, banco confirmado no estado anterior
+
+Uma única transação, ordem respeitando FKs (`itens_evento_confirmados`
+→ `itens_orcamento` → `orcamentos` → `eventos`), escopada só aos IDs de
+teste (`evento_id IN (6,7)`, `orcamento_id IN (1,2)`, `id IN (1,2)` /
+`id IN (6,7)` — nunca um `DELETE` sem `WHERE`):
+
+```
+{ itens_evento_confirmados: 14, itens_orcamento: 14, orcamentos: 2, eventos: 2 }
+```
+
+**Contagem final** (leitura direta, read-only): `eventos`=1 (só o
+id=5, legado), `orcamentos`=0, `itens_orcamento`=0,
+`itens_evento_confirmados`=0 — **idêntico ao estado antes do teste**.
+
+Dev server de teste encerrado (PID identificado via `netstat` antes de
+matar) e aba do navegador fechada.
+
+### Conclusão
+
+Máquina de Estados testada ponta a ponta em produção real, pros dois
+tipos de fluxo (com cardápio de Preparos e sem), incluindo Ficha
+Técnica com dado real pela primeira vez. Nenhum resíduo de teste ficou
+no banco. **Ainda NÃO fiz o deploy** — falta só isso.
