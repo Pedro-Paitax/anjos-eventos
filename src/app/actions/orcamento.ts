@@ -9,6 +9,7 @@ import {
   aprovarEConfirmarEvento,
   type DadosOperacionaisEvento,
 } from "@/lib/orcamentos";
+import { sugerirQuantidadeGarcom, VALOR_GARCOM_PADRAO } from "@/lib/precificacao-constantes";
 
 const EMPRESA_CHURRASCO = "Buffet Senhor Churrasco";
 
@@ -55,6 +56,11 @@ export async function criarOrcamentoAction(formData: FormData) {
   let orcamentoId: number;
   if (await ehEmpresaChurrasco(empresaId)) {
     const preparoIds = formData.getAll("preparoIds").map(Number).filter((n) => Number.isInteger(n) && n > 0);
+    const numConvidados = qtdAdultos + qtdCriancasAte5 + qtdCriancas5a10;
+    const precoPessoa = paraNumero(formData.get("precoPessoa"));
+    if (precoPessoa == null || precoPessoa < 0) {
+      throw new Error("Informe o preço por pessoa.");
+    }
     orcamentoId = await criarOrcamentoChurrasco({
       empresaId,
       clienteNome,
@@ -62,6 +68,11 @@ export async function criarOrcamentoAction(formData: FormData) {
       qtdCriancasAte5,
       qtdCriancas5a10,
       preparoIds,
+      precoPessoa,
+      usarPrecoFixoModelo: formData.get("usarPrecoFixoModelo") === "true",
+      qtdGarcons: paraNumero(formData.get("qtdGarcons")) ?? sugerirQuantidadeGarcom(numConvidados),
+      valorGarcom: paraNumero(formData.get("valorGarcom")) ?? VALOR_GARCOM_PADRAO,
+      regiaoMetropolitanaCuritiba: formData.get("regiaoMetropolitanaCuritiba") === "true",
     });
   } else {
     const valorNegociado = paraNumero(formData.get("valorNegociado"));
@@ -93,12 +104,13 @@ function extrairDadosOperacionais(formData: FormData): DadosOperacionaisEvento {
     horaAlmoco: paraTexto(formData.get("horaAlmoco")),
     horaEncerramento: paraTexto(formData.get("horaEncerramento")),
     qtdFornecedores: paraNumero(formData.get("qtdFornecedores")),
+    // Só usado pro caminho genérico — pro Senhor Churrasco, qtdGarcons vem
+    // do Orçamento (definido no Passo 2, ver montarValoresEvento).
     qtdGarcons: paraNumero(formData.get("qtdGarcons")),
     qtdCopeiras: paraNumero(formData.get("qtdCopeiras")),
-    regiaoMetropolitanaCuritiba: formData.get("regiaoMetropolitanaCuritiba") === "true",
-    precoPessoa: paraNumero(formData.get("precoPessoa")),
-    precoCriancaMeia: paraNumero(formData.get("precoCriancaMeia")),
-    valorGarcom: paraNumero(formData.get("valorGarcom")),
+    // Só usado pro caminho genérico (valor final editável, default = valor
+    // negociado no Orçamento) — pro Senhor Churrasco, o valor vem inteiro
+    // do Orçamento, nunca deste campo.
     valor: paraNumero(formData.get("valor")),
     prazoPagamento: paraTexto(formData.get("prazoPagamento")),
     chavePix: paraTexto(formData.get("chavePix")),

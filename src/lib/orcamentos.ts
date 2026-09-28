@@ -6,8 +6,8 @@ import { orcamentos, itensOrcamento, itensEventoConfirmados } from "@/db/schema/
 import { preparos } from "@/db/schema/preparos";
 import { calcularDimensionamentoOrcamento } from "@/lib/dimensionamento-cardapio";
 import { calcularCustoPreparo } from "@/lib/custo-preparo";
+import { calcularPrecificacaoParaEvento } from "@/lib/precificacao-cardapio";
 import {
-  calcularTaxaDeslocamento,
   sugerirQuantidadeCopeira,
   sugerirQuantidadeAssador,
   VALOR_COPEIRA,
@@ -19,6 +19,12 @@ import {
  * sessão 2026-09-27). O fluxo de "Criar Evento" nunca escreveu aqui — ver
  * diagnóstico da mesma sessão. Este módulo é o ÚNICO lugar (fora do ETL) que
  * escreve em orcamentos/itens_orcamento/itens_evento_confirmados.
+ *
+ * Correção de 2026-09-28: o Passo 3 (Aprovar e Confirmar Evento) NÃO
+ * recalcula mais o preço do cardápio — usa o `precoPessoa` (fixo do
+ * Cardápio Modelo, ou dinâmico/editado) já escolhido e congelado no
+ * Orçamento (Passo 2), via calcularPrecificacaoParaEvento com
+ * precoPorPessoaEscolhido. Ver docs/PENDENCIAS_NOTURNAS.md.
  */
 
 export type ItemOrcamento = { preparoId: number; preparoNome: string };
@@ -37,6 +43,12 @@ export type OrcamentoResumo = {
   /** Ausência de itens (churrasco) e valorNegociado nulo (genérico) não deveria acontecer — mas nunca os dois preenchidos ao mesmo tempo. */
   itens: ItemOrcamento[];
   valorNegociado: number | null;
+  /** Campos de precificação — só Senhor Churrasco (null pras demais empresas). */
+  precoPessoa: number | null;
+  usarPrecoFixoModelo: boolean;
+  qtdGarcons: number | null;
+  valorGarcom: number | null;
+  regiaoMetropolitanaCuritiba: boolean | null;
 };
 
 export type DadosOrcamentoChurrasco = {
@@ -46,6 +58,13 @@ export type DadosOrcamentoChurrasco = {
   qtdCriancasAte5: number;
   qtdCriancas5a10: number;
   preparoIds: number[];
+  /** Preço por pessoa escolhido na tela (fixo do template ou dinâmico/editado) — congelado aqui, nunca recalculado no Passo 3. */
+  precoPessoa: number;
+  /** True quando o preço veio de um Cardápio Modelo com Preco_Fixo_Por_Pessoa (mesmo que editado depois). */
+  usarPrecoFixoModelo: boolean;
+  qtdGarcons: number;
+  valorGarcom: number;
+  regiaoMetropolitanaCuritiba: boolean;
 };
 
 export type DadosOrcamentoGenerico = {
@@ -74,6 +93,11 @@ export async function criarOrcamentoChurrasco(dados: DadosOrcamentoChurrasco): P
         qtdCriancasAte5: dados.qtdCriancasAte5,
         qtdCriancas5a10: dados.qtdCriancas5a10,
         status: "Simulação",
+        precoPessoa: String(dados.precoPessoa),
+        usarPrecoFixoModelo: dados.usarPrecoFixoModelo,
+        qtdGarcons: dados.qtdGarcons,
+        valorGarcom: String(dados.valorGarcom),
+        regiaoMetropolitanaCuritiba: dados.regiaoMetropolitanaCuritiba,
       })
       .returning({ id: orcamentos.id });
 
@@ -119,6 +143,11 @@ export async function obterOrcamento(id: number): Promise<OrcamentoResumo | null
       status: orcamentos.status,
       eventoId: orcamentos.eventoId,
       valorNegociado: orcamentos.valorNegociado,
+      precoPessoa: orcamentos.precoPessoa,
+      usarPrecoFixoModelo: orcamentos.usarPrecoFixoModelo,
+      qtdGarcons: orcamentos.qtdGarcons,
+      valorGarcom: orcamentos.valorGarcom,
+      regiaoMetropolitanaCuritiba: orcamentos.regiaoMetropolitanaCuritiba,
     })
     .from(orcamentos)
     .innerJoin(empresas, eq(orcamentos.empresaId, empresas.id))
@@ -131,7 +160,13 @@ export async function obterOrcamento(id: number): Promise<OrcamentoResumo | null
     .innerJoin(preparos, eq(itensOrcamento.preparoId, preparos.id))
     .where(eq(itensOrcamento.orcamentoId, id));
 
-  return { ...linha, valorNegociado: numeroOuNulo(linha.valorNegociado), itens };
+  return {
+    ...linha,
+    valorNegociado: numeroOuNulo(linha.valorNegociado),
+    precoPessoa: numeroOuNulo(linha.precoPessoa),
+    valorGarcom: numeroOuNulo(linha.valorGarcom),
+    itens,
+  };
 }
 
 export type DadosOperacionaisEvento = {
@@ -145,14 +180,10 @@ export type DadosOperacionaisEvento = {
   horaAlmoco: string | null;
   horaEncerramento: string | null;
   qtdFornecedores: number | null;
+  /** Genérico apenas — pro Senhor Churrasco, quantidade de garçons vem do Orçamento (ver DadosOrcamentoChurrasco.qtdGarcons). */
   qtdGarcons: number | null;
   qtdCopeiras: number | null;
-  regiaoMetropolitanaCuritiba: boolean;
-  /** Churrasco apenas — ignorado (persistido como null) pra empresas sem cardápio de preparos. */
-  precoPessoa: number | null;
-  precoCriancaMeia: number | null;
-  valorGarcom: number | null;
-  /** Valor total do evento — pra empresas sem cardápio de preparos, é o valor final acordado (parte de valorNegociado, editável aqui). */
+  /** Valor total do evento — só usado pra empresas sem cardápio de preparos (parte de valorNegociado, editável aqui). Pro Senhor Churrasco, o valor vem sempre do Orçamento. */
   valor: number | null;
   prazoPagamento: string | null;
   chavePix: string | null;
@@ -171,14 +202,66 @@ function paraNumeric(v: number | null): string | null {
  * `eventos` a partir do Orçamento + dos dados operacionais coletados no
  * Passo 3. Separado de aprovarEConfirmarEvento pra poder ser testado sem
  * mockar banco — mesmo padrão de distribuirPorcoes/calcularCustoTotalComposicao.
+ *
+ * Pro Senhor Churrasco, todo o financeiro (preço por pessoa, criança, valor
+ * total, garçom, deslocamento) vem do Orçamento — calcularPrecificacaoParaEvento
+ * é chamado com itens=[] e precoPorPessoaEscolhido=orcamento.precoPessoa,
+ * então nenhum custo de cardápio é recalculado, só a combinação aritmética
+ * (preço x adultos + meia x crianças + garçom + deslocamento).
  */
 export function montarValoresEvento(
-  orcamento: Pick<OrcamentoResumo, "empresaId" | "clienteNome" | "numConvidados" | "qtdAdultos" | "qtdCriancasAte5" | "qtdCriancas5a10">,
+  orcamento: Pick<
+    OrcamentoResumo,
+    | "empresaId"
+    | "clienteNome"
+    | "numConvidados"
+    | "qtdAdultos"
+    | "qtdCriancasAte5"
+    | "qtdCriancas5a10"
+    | "precoPessoa"
+    | "qtdGarcons"
+    | "valorGarcom"
+    | "regiaoMetropolitanaCuritiba"
+  >,
   operacionais: DadosOperacionaisEvento,
   ehChurrasco: boolean
 ) {
   const quantidadeCopeiraSugerida = sugerirQuantidadeCopeira(orcamento.numConvidados);
   const quantidadeAssadorSugerida = sugerirQuantidadeAssador(orcamento.numConvidados);
+
+  let precoPessoa: string | null = null;
+  let precoCriancaMeia: string | null = null;
+  let valorGarcom: string | null = null;
+  let taxaDeslocamento: string | null = null;
+  let qtdGarcons: number | null = operacionais.qtdGarcons;
+  let regiaoMetropolitanaCuritiba = false;
+  let valor: string | null = paraNumeric(operacionais.valor);
+
+  if (ehChurrasco) {
+    const precificacao = calcularPrecificacaoParaEvento(
+      [],
+      {
+        numConvidados: orcamento.numConvidados,
+        regiaoMetropolitanaCuritiba: orcamento.regiaoMetropolitanaCuritiba ?? false,
+        quantidadeGarcom: orcamento.qtdGarcons ?? undefined,
+        valorGarcom: orcamento.valorGarcom ?? undefined,
+        precoPorPessoaEscolhido: orcamento.precoPessoa ?? undefined,
+      },
+      {
+        adultos: orcamento.qtdAdultos ?? 0,
+        criancasAte5: orcamento.qtdCriancasAte5 ?? 0,
+        criancas5a10: orcamento.qtdCriancas5a10 ?? 0,
+      }
+    );
+
+    precoPessoa = paraNumeric(precificacao.valor_sugerido_por_pessoa);
+    precoCriancaMeia = paraNumeric(precificacao.valor_sugerido_crianca);
+    valorGarcom = paraNumeric(precificacao.valor_garcom);
+    taxaDeslocamento = paraNumeric(precificacao.taxa_deslocamento);
+    qtdGarcons = precificacao.quantidade_garcom_usada;
+    regiaoMetropolitanaCuritiba = orcamento.regiaoMetropolitanaCuritiba ?? false;
+    valor = paraNumeric(precificacao.valor_sugerido_total_evento);
+  }
 
   return {
     empresaId: orcamento.empresaId,
@@ -205,16 +288,14 @@ export function montarValoresEvento(
     cardapioSaladas: null,
     cardapioBebidas: null,
     cardapioSobremesa: null,
-    precoPessoa: paraNumeric(ehChurrasco ? operacionais.precoPessoa : null),
-    precoCriancaMeia: paraNumeric(ehChurrasco ? operacionais.precoCriancaMeia : null),
-    valorGarcom: paraNumeric(ehChurrasco ? operacionais.valorGarcom : null),
-    taxaDeslocamento: paraNumeric(
-      ehChurrasco ? calcularTaxaDeslocamento(operacionais.regiaoMetropolitanaCuritiba) : null
-    ),
-    qtdGarcons: operacionais.qtdGarcons,
+    precoPessoa,
+    precoCriancaMeia,
+    valorGarcom,
+    taxaDeslocamento,
+    qtdGarcons,
     qtdChurrasqueiros: ehChurrasco ? quantidadeAssadorSugerida : null,
     qtdCopeiras: operacionais.qtdCopeiras,
-    regiaoMetropolitanaCuritiba: operacionais.regiaoMetropolitanaCuritiba,
+    regiaoMetropolitanaCuritiba,
     quantidadeCopeiraSugerida,
     custoCopeiraTotal: paraNumeric(quantidadeCopeiraSugerida * VALOR_COPEIRA),
     custoAssadorTotal: paraNumeric(ehChurrasco ? quantidadeAssadorSugerida * VALOR_ASSADOR : 0),
@@ -222,7 +303,7 @@ export function montarValoresEvento(
     chavePix: operacionais.chavePix,
     caminhoContrato: operacionais.caminhoContrato,
     status: "confirmado" as const,
-    valor: paraNumeric(operacionais.valor),
+    valor,
     observacoes: operacionais.observacoes,
   };
 }
@@ -246,12 +327,17 @@ export async function aprovarEConfirmarEvento(
   }
 
   const ehChurrasco = orcamento.itens.length > 0;
+  if (ehChurrasco && orcamento.precoPessoa == null) {
+    return { erro: "Orçamento de Senhor Churrasco sem preço por pessoa definido — não é possível confirmar." };
+  }
 
   // Custo/quantidade ATUAIS resolvidos FORA da transação de escrita (só
   // leitura, motores já existentes) — nunca custo cacheado/antigo, conforme
   // instruído. Se algum preparo não resolver dimensionamento (peso/macro
   // ausente), fica de fora do snapshot, mesma política de exclusão
   // silenciosa+aviso já usada em margem-orcamento.ts/precificacao-evento.ts.
+  // Isso é o custo de PRODUÇÃO (ficha técnica), não afeta o preço de venda
+  // (que vem do Orçamento, ver montarValoresEvento).
   const snapshots: {
     preparoId: number;
     quantidadeConfirmada: number;
@@ -297,6 +383,10 @@ export async function aprovarEConfirmarEvento(
       throw new Error("Orçamento mudou de status entre a leitura e a confirmação — nada foi gravado.");
     }
 
+    // Inserido via tx.insert (não uma função de outra camada, que abriria
+    // conexão própria via pool) — precisa estar na MESMA transação Drizzle
+    // do snapshot da Ficha Técnica e da atualização do Orçamento, senão a
+    // atomicidade exigida pela Ação de Conversão não é real.
     const [eventoCriado] = await tx.insert(eventos).values(valoresEvento).returning({ id: eventos.id });
     const id = eventoCriado.id;
 

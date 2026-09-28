@@ -52,6 +52,18 @@ export type OpcoesPrecificacao = {
   quantidadeGarcom?: number;
   /** Se omitido, usa o padrão de R$230 (docs/DECISOES.md). */
   valorGarcom?: number;
+  /**
+   * Preço por pessoa ESCOLHIDO na tela (fixo do Cardápio Modelo, ou
+   * dinâmico editado manualmente) — quando presente, substitui
+   * inteiramente o valor calculado (custo x 1,40) em
+   * valor_sugerido_por_pessoa/valor_sugerido_crianca, e por consequência
+   * no Total. custo_cardapio_total/custo_cardapio_por_pessoa continuam
+   * sendo o custo REAL do cardápio (referência informativa), não afetados.
+   * Correção de 2026-09-28 (docs/PENDENCIAS_NOTURNAS.md): antes desta
+   * opção, o fluxo de Orçamento->Evento sempre recalculava dinâmico,
+   * ignorando um preço fixo já escolhido — regressão contra a Tarefa 1.
+   */
+  precoPorPessoaEscolhido?: number;
 };
 
 export type PrecificacaoResultado = {
@@ -127,7 +139,8 @@ export function calcularPrecificacaoCardapio(
   // dois valores lado a lado no Simulador de Cardápio — ver
   // src/lib/precificacao-cardapio.test.ts.
   const custoCardapioPorPessoa = arredondar(custoCardapioTotal / numConvidados);
-  const valorSugeridoPorPessoa = arredondarParaCimaCentavos(custoCardapioPorPessoa * MARKUP_CARDAPIO);
+  const valorSugeridoPorPessoaCalculado = arredondarParaCimaCentavos(custoCardapioPorPessoa * MARKUP_CARDAPIO);
+  const valorSugeridoPorPessoa = opcoes.precoPorPessoaEscolhido ?? valorSugeridoPorPessoaCalculado;
   const valorSugeridoCrianca = arredondar(valorSugeridoPorPessoa / 2);
 
   const taxaDeslocamento = calcularTaxaDeslocamento(regiaoMetropolitanaCuritiba);

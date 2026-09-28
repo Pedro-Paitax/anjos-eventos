@@ -29,6 +29,13 @@
       "when": 1790556456887,
       "tag": "0003_orcamentos_valor_negociado_e_faixa_etaria",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1790587461468,
+      "tag": "0004_orcamentos_preco_pessoa_garcom_deslocamento",
+      "breakpoints": true
     }
   ]
 }

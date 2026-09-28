@@ -41,6 +41,8 @@ export type EntradaPrecificacaoEvento = EntradaPrecificacao & {
     criancasAte5: number;
     criancas5a10: number;
   };
+  /** Ver OpcoesPrecificacao.precoPorPessoaEscolhido — preço fixo/editado escolhido na tela, no lugar do dinâmico. */
+  precoPorPessoaEscolhido?: number;
 };
 
 /**
@@ -60,6 +62,7 @@ export async function calcularPrecificacaoEventoAction(entrada: EntradaPrecifica
       regiaoMetropolitanaCuritiba: entrada.regiaoMetropolitanaCuritiba,
       quantidadeGarcom: entrada.quantidadeGarcom,
       valorGarcom: entrada.valorGarcom,
+      precoPorPessoaEscolhido: entrada.precoPorPessoaEscolhido,
     },
     entrada.distribuicaoConvidados
   );

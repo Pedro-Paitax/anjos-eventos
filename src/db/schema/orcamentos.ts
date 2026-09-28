@@ -62,6 +62,21 @@ export const orcamentos = pgTable("orcamentos", {
    * Orçamento→Evento, 2026-09-27, sobre esta coluna).
    */
   valorNegociado: numeric("valor_negociado", { precision: 10, scale: 2 }),
+  /**
+   * Preço por pessoa ESCOLHIDO na tela do Orçamento (Passo 2) — pré-preenchido
+   * com Preco_Fixo_Por_Pessoa do Cardápio Modelo quando houver, ou com o
+   * valor dinâmico (custo x 1,40), sempre editável. Só preenchido pro Buffet
+   * Senhor Churrasco. Correção de 2026-09-28: o Passo 3 (Aprovar e Confirmar
+   * Evento) NÃO recalcula mais preço — usa este valor congelado aqui, via
+   * calcularPrecificacaoParaEvento com precoPorPessoaEscolhido. Ver
+   * docs/PENDENCIAS_NOTURNAS.md, sessão da Máquina de Estados, achado do
+   * bug de preço fixo não respeitado.
+   */
+  precoPessoa: numeric("preco_pessoa", { precision: 10, scale: 2 }),
+  /** Garçom/deslocamento escolhidos no mesmo Passo 2, junto com o preço — precisam estar fixados ali porque entram na mesma fórmula do Valor Total confirmado. Só Senhor Churrasco. */
+  qtdGarcons: integer("qtd_garcons"),
+  valorGarcom: numeric("valor_garcom", { precision: 10, scale: 2 }),
+  regiaoMetropolitanaCuritiba: boolean("regiao_metropolitana_curitiba"),
   criadoEm: timestamp("criado_em", { mode: "date" }).notNull().defaultNow(),
   /** Atualizado pela aplicação a cada modificação — sem trigger de banco, mesmo padrão já usado em eventos.updated_at. */
   atualizadoEm: timestamp("atualizado_em", { mode: "date" }).notNull().defaultNow(),

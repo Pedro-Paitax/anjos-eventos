@@ -164,6 +164,83 @@ describe("calcularPrecificacaoCardapio", () => {
   });
 });
 
+describe("calcularPrecificacaoCardapio com precoPorPessoaEscolhido (preço fixo/editado)", () => {
+  it("substitui o valor dinâmico calculado, sem afetar o custo real do cardápio", () => {
+    const resultado = calcularPrecificacaoCardapio(CARDAPIO, {
+      numConvidados: NUM_CONVIDADOS,
+      regiaoMetropolitanaCuritiba: false,
+      precoPorPessoaEscolhido: 85,
+    });
+
+    // custo real do cardápio continua sendo calculado normalmente —
+    // só o preço "de venda" é substituído.
+    expect(resultado.custo_cardapio_total).toBe(1747.88);
+    expect(resultado.custo_cardapio_por_pessoa).toBe(28.65);
+
+    expect(resultado.valor_sugerido_por_pessoa).toBe(85);
+    expect(resultado.valor_sugerido_crianca).toBe(42.5);
+    expect(resultado.valor_sugerido_total_evento).toBeCloseTo(85 * 61 + 0 + 3 * 230, 2);
+  });
+
+  it("sem precoPorPessoaEscolhido, comportamento dinâmico de sempre é preservado (regressão)", () => {
+    const resultado = calcularPrecificacaoCardapio(CARDAPIO, {
+      numConvidados: NUM_CONVIDADOS,
+      regiaoMetropolitanaCuritiba: false,
+    });
+
+    expect(resultado.valor_sugerido_por_pessoa).toBe(40.11);
+  });
+});
+
+// Reprodução exata do caso de regressão registrado em
+// docs/PENDENCIAS_NOTURNAS.md: Cardápio 01 (preço fixo R$85), 4
+// convidados, 1 garçom -> R$570,00. Itens vazios de propósito: o preço
+// escolhido substitui o cálculo de custo inteiro, então o cardápio real
+// é irrelevante pro Total quando há preço fixo/editado.
+describe("calcularPrecificacaoParaEvento com preço escolhido — regressão Cardápio 01", () => {
+  it("4 convidados (adultos), Cardápio 01 R$85, 1 garçom = R$570,00", () => {
+    const resultado = calcularPrecificacaoParaEvento(
+      [],
+      {
+        numConvidados: 4,
+        regiaoMetropolitanaCuritiba: false,
+        quantidadeGarcom: 1,
+        valorGarcom: 230,
+        precoPorPessoaEscolhido: 85,
+      },
+      { adultos: 4, criancasAte5: 0, criancas5a10: 0 }
+    );
+
+    expect(resultado.valor_sugerido_total_evento).toBe(570);
+  });
+
+  it("preço editado manualmente (fora do fixo) também é respeitado", () => {
+    const resultado = calcularPrecificacaoParaEvento(
+      [],
+      {
+        numConvidados: 4,
+        regiaoMetropolitanaCuritiba: false,
+        quantidadeGarcom: 1,
+        valorGarcom: 230,
+        precoPorPessoaEscolhido: 100, // usuário editou por cima do fixo/dinâmico
+      },
+      { adultos: 4, criancasAte5: 0, criancas5a10: 0 }
+    );
+
+    expect(resultado.valor_sugerido_total_evento).toBe(4 * 100 + 1 * 230);
+  });
+
+  it("sem precoPorPessoaEscolhido, cardápio sem preço fixo continua 100% dinâmico", () => {
+    const resultado = calcularPrecificacaoParaEvento(
+      CARDAPIO,
+      { numConvidados: NUM_CONVIDADOS, regiaoMetropolitanaCuritiba: false },
+      { adultos: 61, criancasAte5: 0, criancas5a10: 0 }
+    );
+
+    expect(resultado.valor_sugerido_por_pessoa).toBe(40.11);
+  });
+});
+
 // calcularPrecificacaoParaEvento é EXCLUSIVA do fluxo de Criar Evento
 // (decisão do Pedro, 2026-09-08, docs/DECISOES.md) — aplica meia-entrada
 // de criança no Total. calcularPrecificacaoCardapio (acima) continua
