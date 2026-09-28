@@ -827,3 +827,44 @@ ambos os casos são desvio de escopo que não deveria se repetir.
    causador (ex.: via porta, via nome de working directory) antes de
    encerrar algo — comandos amplos arriscam derrubar processos de outras
    sessões/usuários compartilhando a mesma máquina.
+
+---
+
+# Máquina de Estados Orçamento → Evento Confirmado (2026-09-27)
+
+Status: APROVADA — implementada na sessão noturna de 2026-09-27 (ver
+`docs/PENDENCIAS_NOTURNAS.md`, seção "Máquina de Estados Orçamento →
+Evento Confirmado" para detalhe técnico completo de implementação).
+
+Consenso técnico Claude + Gemini, decisão do Pedro pela Opção B: o fluxo
+de "Criar Evento" nunca gerava Orçamento nem confirmava
+`Itens_Evento_Confirmados` (diagnosticado na mesma sessão) — passou a
+ser sempre `Orçamento (Simulação) → Aprovar e Confirmar Evento
+(transação atômica) → Evento (confirmado)`, unificado pras 3 empresas
+(Buffet Senhor Churrasco com cardápio de Preparos; Anjos Cerimonial e Em
+Plena Natureza Chácara de Eventos com valor negociado direto, sem itens
+de preparo).
+
+## Corte de legado — evento anterior a 2026-09-27
+
+O único Evento real em produção anterior a esta mudança (criado pelo
+formulário antigo, `status='confirmado'`, órfão de `Itens_Evento_Confirmados`)
+**NÃO foi migrado automaticamente** por parsing de texto livre dos
+campos `cardapio_carnes`/`cardapio_acompanhamentos`/etc. — o risco de
+associar o texto livre ao Preparo errado (nomes digitados manualmente,
+sem garantia de correspondência exata) supera o benefício de preencher
+retroativamente um snapshot que nunca existiu de verdade.
+
+Eventos anteriores a 2026-09-27 não possuem snapshot granular em
+`Itens_Evento_Confirmados` e por isso não têm Ficha Técnica exportável
+nem Margem Real calculável a partir do snapshot (mesma lacuna já
+diagnosticada). Continuam sendo editados pelo formulário antigo (campos
+de texto livre, `SeletorCardapio` editável) — a tela de Evento cai nesse
+comportamento automaticamente quando não encontra linhas em
+`Itens_Evento_Confirmados`, sem nenhum caso especial "é o evento
+legado" no código.
+
+Se for necessário Ficha Técnica ou Margem Real real pra esse evento
+específico, o caminho é montar o cardápio equivalente no
+Simulador/Orçamento novo e gerar um Evento novo manualmente — não há
+migração retroativa prevista.

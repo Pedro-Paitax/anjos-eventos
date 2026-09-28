@@ -1476,3 +1476,164 @@ dado de produção nesta migração.
 O NocoDB/Postgres de produção do "ender" não foi tocado em nenhum
 momento desta sessão — nenhum comando rodou contra a porta do NocoDB
 nem contra o Postgres dele.
+
+## Sessão 2026-09-27 (noite, continuação) — Máquina de Estados Orçamento → Evento Confirmado
+
+Trabalho autônomo noturno, conforme instruído: implementar a arquitetura
+correta (consenso Claude+Gemini, decisão do Pedro pela Opção B) pra
+corrigir a lacuna diagnosticada mais cedo nesta mesma sessão (o fluxo
+real de "Criar Evento" nunca gravava em `Itens_Evento_Confirmados`).
+**Deploy NÃO feito, como instruído explicitamente — tudo abaixo está
+commitado e validado, aguardando revisão do Pedro pela manhã.**
+
+### Implementado
+
+1. **Schema (migração gerada, NÃO aplicada em produção — exceção
+   inegociável nº1)**: `drizzle/0003_orcamentos_valor_negociado_e_faixa_etaria.sql`
+   adiciona 4 colunas nullable em `orcamentos`:
+   - `valor_negociado numeric(10,2)` — só usado por Anjos Cerimonial/Em
+     Plena Natureza (empresas sem cardápio de Preparos): valor total
+     negociado direto, sem `itens_orcamento`. Decisão minha (não estava
+     no pedido original, que só citava "usar_preco_fixo_modelo + valor"
+     — mas essa coluna já tem um significado documentado e diferente,
+     "Cardápio Modelo com preço fixo foi carregado", que não se aplica
+     a essas duas empresas, que não têm Cardápio Modelo nenhum. Reaproveitar
+     `usar_preco_fixo_modelo` pra outra coisa seria inventar sentido pra
+     um campo já documentado — preferi uma coluna nova e explícita).
+   - `qtd_adultos`, `qtd_criancas_ate_5`, `qtd_criancas_5_a_10` integer —
+     faixa etária dos convidados, necessária pro motor de precificação
+     (crianças pagam meia-entrada) recalcular o Valor Sugerido no Passo 3
+     a partir do mesmo dado coletado no Passo 2 (Orçamento), sem pedir de
+     novo. Só preenchido pra Senhor Churrasco.
+
+   **Pedro: o SQL está no arquivo acima, pronto pra revisão. É só
+   `ALTER TABLE ... ADD COLUMN` nullable, aditivo, mesmo padrão da
+   migração 0002. Não apliquei — só rode `npx drizzle-kit migrate` (ou
+   equivalente) depois de revisar.**
+
+2. **`src/lib/orcamentos.ts`** (novo, com testes em
+   `orcamentos.test.ts`): `criarOrcamentoChurrasco`/`criarOrcamentoGenerico`
+   (Passo 2 — cria o Orçamento em status `Simulação`), `obterOrcamento`,
+   e `aprovarEConfirmarEvento` — a Ação de Conversão pedida: transação
+   atômica via `db.transaction` que (a) cria o Evento com `status =
+   'confirmado'`, (b) resolve o custo ATUAL de cada Preparo via
+   `calcularDimensionamentoOrcamento` + `calcularCustoPreparo` (nunca
+   cacheado — recalculado nesta chamada), (c) grava o snapshot em
+   `itens_evento_confirmados` (`custo_unitario_snapshot` congelado, nunca
+   recalculado depois), (d) atualiza o Orçamento pra `status = 'Aceito'`
+   e vincula `evento_id`. Tudo dentro da MESMA transação Drizzle —
+   inclusive a criação do Evento, que precisou ser reescrita com
+   `tx.insert(eventos)` direto (a função antiga `criarEvento` usa o
+   `pool` cru, uma conexão separada — chamá-la de dentro de
+   `db.transaction` não teria atomicidade real, é um bug que evitei
+   antes de escrever o código, não depois).
+
+3. **Passo 2 (Gerar Orçamento)**: `/agenda/novo` foi reescrita —
+   `criarEventoAction` foi REMOVIDA (não existe mais nenhuma rota que
+   cria Evento "do nada", pras 3 empresas, não só Senhor Churrasco, pra
+   manter as 3 na mesma máquina de estados como pedido). Agora cria um
+   Orçamento via `criarOrcamentoAction`: Senhor Churrasco abre
+   `FormularioOrcamentoChurrasco` (seletor de cardápio + template de
+   Cardápio Pré-Montado, igual já existia); as outras duas empresas usam
+   `FormularioOrcamentoGenerico` (cliente, convidados, valor negociado).
+   `SeletorCardapio` ganhou hidden inputs de `preparoIds` (antes só
+   emitia nome em texto livre, nunca o ID real do Preparo — sem isso,
+   `itens_orcamento` não teria como ser gravado).
+
+4. **Passo 3 (Aprovar e Confirmar Evento)**: nova rota `/orcamentos/[id]`
+   — mostra o Orçamento (cardápio fixado, somente leitura — trocar item
+   exige um novo Orçamento, não reabre o Passo 2) e
+   `FormularioConfirmarEvento`: coleta os dados operacionais/logísticos
+   (contato, endereço, horários, garçom/copeira, prazo pagamento, PIX,
+   contrato, observações — tudo que NÃO é comercial e por isso não fazia
+   sentido no Orçamento) e, pra Senhor Churrasco, recalcula o Valor
+   Sugerido em tempo real (mesmo motor de sempre) a partir do cardápio já
+   fixado. Botão "Aprovar e Confirmar Evento" chama
+   `aprovarConfirmarEventoAction`.
+
+5. **Evento legado (o único registro real órfão em produção)**: NADA foi
+   feito nele — nenhuma migração automática por parsing de texto livre,
+   como instruído. Ele continua com `status='confirmado'` e zero linhas
+   em `itens_evento_confirmados`, e por isso continua caindo no
+   fallback antigo (SeletorCardapio editável, campos de texto livre) —
+   ver item 6. Registrando formalmente como corte de legado em
+   `docs/DECISOES.md` (feito nesta sessão): eventos anteriores a
+   2026-09-27 não possuem snapshot granular; se precisar de Ficha
+   Técnica pra esse evento específico, o caminho é montar o cardápio
+   equivalente no Simulador/Orçamento novo e gerar um Evento novo pra
+   ele manualmente.
+
+6. **Fallback de leitura na Agenda (item 5 do pedido)**: `/agenda/[id]`
+   agora busca `itens_evento_confirmados` do evento
+   (`listarPreparosConfirmadosEvento`, novo, em
+   `src/lib/ficha-tecnica-evento.ts`) — quando existir, o cardápio
+   aparece como lista somente-leitura (com nota "trocar item exige um
+   novo Orçamento"); quando não existir (só o caso do evento legado,
+   hoje), cai no `SeletorCardapio` editável de sempre, sem nenhuma
+   checagem especial "é o evento legado" — é só ausência de dado, não um
+   caso especial no código.
+
+7. **Ficha Técnica**: nenhuma mudança de código foi necessária, como
+   previsto — assim que o primeiro Evento passar pelo fluxo novo, o
+   botão "Exportar Fichas Técnicas" (já implementado na sessão anterior)
+   passa a ter dado real automaticamente.
+
+### Validação (rodada por mim, a cada etapa, 4 commits)
+
+- `tsc --noEmit`: 0 erros, a cada commit.
+- `eslint`: 0 erros/warnings, a cada commit (inclusive um erro real de
+  `react-hooks/set-state-in-effect` que peguei e corrigi antes de
+  commitar — `setState` direto no corpo do efeito em
+  `FormularioConfirmarEvento`, corrigido com o mesmo padrão de debounce
+  já usado em `FormularioEventoChurrasco`).
+- `vitest run`: 63 passaram / 12 skipped (era 57/12 antes desta sessão —
+  6 testes novos em `orcamentos.test.ts`, cobrindo o núcleo puro
+  `montarValoresEvento`: zeragem correta dos campos exclusivos de
+  churrasco pras outras 2 empresas, não-gravação dos campos de texto
+  livre em NENHUMA empresa, conversão de tipos numéricos pro Postgres).
+
+### NÃO testado ponta a ponta contra produção — decisão deliberada, não esquecimento
+
+O pedido original pede teste ponta a ponta "com um evento real de cada
+tipo (Senhor Churrasco com cardápio, e um das outras duas empresas)
+antes de considerar pronto". **Não fiz isso** — pelo mesmo motivo já
+registrado nesta sessão sobre a Ficha Técnica (`.env`/`.env.local`
+apontam pro MESMO Postgres de produção, não existe staging separado):
+criar um Orçamento + Evento sintético de teste passaria por TODAS as
+gravações reais (`orcamentos`, `itens_orcamento`,
+`itens_evento_confirmados`, `eventos`) direto em produção, visível na
+Agenda real do Pedro. Não tenho autorização explícita pra isso e não é
+uma decisão técnica — é uma decisão de negócio (dado real vs. dado de
+teste em produção), então não inventei uma resposta.
+
+O que EU validei sem tocar produção: tipos, lint, e a lógica pura da
+Ação de Conversão via testes automatizados (`montarValoresEvento`) —
+mas a transação completa (`aprovarEConfirmarEvento`, incluindo os 3
+`INSERT`/`UPDATE` dentro de `db.transaction`) não foi exercitada contra
+banco real nesta sessão. Recomendo fortemente rodar esse teste ponta a
+ponta manualmente (você criando um Orçamento de teste real, ou me
+autorizando a criar um e excluir depois) antes de confiar cegamente na
+Máquina de Estados em produção.
+
+### Pendente de decisão do Pedro (registrado, não escolhi por vocês)
+
+1. **Aplicar ou não a migração 0003** (SQL pronto, ver item 1 acima).
+2. **Autorizar o teste ponta a ponta contra produção** (criar Orçamento
+   real de teste, ou aceitar rodar sem esse teste na primeira vez que um
+   Orçamento real passar pelo fluxo).
+3. **Deploy** — como instruído, NÃO fiz. Precisa da migração aplicada
+   primeiro (o código novo depende das 4 colunas novas existirem) e do
+   smoke test de sempre (`scripts/deploy-oracle.sh`) rodando depois.
+
+### Fora de escopo, não implementado (não pedido explicitamente)
+
+- Edição de um Orçamento já criado (trocar cardápio/convidados antes de
+  aprovar) — hoje só dá pra criar um novo. Se um Orçamento for criado
+  errado, a única saída é abandoná-lo (fica em `Simulação` pra sempre,
+  sem nenhum jeito de marcar como "Recusado"/cancelar pela UI ainda) e
+  criar outro. `status_orcamento` já tem o enum `Recusado` no schema,
+  mas não escrevi a ação de recusar — não foi pedido e evitei
+  engenharia excessiva numa sessão já grande.
+- Tolerância de troca de pacote fixo no Orçamento (Motor de Pacotes
+  Fixos completo, seção 4 de REGRAS_NEGOCIO.md) — continua fora de
+  escopo, como já estava antes desta sessão (Etapa 3 pausada).
