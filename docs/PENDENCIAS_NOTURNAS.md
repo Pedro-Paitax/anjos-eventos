@@ -1766,4 +1766,80 @@ matar) e aba do navegador fechada.
 Máquina de Estados testada ponta a ponta em produção real, pros dois
 tipos de fluxo (com cardápio de Preparos e sem), incluindo Ficha
 Técnica com dado real pela primeira vez. Nenhum resíduo de teste ficou
-no banco. **Ainda NÃO fiz o deploy** — falta só isso.
+no banco.
+
+## 2026-09-28 (manhã) — Duas verificações antes do deploy: schema limpo, mas BUG achado no preço fixo — DEPLOY PARADO
+
+Pedro pediu duas checagens só de leitura antes de autorizar o deploy.
+
+### 1. Diff schema real (Oracle) vs. schema Drizzle do repositório
+
+Dump completo de `information_schema.columns` (18 tabelas, todas as
+colunas/tipos/nullability) comparado contra `src/db/schema/*.ts`,
+tabela por tabela. **Único diff encontrado: `orcamentos` foi de 11 pra
+15 colunas — exatamente as 4 da migração 0003**
+(`qtd_adultos`, `qtd_criancas_ate_5`, `qtd_criancas_5_a_10`,
+`valor_negociado`, todas nullable). Nenhuma outra tabela, coluna,
+constraint ou tipo mudou. `eventos` continua com 43 colunas, intocada.
+`drizzle-kit push` não alterou nada além do esperado.
+
+**Achado à parte, registrado como pedido**: a tabela de controle
+`drizzle.__drizzle_migrations` está **vazia** (0 linhas) — este projeto
+nunca usou `drizzle-kit migrate` de fato, só `push` (histórico: 2026-09-16
+e a migração 0003 desta sessão, ambas via `push`). Isso significa que
+não há trilha formal de "quais migrations já rodaram" no banco — o
+schema real é sempre a fonte de verdade, comparado por diff a cada
+`push`. Não é um problema por si só (é como o projeto sempre operou),
+mas é bom deixar registrado pra não tentar `migrate` de novo esperando
+que ele funcione (ver tentativa 1 da aplicação da migração 0003, acima).
+
+### 2. Como o R$424,88 do Evento #6 foi calculado — BUG ENCONTRADO
+
+**O fluxo novo NÃO respeitou o preço fixo do Cardápio 01. Isso é uma
+regressão real contra uma decisão de negócio já tomada (Tarefa 1 da
+sessão de 2026-09-27, tarde/noite).**
+
+Conferido no banco: `Cardápio 01` (id=4) tem
+`preco_fixo_por_pessoa = R$85,00`. O Evento #6 tinha 4 convidados
+(4 adultos, 0 crianças). Se o preço fixo tivesse sido respeitado, o
+valor esperado seria `4 × R$85,00 = R$340,00` (+ garçom, se aplicável).
+Em vez disso, o valor gravado foi **R$424,88** — que é
+`4 × R$48,72 (preço dinâmico = custo real do cardápio × 1,40) + R$230,00
+(garçom) = R$424,88`. Ou seja: o Passo 3 usou o motor de precificação
+DINÂMICO (custo × 1,40), ignorando completamente que o Orçamento tinha
+sido criado a partir de um Cardápio Pré-Montado com preço fixo.
+
+**Causa raiz**: a Tarefa 1 (pré-preencher "Preço por pessoa" com o
+valor fixo do Cardápio Modelo) foi implementada corretamente no
+formulário ANTIGO (`src/components/formulario-evento-churrasco.tsx`,
+estado `precoFixoSelecionado`) — mas essa lógica nunca foi portada pra
+dentro do fluxo novo que construí nesta sessão. No Passo 2
+(`FormularioOrcamentoChurrasco.tsx`), `aplicarTemplate` carrega os
+itens do Cardápio Modelo no seletor mas **não guarda qual
+`cardapioModeloId` foi usado nem o `precoFixoPorPessoa` dele** — essa
+informação se perde entre o Passo 2 e o Passo 3. No Passo 3
+(`FormularioConfirmarEvento.tsx`), o preço vem sempre de
+`calcularPrecificacaoEventoAction` (o motor dinâmico), sem nenhum
+caminho de código que sequer pergunte se existe um preço fixo
+aplicável.
+
+**Consequência**: qualquer evento de Buffet Senhor Churrasco criado a
+partir de um Cardápio Pré-Montado com preço fixo, pelo fluxo novo, vai
+cobrar o valor ERRADO (dinâmico em vez de fixo) — uma regressão
+financeira real, não cosmética.
+
+### DEPLOY PARADO — como instruído
+
+Não fiz o deploy. `scripts/deploy-oracle.sh` não foi executado. Nenhum
+smoke test rodado. O código atual (HEAD) tem esse bug e não deve ir pra
+produção assim.
+
+**Correção necessária antes de reconsiderar o deploy** (não implementada
+ainda, aguardando sua decisão de prioridade): o Orçamento (`orcamentos`)
+precisaria persistir qual Cardápio Modelo (se algum) originou a seleção
+e/ou o preço fixo resultante, pra o Passo 3 poder honrar esse preço em
+vez de recalcular dinamicamente — reaproveitando a mesma lógica já
+validada em `formulario-evento-churrasco.tsx`. Isso provavelmente exige
+mais uma coluna nullable em `orcamentos` (ex.: `preco_fixo_aplicado`)
+— outra migração pendente de revisão seguindo o mesmo processo desta
+sessão.
