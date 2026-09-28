@@ -4,10 +4,10 @@ import { obterUsuarioAtual } from "@/lib/usuario-atual";
 import { listarEmpresas } from "@/lib/empresas";
 import { listarPreparosPorCategoria } from "@/lib/preparos";
 import { listarCardapiosModelo } from "@/lib/cardapios-modelo";
-import { criarEventoAction } from "@/app/actions/evento";
+import { criarOrcamentoAction } from "@/app/actions/orcamento";
 import { CabecalhoPagina } from "@/components/cabecalho-pagina";
-import { FormularioEventoChurrasco } from "@/components/formulario-evento-churrasco";
-import { FormularioEventoGenerico } from "@/components/formulario-evento-generico";
+import { FormularioOrcamentoChurrasco } from "@/components/formulario-orcamento-churrasco";
+import { FormularioOrcamentoGenerico } from "@/components/formulario-orcamento-generico";
 
 type NovoEventoPageProps = {
   searchParams: Promise<{ empresa?: string }>;
@@ -31,8 +31,8 @@ export default async function NovoEventoPage({
     <main className="venue-glow flex flex-1 flex-col items-center px-6 py-16">
       <div className="flex w-full max-w-2xl flex-col gap-8">
         <CabecalhoPagina
-          titulo="Novo evento"
-          subtitulo="Cadastro manual — a extração automática de contrato vem numa etapa futura."
+          titulo="Novo orçamento"
+          subtitulo="Passo 2 da Máquina de Estados: Orçamento → Aprovar → Evento. Cadastro manual — a extração automática de contrato vem numa etapa futura."
           voltarPara={
             empresaEscolhida
               ? { href: "/agenda/novo", rotulo: "← Trocar empresa" }
@@ -62,19 +62,14 @@ export default async function NovoEventoPage({
         ) : (
           <div className="rounded-[2px] bg-ink-soft/60 p-6 shadow-[0_20px_40px_-24px_rgba(0,0,0,0.6)]">
             {empresaEscolhida.nome === "Buffet Senhor Churrasco" ? (
-              <FormularioEventoChurrasco
+              <FormularioOrcamentoChurrasco
                 empresaId={empresaEscolhida.id}
                 preparosPorCategoria={await listarPreparosPorCategoria()}
                 cardapiosModelo={await listarCardapiosModelo()}
-                action={criarEventoAction}
-                rotuloEnvio="Cadastrar evento"
+                action={criarOrcamentoAction}
               />
             ) : (
-              <FormularioEventoGenerico
-                empresaId={empresaEscolhida.id}
-                action={criarEventoAction}
-                rotuloEnvio="Cadastrar evento"
-              />
+              <FormularioOrcamentoGenerico empresaId={empresaEscolhida.id} action={criarOrcamentoAction} />
             )}
           </div>
         )}

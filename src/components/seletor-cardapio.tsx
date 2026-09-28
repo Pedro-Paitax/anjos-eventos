@@ -135,6 +135,19 @@ export function SeletorCardapio({
         ))
       )}
 
+      {/* preparo_id de cada item selecionado — usado pelo fluxo de Orçamento
+          (src/lib/orcamentos.ts) pra gravar itens_orcamento. Os hidden inputs
+          acima (por nome) continuam existindo só pro fluxo antigo de edição
+          direta de Evento (campos de texto livre). */}
+      {CATEGORIAS_CARDAPIO.map((categoria) =>
+        selecao[categoria].map((nome) => {
+          const id = preparosPorCategoria[categoria].find((p) => p.nome === nome)?.id;
+          return id == null ? null : (
+            <input key={`id-${categoria}-${nome}`} type="hidden" name="preparoIds" value={id} />
+          );
+        })
+      )}
+
       <div className="flex items-center justify-between">
         <p className={rotuloClasse}>Itens selecionados</p>
         <button
