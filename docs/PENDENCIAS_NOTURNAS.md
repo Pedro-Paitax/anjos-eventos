@@ -1843,3 +1843,97 @@ validada em `formulario-evento-churrasco.tsx`. Isso provavelmente exige
 mais uma coluna nullable em `orcamentos` (ex.: `preco_fixo_aplicado`)
 — outra migração pendente de revisão seguindo o mesmo processo desta
 sessão.
+
+## 2026-09-28 (manhã) — Correção do preço fixo implementada e migração 0004 aplicada (autorizada)
+
+Implementada a correção descrita acima (commit `a9cdd20`): Passo 2
+(Orçamento) passou a decidir e congelar preço por pessoa, garçom e
+deslocamento; Passo 3 (Aprovar e Confirmar Evento) não recalcula mais
+nada pro Senhor Churrasco, só exibe o que o Orçamento já tem. Detalhe
+técnico completo no commit e nos comentários de código
+(`src/lib/orcamentos.ts`, `src/lib/precificacao-cardapio.ts`).
+
+Testes cobrindo a regressão exata (Cardápio 01 R$85, 4 convidados, 1
+garçom = R$570,00) em `precificacao-cardapio.test.ts` e
+`orcamentos.test.ts` — `tsc`/`eslint`/`vitest` limpos (70 passaram, era
+63 antes desta correção).
+
+**Migração 0004** (`preco_pessoa`, `qtd_garcons`, `valor_garcom`,
+`regiao_metropolitana_curitiba` em `orcamentos`, todas nullable) — SQL
+mostrado ao Pedro, **revisado e autorizado por ele antes da aplicação**.
+Aplicada via `npx drizzle-kit push --verbose` (mesmo método/motivo da
+0003 — `migrate` não é usado neste projeto, ver sessão anterior).
+Contagem antes/depois idêntica: `eventos`=1, `orcamentos`=0. Só as 4
+colunas esperadas foram alteradas (conferido via `information_schema`).
+
+**Interrupção registrada**: logo depois de aplicar a 0004, os
+tool-calls de navegador (Claude in Chrome) e em seguida o Bash pararam
+de responder (erro do classificador de segurança server-side, depois
+"extensão desconectada") por um período — não tentei contornar,
+avisei o Pedro e esperei. Ele confirmou que já tinha revisado o SQL da
+0004 antes de eu aplicar (registrado aqui a pedido dele). Ao retomar: o
+dev server de teste anterior (PID 1956, `node.exe`, confirmado via
+`tasklist` antes de encerrar) ainda estava rodando na porta 3000 —
+encerrado por PID exato (`taskkill /PID 1956 /F`), não por classe
+ampla, conforme a regra já registrada em `docs/DECISOES.md`.
+
+### Reteste ponta a ponta em produção (autorizado) — R$570,00 confirmado
+
+Chrome reconectou normalmente depois da interrupção. Dev server novo
+(`next dev --webpack`, `DATABASE_URL`/`DATA_SOURCE=oracle` forçados via
+env do shell) contra produção, mesmo procedimento da rodada anterior.
+
+`/agenda/novo?empresa=1` → cliente "TESTE - apagar", 4 adultos,
+template "Cardápio 01" → Preço por pessoa pré-preenchido com **R$85,00**
+(preço fixo, mensagem "pré-preenchido com o preço fixo do Cardápio
+Pré-Montado selecionado" confirmada na tela) → garçom=1 → preview ao
+vivo mostrou **Valor Total R$570,00** antes mesmo de submeter. "Gerar
+Orçamento" → Orçamento #3, status Simulação.
+
+Passo 3 (`/orcamentos/3`): valores exibidos como somente-leitura,
+idênticos ao Orçamento — Preço por pessoa R$85,00, criança R$42,50,
+Garçons 1 x R$230,00, **Valor Total: R$570,00** — nenhum recálculo,
+nenhum campo editável de preço. Preenchi Data e hora, cliquei "Aprovar
+e Confirmar Evento".
+
+Resultado, conferido por leitura direta no banco:
+- `eventos.id=8`: `status='confirmado'`, `valor='570.00'`,
+  `preco_pessoa='85.00'`, `preco_crianca_meia='42.50'`,
+  `valor_garcom='230.00'`, `qtd_garcons=1`. **R$570,00 confirmado.**
+- `orcamentos.id=3`: `status='Aceito'`, `evento_id=8`,
+  `preco_pessoa='85.00'`, **`usar_preco_fixo_modelo=true`** (o flag
+  passou a ser gravado corretamente, refletindo que o preço veio do
+  template com preço fixo).
+- `itens_evento_confirmados`: 14 linhas pro evento 8, todas com
+  `custo_unitario_snapshot` preenchido e > 0.
+- `/agenda/8/fichas-tecnicas`: renderizou normalmente (ex.: "Mix de
+  Folhas Verdes", rendimento ajustado 44g), confirmando que a correção
+  do preço não quebrou o pipeline da Ficha Técnica (que nunca dependeu
+  de preço de venda, só de custo).
+
+**Observação de ferramenta (não é bug do app)**: o formulário de
+Orçamento perdeu o estado uma vez logo após a reconexão do Chrome
+(cliente/convidados/cardápio voltaram a vazio no meio do preenchimento)
+— consistente com inputs chegando antes da hidratação do client-side
+React terminar, não com um bug de aplicação. Refiz o preenchimento do
+zero, com verificação por screenshot antes de cada submit, e a segunda
+tentativa funcionou de ponta a ponta sem intercorrências.
+
+### Limpeza — registros de teste apagados, banco confirmado no estado anterior
+
+Mesma transação escopada por ID (`evento_id=8`, `orcamento_id=3`,
+`id=3`/`id=8` — nunca `DELETE` sem `WHERE`):
+
+```
+{ itens_evento_confirmados: 14, itens_orcamento: 14, orcamentos: 1, eventos: 1 }
+```
+
+**Contagem final**: `eventos`=1 (só o id=5, legado, conferido linha a
+linha sem alteração), `orcamentos`=0, `itens_orcamento`=0,
+`itens_evento_confirmados`=0 — idêntico ao estado antes do teste.
+
+Dev server de teste (PID 14036, `node.exe`, confirmado via `tasklist`)
+encerrado por PID exato. Aba do navegador fechada.
+
+**O bug do preço fixo está corrigido e verificado ponta a ponta em
+produção real. Seguindo agora pro deploy.**
