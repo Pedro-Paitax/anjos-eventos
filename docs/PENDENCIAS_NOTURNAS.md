@@ -1637,3 +1637,43 @@ Máquina de Estados em produção.
 - Tolerância de troca de pacote fixo no Orçamento (Motor de Pacotes
   Fixos completo, seção 4 de REGRAS_NEGOCIO.md) — continua fora de
   escopo, como já estava antes desta sessão (Etapa 3 pausada).
+
+## 2026-09-28 (manhã) — Migração 0003 aplicada em produção, autorizada explicitamente pelo Pedro
+
+O Pedro revisou o SQL (mostrado ele mesmo pediu — 4x `ALTER TABLE
+orcamentos ADD COLUMN`, todas nullable, sem `DROP`/`ALTER TYPE`/`UPDATE`)
+e autorizou aplicar.
+
+**Contagem antes**: `eventos`=1, `orcamentos`=0, `itens_orcamento`=0,
+`itens_evento_confirmados`=0 (leitura direta, read-only).
+
+**Tentativa 1 — `npx drizzle-kit migrate`: abandonada, nada aplicado.**
+Travou (spinner "applying migrations..." sem terminar, `timeout 60`
+matou o processo). Investigado antes de tentar de novo: `pg_stat_activity`
+e `pg_locks` (sem granted=false) mostraram NENHUMA sessão nem lock
+pendente — não era contenção. Causa real: a tabela de controle
+`drizzle.__drizzle_migrations` existe mas está **vazia** (0 linhas) —
+este projeto sempre aplicou schema via `drizzle-kit push` (histórico:
+sessão 2026-09-16, "`npx drizzle-kit push` → Changes applied"), nunca
+via `migrate`, então o journal não tem registro das migrations 0000-0002
+já aplicadas. `migrate` tentaria reaplicar TODAS as 4 migrations desde a
+0000 (tabelas que já existem) — não é a ferramenta certa pra este
+projeto. Confirmado que nada foi escrito: `information_schema.columns`
+de `orcamentos` continuava com as 11 colunas de sempre depois da
+tentativa abortada.
+
+**Tentativa 2 — `npx drizzle-kit push --verbose`: aplicada com sucesso.**
+Mesma ferramenta já usada nas duas migrações estruturais anteriores
+deste projeto. Mostrou exatamente as 4 `ALTER TABLE ADD COLUMN`
+esperadas (nada mais — sem drift de schema) antes de aplicar, `[✓]
+Changes applied`, saída 0.
+
+**Contagem depois** (leitura direta, read-only): `eventos`=1,
+`orcamentos`=0 — idênticas às de antes. Evento legado real (id=5,
+cliente="A", status="confirmado") conferido linha a linha: sem nenhuma
+alteração.
+
+`information_schema.columns` de `orcamentos` confirma as 4 colunas
+novas presentes: `qtd_adultos`, `qtd_criancas_ate_5`,
+`qtd_criancas_5_a_10`, `valor_negociado` — todas nullable, como
+projetado. Migração 0003 está **aplicada em produção**.
