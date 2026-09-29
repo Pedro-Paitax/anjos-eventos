@@ -1937,3 +1937,46 @@ encerrado por PID exato. Aba do navegador fechada.
 
 **O bug do preço fixo está corrigido e verificado ponta a ponta em
 produção real. Seguindo agora pro deploy.**
+
+### Pergunta do Pedro antes do deploy: `orcamentos.preco_pessoa` = 42,50?
+
+Antes de autorizar, o Pedro pediu confirmação de que `orcamentos.preco_pessoa`
+não tinha sido gravado como 42,50 (metade do fixo) em vez de 85,00, o que
+indicaria confusão entre preço de adulto e meia-entrada de criança
+mascarada pela aritmética deste teste específico. Retracei o código
+linha a linha (`formulario-orcamento-churrasco.tsx:84-87` →
+`actions/orcamento.ts:60-64` → `lib/orcamentos.ts:96`) — nenhuma divisão
+por 2 existe nesse caminho. A divisão só existe em
+`calcularPrecificacaoParaEvento` (`valor_sugerido_crianca`), que grava
+em `eventos.preco_crianca_meia`, nunca em `orcamentos.preco_pessoa`.
+Reapresentei a evidência já capturada: `orcamentos.preco_pessoa="85.00"`
+e `eventos.preco_pessoa="85.00"` — só `eventos.preco_crianca_meia` é
+42,50, corretamente. Confirmado (a): sem bug, campos corretos.
+
+## 2026-09-28 (tarde) — DEPLOY REALIZADO
+
+Autorizado pelo Pedro após a explicação acima. `scripts/deploy-oracle.sh`
+rodado do início (source = HEAD, commit `1bdca39` — inclui a correção
+do preço fixo). Tailscale já liberado pelo Pedro antes desta tentativa;
+passo 2/5 (transferência) passou sem problema desta vez.
+
+**Backup gerado (pra rollback manual, se necessário)**:
+`/home/opc/anjos-eventos-app-backup-20260929-022600.tgz`
+
+**Smoke test — os 3 itens combinados com o Pedro**:
+1. `/api/preparos/2/custo` → `{"preparo":"Vinagrete","custo_total_preparo":16.96,...}` — **16,96 confirmado.**
+2. `/agenda/novo` → `HTTP 307` (redireciona pra `/login` sem sessão, carregando normalmente) — **OK.**
+3. `/orcamentos/1` → `HTTP 307` (redireciona pra `/login` sem sessão) — **OK.**
+
+PM2: `anjos-eventos-app` reiniciado, status `online`, commit `1bdca39`
+rodando em `http://oracle:3001`.
+
+**Rollback, se necessário**: no Oracle, extrair
+`/home/opc/anjos-eventos-app-backup-20260929-022600.tgz` por cima de
+`~/anjos-eventos-app` e rodar `pm2 restart anjos-eventos-app` — não é
+automático, precisa ser feito manualmente (mesmo comportamento do
+script desde que foi escrito).
+
+**Sessão encerrada com deploy concluído.** Máquina de Estados
+Orçamento → Evento Confirmado está em produção, com o preço fixo do
+Cardápio Modelo sendo respeitado corretamente.
