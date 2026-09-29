@@ -87,13 +87,21 @@ export default async function PaginaFichasTecnicas({ params }: PaginaFichasTecni
           </p>
         )}
 
-        <div className="flex flex-col gap-12 print:gap-0">
+        {/*
+          Bloco de listagem em fluxo normal (display: block), NUNCA flex —
+          break-after/page-break-after em filhos de um container flex é mal
+          suportado no motor de impressão do Chromium e gera uma página em
+          branco/gigante extra depois do ÚLTIMO item (achado em produção,
+          docs/PENDENCIAS_NOTURNAS.md). O espaçamento vertical por isso vem
+          de margin em cada artigo, não de gap no pai.
+        */}
+        <div>
           {fichas.map((ficha, indice) => (
             <article
               key={ficha.preparoId}
               className={
                 indice < fichas.length - 1
-                  ? "break-after-page border-b border-black/10 pb-10 print:border-none print:pb-0"
+                  ? "break-after-page mb-12 border-b border-black/10 pb-10 print:mb-0 print:border-none print:pb-0"
                   : undefined
               }
             >
