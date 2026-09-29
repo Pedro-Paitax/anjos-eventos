@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { obterUsuarioAtual } from "@/lib/usuario-atual";
 import { trocarUsuario } from "@/app/actions/usuario";
 import { listarEventosProximos } from "@/lib/eventos";
+import { pendenciasPorEvento } from "@/lib/decisoes-operacionais";
 import { corEmpresa, formatarData, formatarHora } from "@/lib/formatacao";
 
 const DIAS_PROXIMOS_EVENTOS = 15;
@@ -18,6 +19,11 @@ const funcionalidades = [
     descricao: "Preparos, Cardápios Feitos e Simulador de Cardápio.",
     href: "/senhor-churrasco",
   },
+  {
+    titulo: "Colaboradores",
+    descricao: "Copeiras, assadores e garçons, com WhatsApp.",
+    href: "/colaboradores",
+  },
 ];
 
 export default async function Home() {
@@ -27,6 +33,7 @@ export default async function Home() {
   }
 
   const eventosProximos = await listarEventosProximos(DIAS_PROXIMOS_EVENTOS);
+  const pendencias = await pendenciasPorEvento(eventosProximos.map((e) => e.id));
 
   return (
     <main className="venue-glow flex flex-1 flex-col items-center px-6 py-16">
@@ -64,7 +71,19 @@ export default async function Home() {
                       aria-hidden
                       className={`absolute inset-x-0 top-0 h-1.5 ${corEmpresa(evento.empresa_nome)}`}
                     />
-                    <p className="font-display text-lg italic">{evento.cliente}</p>
+                    <p className="font-display text-lg italic">
+                      {evento.cliente}
+                      {(pendencias.get(evento.id)?.length ?? 0) > 0 && (
+                        <span
+                          role="img"
+                          aria-label="Item pendente"
+                          title={pendencias.get(evento.id)?.join("; ")}
+                          className="ml-2 not-italic"
+                        >
+                          ⚠️
+                        </span>
+                      )}
+                    </p>
                     <p className="text-sm text-paper-ink/70">
                       {formatarData(evento.data_evento)}, {formatarHora(evento.data_evento)}
                     </p>
