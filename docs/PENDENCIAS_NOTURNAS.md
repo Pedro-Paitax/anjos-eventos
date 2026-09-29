@@ -2224,3 +2224,18 @@ PM2: `anjos-eventos-app` reiniciado, `online`, commit `fb3b222` rodando
 em `http://oracle:3001`.
 
 **As duas correções do bug do bloco preto estão em produção.**
+
+---
+
+## 2026-09-29 — Migration 0005 (colaboradores + decisões operacionais) aplicada em produção
+
+SQL revisado e aprovado explicitamente pelo Pedro (com `UNIQUE (evento_id)` em
+`decisoes_operacionais_evento`) antes de aplicar. Aplicada em uma transação
+única (7 statements, script pontual com `pg`; `drizzle-kit migrate` não serve
+aqui — `__drizzle_migrations` está vazia).
+
+Verificação por `information_schema`/`pg_type`, antes → depois: tabelas 19 → 22
+(`colaboradores`, `evento_colaboradores`, `decisoes_operacionais_evento`),
+enums 9 → 10 (`funcao_colaborador`). Nenhuma outra tabela/enum alterada.
+Constraints conferidas: PKs, FKs (cascade em `evento_id`, sem cascade em
+`colaborador_id`) e `decisoes_operacionais_evento_evento_id_unique`.
