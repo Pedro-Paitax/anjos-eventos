@@ -2,6 +2,10 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { obterUsuarioAtual } from "@/lib/usuario-atual";
 import { trocarUsuario } from "@/app/actions/usuario";
+import { listarEventosProximos } from "@/lib/eventos";
+import { corEmpresa, formatarData, formatarHora } from "@/lib/formatacao";
+
+const DIAS_PROXIMOS_EVENTOS = 15;
 
 const funcionalidades = [
   {
@@ -22,6 +26,8 @@ export default async function Home() {
     redirect("/login");
   }
 
+  const eventosProximos = await listarEventosProximos(DIAS_PROXIMOS_EVENTOS);
+
   return (
     <main className="venue-glow flex flex-1 flex-col items-center px-6 py-16">
       <div className="flex w-full max-w-2xl flex-col items-center gap-10">
@@ -37,6 +43,38 @@ export default async function Home() {
             e da Em Plena Natureza.
           </p>
         </div>
+
+        <section className="flex w-full flex-col gap-3">
+          <h2 className="font-display text-xl italic text-paper">
+            Próximos {DIAS_PROXIMOS_EVENTOS} dias
+          </h2>
+          {eventosProximos.length === 0 ? (
+            <p className="text-sm text-paper-dim">
+              Nenhum evento nos próximos {DIAS_PROXIMOS_EVENTOS} dias.
+            </p>
+          ) : (
+            <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              {eventosProximos.map((evento) => (
+                <li key={evento.id}>
+                  <Link
+                    href={`/agenda/${evento.id}`}
+                    className="relative flex h-full flex-col gap-1 overflow-hidden rounded-[2px] bg-paper p-4 text-paper-ink shadow-[0_18px_28px_-16px_rgba(0,0,0,0.6)] transition hover:-translate-y-1 focus-visible:-translate-y-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brass"
+                  >
+                    <span
+                      aria-hidden
+                      className={`absolute inset-x-0 top-0 h-1.5 ${corEmpresa(evento.empresa_nome)}`}
+                    />
+                    <p className="font-display text-lg italic">{evento.cliente}</p>
+                    <p className="text-sm text-paper-ink/70">
+                      {formatarData(evento.data_evento)}, {formatarHora(evento.data_evento)}
+                    </p>
+                    <p className="text-xs text-paper-ink/60">{evento.empresa_nome}</p>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
 
         <div className="grid w-full grid-cols-1 gap-4 sm:grid-cols-2">
           {funcionalidades.map((item) =>
