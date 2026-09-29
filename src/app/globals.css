@@ -51,4 +51,17 @@ body {
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
+
+  /*
+   * <body> (layout.tsx) é bg-ink (tema escuro do app inteiro) — na ÚLTIMA
+   * página impressa, se o conteúdo termina antes do fim da folha, a área
+   * em branco restante mostra o fundo do body por baixo, virando um bloco
+   * preto enorme (achado em produção, docs/PENDENCIAS_NOTURNAS.md). O
+   * bg-white do <main> da Ficha Técnica só cobre a altura do próprio
+   * conteúdo, não a página impressa inteira. Único lugar do app com
+   * estilo de impressão — forçar branco aqui não afeta as outras telas.
+   */
+  body {
+    background: white;
+  }
 }
