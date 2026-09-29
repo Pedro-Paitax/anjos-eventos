@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Fraunces, Archivo } from "next/font/google";
 import "./globals.css";
+import { NavegacaoPrincipal } from "@/components/navegacao-principal";
 
 const fraunces = Fraunces({
   variable: "--font-fraunces",
@@ -26,6 +27,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${fraunces.variable} ${archivo.variable} h-full`}
     >
       <body className="flex min-h-full flex-col bg-ink text-paper antialiased">
+        <NavegacaoPrincipal />
         {children}
       </body>
     </html>

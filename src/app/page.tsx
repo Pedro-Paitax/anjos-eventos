@@ -19,11 +19,6 @@ const funcionalidades = [
     descricao: "Preparos, Cardápios Feitos e Simulador de Cardápio.",
     href: "/senhor-churrasco",
   },
-  {
-    titulo: "Colaboradores",
-    descricao: "Copeiras, assadores e garçons, com WhatsApp.",
-    href: "/colaboradores",
-  },
 ];
 
 export default async function Home() {
