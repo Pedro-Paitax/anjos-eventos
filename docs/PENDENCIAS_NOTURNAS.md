@@ -2118,3 +2118,81 @@ PM2: `anjos-eventos-app` reiniciado, `online`, commit `bc402f1` rodando
 em `http://oracle:3001`.
 
 **Redesenho da Ficha Técnica está em produção.**
+
+## 2026-09-29 (tarde) — Bug pós-deploy: bloco preto na última página impressa (duas correções)
+
+Pedro reportou, testando o redesenho já em produção: o ÚLTIMO preparo
+da lista gerava um bloco enorme preto/vazio depois do conteúdo,
+quebrando o layout na impressão.
+
+### Correção 1 (`10ac13a`) — diagnóstico inicial, real mas incompleto
+
+Hipótese inicial: a lista de preparos era um container `flex` (`flex
+flex-col gap-12`), e `break-after-page` em filhos de um container flex
+é mal suportado no motor de impressão do Chromium. Corrigido trocando
+o wrapper pra fluxo normal (`display: block`), espaçamento por
+`margin` em vez de `gap`. `tsc`/`eslint`/`vitest` limpos, amostra
+visual (evento de teste, 19 preparos) confirmou o fim do documento
+coincidindo com o fim do último preparo NA TELA — mas eu não tinha
+testado o preview de impressão real (avisei o Pedro disso
+explicitamente).
+
+### Correção 2 (`be562a3`) — causa raiz de verdade
+
+Pedro pediu pra eu conferir o preview de impressão real. Tentei clicar
+em "Imprimir/Salvar como PDF" via automação do navegador — isso abriu
+o diálogo nativo de impressão do Chrome via `window.print()`, que
+**travou a aba automatizada** (exatamente o risco que eu tinha avisado
+antes de tentar — `window.print()` bloqueia a página de um jeito
+parecido com `alert()`/`confirm()`). Não tentei contornar; avisei o
+Pedro que o preview estava aberto de verdade na tela dele e pedi pra
+ele mesmo conferir e fechar o diálogo.
+
+Pedro conferiu e **encontrou o bug ainda presente** — mandou um
+screenshot real do preview (`docs/amostras/ficha-tecnica-errada.png`):
+bloco preto sólido preenchendo o resto da última página impressa,
+depois do "Modo de Preparo" do último item (Vinagrete, 14/14).
+
+**Causa raiz de verdade**: `<body>` (`src/app/layout.tsx`) usa
+`bg-ink` (tema escuro do app inteiro — `#1e1811`). O `<main
+className="bg-white">` da Ficha Técnica só cobre a altura do próprio
+conteúdo, não a página impressa inteira. Na ÚLTIMA página, quando o
+conteúdo termina antes do fim da folha, a área em branco restante
+mostra o fundo escuro do `<body>` por baixo — com
+`print-color-adjust: exact` já ativo (pra zebra da tabela), esse fundo
+escuro imprime como um bloco quase preto sólido. A correção 1 era
+sobre um risco real (flex + break-after), mas não era a causa DESTE
+bug específico.
+
+**Correção**: `@media print { body { background: white; } }` em
+`globals.css` — única tela do app com estilo de impressão, não afeta
+o tema escuro das demais páginas.
+
+### Reteste
+
+Recarreguei a página com o CSS novo (hot-reload do dev server) e pedi
+pro Pedro conferir o preview de impressão real de novo — ele mesmo,
+não eu, pra não travar a automação de novo. **Confirmado: "agora
+sumiu"**.
+
+### Validação
+
+`tsc --noEmit`: 0 erros. `eslint`: 0 erros (CSS não é alvo do eslint,
+só um warning de "arquivo ignorado", esperado). `vitest run`: 70/70,
+sem regressão.
+
+### Limpeza
+
+Dois eventos de teste criados e apagados nesta sessão de correção,
+cada um escopado por ID, contagem antes/depois provando limpeza (ver
+commits acima). Estado final do banco: `eventos`=1, `orcamentos`=1,
+`itens_orcamento`=14, `itens_evento_confirmados`=14 — o Orçamento
+#4/Evento #9 real, pré-existente, intocado.
+
+### Lição registrada
+
+`window.print()`/diálogos nativos de impressão disparados via
+automação de navegador travam a aba da mesma forma que
+`alert()`/`confirm()` — não tentar de novo via automação; pedir pro
+Pedro conferir manualmente quando o preview de impressão real
+precisar ser validado.
