@@ -42,3 +42,13 @@ body {
     transform: translateY(0) scale(1);
   }
 }
+
+/* Ficha Técnica (docs/agenda/[id]/fichas-tecnicas): sem isso, o navegador
+   descarta fundos/zebra da tabela de Insumos ao imprimir por padrão
+   (economia de tinta), quebrando o requisito de "linhas alternadas". */
+@media print {
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
