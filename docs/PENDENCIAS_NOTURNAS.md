@@ -2196,3 +2196,31 @@ automação de navegador travam a aba da mesma forma que
 `alert()`/`confirm()` — não tentar de novo via automação; pedir pro
 Pedro conferir manualmente quando o preview de impressão real
 precisar ser validado.
+
+### DEPLOY (commit `fb3b222`)
+
+Pedro confirmou "agora sumiu" depois de conferir o preview de
+impressão real ele mesmo, e autorizou finalizar.
+
+**Duas tentativas de deploy falharam antes de dar certo — infra, não
+código**: o host de build ("ender") estava sem resolução de DNS
+nenhuma (`curl: Could not resolve host` até pra `www.google.com`,
+confirmado via SSH direto — resolver do Tailscale, `100.100.100.100`,
+fora do ar), o que quebrava o build do Next.js tentando buscar as
+fontes do Google (Fraunces/Archivo). As duas tentativas falharam no
+passo 1/5 (build), **antes de qualquer coisa tocar o Oracle** — nada
+de errado aconteceu em produção nesse meio tempo. Pedro colocou um IP
+temporário na máquina, confirmei DNS resolvendo de novo via SSH, e a
+terceira tentativa completou.
+
+**Backup gerado (rollback)**:
+`/home/opc/anjos-eventos-app-backup-20260929-202920.tgz`
+
+**Smoke test**: `/api/preparos/2/custo` → 16,96 ✓ · `/simulador-cardapio`
+→ 307 sem sessão ✓ · `/agenda/9/fichas-tecnicas` (rota corrigida) → 307
+sem sessão ✓.
+
+PM2: `anjos-eventos-app` reiniciado, `online`, commit `fb3b222` rodando
+em `http://oracle:3001`.
+
+**As duas correções do bug do bloco preto estão em produção.**
