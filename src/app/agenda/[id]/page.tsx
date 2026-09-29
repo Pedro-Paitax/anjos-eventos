@@ -5,7 +5,16 @@ import { obterEvento } from "@/lib/eventos";
 import { listarPreparosPorCategoria } from "@/lib/preparos";
 import { listarCardapiosModelo } from "@/lib/cardapios-modelo";
 import { eventoTemCardapioConfirmado, listarPreparosConfirmadosEvento } from "@/lib/ficha-tecnica-evento";
+import { listarColaboradoresAtivos } from "@/lib/colaboradores";
+import {
+  EMPRESA_SENHOR_CHURRASCO,
+  obterDecisoes,
+  listarEquipeEvento,
+  pendenciasPorEvento,
+} from "@/lib/decisoes-operacionais";
 import { atualizarEventoAction } from "@/app/actions/evento";
+import { salvarDecisoesOperacionaisAction } from "@/app/actions/decisoes-operacionais";
+import { FormularioDecisoesOperacionais } from "@/components/formulario-decisoes-operacionais";
 import { CabecalhoPagina } from "@/components/cabecalho-pagina";
 import { FormularioEventoChurrasco } from "@/components/formulario-evento-churrasco";
 import { FormularioEventoGenerico } from "@/components/formulario-evento-generico";
@@ -39,6 +48,14 @@ export default async function EventoPage({ params }: PaginaEventoProps) {
     ? await listarPreparosConfirmadosEvento(evento.id)
     : null;
 
+  const ehChurrasco = evento.empresa_nome === EMPRESA_SENHOR_CHURRASCO;
+  const decisoes = ehChurrasco ? await obterDecisoes(evento.id) : null;
+  const equipeIds = ehChurrasco ? await listarEquipeEvento(evento.id) : [];
+  const colaboradoresAtivos = ehChurrasco ? await listarColaboradoresAtivos() : [];
+  const pendencias = ehChurrasco
+    ? ((await pendenciasPorEvento([evento.id])).get(evento.id) ?? [])
+    : [];
+
   return (
     <main className="venue-glow flex flex-1 flex-col items-center px-6 py-16">
       <div className="flex w-full max-w-2xl flex-col gap-8">
@@ -63,7 +80,7 @@ export default async function EventoPage({ params }: PaginaEventoProps) {
         />
 
         <div className="rounded-[2px] bg-ink-soft/60 p-6 shadow-[0_20px_40px_-24px_rgba(0,0,0,0.6)]">
-          {evento.empresa_nome === "Buffet Senhor Churrasco" ? (
+          {ehChurrasco ? (
             <FormularioEventoChurrasco
               empresaId={evento.empresa_id}
               valoresIniciais={evento}
@@ -82,6 +99,27 @@ export default async function EventoPage({ params }: PaginaEventoProps) {
             />
           )}
         </div>
+
+        {ehChurrasco && (
+          <section className="flex flex-col gap-4 rounded-[2px] bg-ink-soft/60 p-6 shadow-[0_20px_40px_-24px_rgba(0,0,0,0.6)]">
+            <h2 className="font-display text-2xl italic text-paper">
+              Decisões operacionais
+            </h2>
+            {pendencias.length > 0 && (
+              <ul className="list-disc rounded-[2px] border border-ember/40 p-3 pl-7 text-sm text-ember">
+                {pendencias.map((p) => (
+                  <li key={p}>{p}</li>
+                ))}
+              </ul>
+            )}
+            <FormularioDecisoesOperacionais
+              colaboradoresAtivos={colaboradoresAtivos}
+              equipeIds={equipeIds}
+              valoresIniciais={decisoes}
+              action={salvarDecisoesOperacionaisAction.bind(null, evento.id)}
+            />
+          </section>
+        )}
       </div>
     </main>
   );
