@@ -1980,3 +1980,116 @@ script desde que foi escrito).
 **Sessão encerrada com deploy concluído.** Máquina de Estados
 Orçamento → Evento Confirmado está em produção, com o preço fixo do
 Cardápio Modelo sendo respeitado corretamente.
+
+## Sessão 2026-09-28/29 (noite) — Redesenho visual da Ficha Técnica (aguardando aprovação)
+
+Trabalho autônomo noturno, conforme instruído: redesenhar
+`/agenda/[id]/fichas-tecnicas`, mantendo HTML/CSS puro (Tailwind), sem
+biblioteca de PDF nova. **Nenhuma migração de schema foi necessária**
+— é puramente camada de apresentação, como o Pedro já esperava
+("isso é só CSS/HTML"). A exceção nº1 (gerar SQL e parar) não se
+aplicou.
+
+### Achado inesperado ao iniciar — banco de produção mudou desde a última sessão
+
+Antes de começar, conferi o estado do banco (leitura, como sempre faço
+antes de criar dado de teste) e encontrei algo diferente do que deixei
+depois do deploy: **o evento legado antigo (id=5, cliente "A") não
+existe mais**. Em seu lugar, existe `eventos.id=9` (cliente "a",
+minúsculo, status confirmado) e `orcamentos.id=4` (status Aceito,
+`evento_id=9`, `preco_pessoa=85.00`, `usar_preco_fixo_modelo=true`,
+criado às 2026-09-29 02:33 GMT-3) — ou seja, um Orçamento real passou
+pelo fluxo novo (Orçamento → Aprovar → Evento) depois do deploy desta
+madrugada.
+
+**Não tenho certeza de quem criou isso** (mais provável: o próprio
+Pedro testando o sistema recém-implantado, já que o padrão de nome
+"a"/"A" ecoa o antigo evento legado, e a sessão do Chrome já estava
+logada como "Pedro"). **Não toquei nesse evento nem nesse orçamento em
+nenhum momento** — tratei como dado real protegido, com a mesma cautela
+do antigo evento legado, inclusive ao escolher nomes de cliente de
+teste (usei "TESTE - apagar (amostra ficha tecnica)", claramente
+distinto) e ao escopar a limpeza só pelos IDs que eu mesmo criei.
+Se isso **não** foi você, me avise — pode ser algo que mereça
+investigação.
+
+### Implementado (commit `bd48b09`)
+
+1. **Cabeçalho do documento** (`src/app/agenda/[id]/fichas-tecnicas/page.tsx`):
+   movido pro topo, uma vez só — nome do cliente/evento em destaque,
+   com "Ficha Técnica de Produção" como etiqueta, e uma grade com
+   Empresa / Data do evento / Convidados / contagem de Preparos.
+   `numConvidados` calculado a partir de `qtd_adultos + qtd_criancas_ate_5
+   + qtd_criancas_5_a_10` do Evento (não existe coluna `num_convidados`
+   populada nesse fluxo).
+2. **Cada Preparo em seção própria**: eyebrow "Preparo N de M", nome em
+   `font-display italic` (mesma fonte serifada do resto do sistema),
+   rendimento ajustado logo abaixo em texto secundário menor/acinzentado.
+3. **Tabela de Insumos real**: cabeçalho com fundo cinza claro
+   (`bg-black/[0.06]`), linhas zebradas (`bg-black/[0.03]` nas ímpares),
+   bordas sutis em toda célula, quantidade alinhada à direita com
+   `tabular-nums`.
+4. **Passos numerados**: badge circular com o número do passo (border
+   preto, 2px), espaçamento generoso entre passos (`gap-4`), texto em
+   `text-base` (maior que o resto da ficha) pra leitura na cozinha.
+5. **Quebra de página**: mantido `break-after-page` entre preparos (já
+   existia), com uma borda sutil adicional entre seções na tela (não
+   aparece impressa, `print:border-none`) pra reforçar a separação
+   visual também no navegador.
+6. **`globals.css`**: adicionado `print-color-adjust: exact` — sem
+   isso, o navegador descarta o fundo/zebra da tabela ao imprimir por
+   padrão (economia de tinta), quebrando o requisito nº3.
+
+### Validação
+
+`tsc --noEmit`: 0 erros. `eslint`: 0 erros/warnings. `vitest run`: 70
+passaram / 12 skipped — sem regressão (mesmo número de antes desta
+sessão, já que é mudança de apresentação, não de lógica testável).
+
+### Amostra visual — aguardando sua aprovação
+
+Criei um Orçamento/Evento de teste real (cliente "TESTE - apagar
+(amostra ficha tecnica)", Cardápio 03, 30 convidados — Orçamento #5 →
+Evento #10), tirei 3 screenshots da página nova, e apaguei tudo depois
+(contagem abaixo). As imagens estão commitadas em:
+
+- `docs/amostras/ficha-tecnica-redesign-01-cabecalho.jpg` — cabeçalho
+  do documento + primeiro Preparo completo.
+- `docs/amostras/ficha-tecnica-redesign-02-quebra-secao.jpg` — fim de
+  um Preparo, quebra visual, início do próximo.
+- `docs/amostras/ficha-tecnica-redesign-03-tabela-zebrada.jpg` —
+  tabela de Insumos com 8 linhas, zebra bem visível.
+
+Abra os 3 arquivos direto (JPG) pra aprovar visualmente antes do
+deploy — é exatamente o que vai pra produção se você aprovar.
+
+### Limpeza — registros de teste apagados, banco confirmado no estado anterior
+
+Importante: o estado "anterior" aqui **já incluía** o Orçamento
+#4/Evento #9 reais mencionados acima — a limpeza foi escopada só aos
+IDs que criei nesta sessão (`evento_id=10`, `orcamento_id=5`).
+
+Contagem antes da minha criação de teste: `eventos`=1, `orcamentos`=1,
+`itens_orcamento`=14, `itens_evento_confirmados`=14 (tudo do
+Orçamento #4/Evento #9 pré-existente).
+
+Contagem depois de criar o teste: `eventos`=2, `orcamentos`=2,
+`itens_orcamento`=29, `itens_evento_confirmados`=29.
+
+```
+DELETE escopado por ID: { itens_evento_confirmados: 15, itens_orcamento: 15, orcamentos: 1, eventos: 1 }
+```
+
+**Contagem final** (idêntica à de antes da minha criação de teste):
+`eventos`=1, `orcamentos`=1, `itens_orcamento`=14,
+`itens_evento_confirmados`=14 — só resta `eventos.id=9` ("a",
+confirmado), intocado.
+
+Dev server de teste (PID 4160, confirmado via `tasklist` antes de
+encerrar) parado por PID exato. Aba do navegador fechada.
+
+### NÃO fiz o deploy — como instruído
+
+Tudo commitado (`bd48b09` código, `a1797bd` amostras) e validado.
+Aguardando sua aprovação visual das 3 imagens antes de rodar
+`scripts/deploy-oracle.sh`.
