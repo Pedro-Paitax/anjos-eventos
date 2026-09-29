@@ -2239,3 +2239,35 @@ Verificação por `information_schema`/`pg_type`, antes → depois: tabelas 19 �
 enums 9 → 10 (`funcao_colaborador`). Nenhuma outra tabela/enum alterada.
 Constraints conferidas: PKs, FKs (cascade em `evento_id`, sem cascade em
 `colaborador_id`) e `decisoes_operacionais_evento_evento_id_unique`.
+
+### Limitação conhecida — papel no evento (aceita pelo Pedro, 2026-09-29)
+
+`evento_colaboradores.papel_no_evento` é gravado sempre como a função
+cadastral do colaborador (copeira/assador/garcom); a tela de Decisões
+Operacionais só lista cada colaborador ativo no grupo da sua função. Não há
+como escalar alguém fora da função dele em um evento específico. Aceitável
+por ora; não é pendência.
+
+### Teste visual da Etapa 2 (2026-09-29) — navegador, contra produção
+
+`next dev --webpack` com `DATABASE_URL`/`DATA_SOURCE=oracle` do shell. Dados de
+teste: 3 colaboradores (`TESTE - Copeira/Assador/Garcom`, WhatsApp fictícios
+`55000000000NN`) e 1 evento confirmado do Senhor Churrasco inserido por SQL
+(`TESTE - apagar (etapa 2)`, id 13, +3 dias, `qtd_garcons=1`) — não havia
+evento na janela de 15 dias.
+
+Verificado na UI: validação de WhatsApp inválido (mensagem exibida, nada
+gravado); cadastro e listagem dos 3 colaboradores; Home com ⚠️ no evento sem
+equipe/decisões; seção "Decisões operacionais" listando as 4 pendências;
+salvamento parcial (copeira+assador+veículo) reduzindo a lista para garçons,
+prato, copo/taça e talher; salvamento completo zerando as pendências; ícone
+sumindo da Home; `evento_colaboradores.papel_no_evento` gravado = função.
+
+Limpeza escopada por ID (transação): antes colab=3, ec=3, decs=1, eventos=2;
+removidos ec=3, decs=1, evento 13=1, colaboradores 1–3=3; depois colab=0, ec=0,
+decs=0, eventos=1 (o evento real #9, intacto).
+
+Observação de UX (sem correção): após erro de validação o formulário limpa o
+campo Nome (comportamento do `useActionState` com campos não controlados, o
+mesmo padrão do formulário de Insumos). Na automação, o clique no botão
+Cadastrar nem sempre disparou o submit; Enter no campo sempre funcionou.
