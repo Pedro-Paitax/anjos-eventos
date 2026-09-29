@@ -2093,3 +2093,28 @@ encerrar) parado por PID exato. Aba do navegador fechada.
 Tudo commitado (`bd48b09` código, `a1797bd` amostras) e validado.
 Aguardando sua aprovação visual das 3 imagens antes de rodar
 `scripts/deploy-oracle.sh`.
+
+## 2026-09-29 — DEPLOY do redesenho da Ficha Técnica (aprovado e autorizado)
+
+Pedro aprovou visualmente as 3 amostras e autorizou o deploy.
+`scripts/deploy-oracle.sh` rodado a partir do HEAD (commit `bc402f1`,
+inclui o redesenho + todo o resumo desta sessão). Primeira tentativa
+parou no passo 2/5 pedindo reautenticação do Tailscale SSH (mesmo
+padrão de outras sessões — expira periodicamente); Pedro aprovou o link
+e a segunda tentativa completou sem problema, sem nada ter tocado o
+Oracle na tentativa que falhou.
+
+**Backup gerado (pra rollback manual)**:
+`/home/opc/anjos-eventos-app-backup-20260929-130540.tgz`
+
+**Smoke test**:
+- `/api/preparos/2/custo` → `custo_total_preparo: 16.96` ✓
+- `/simulador-cardapio` → `HTTP 307` (sem sessão) ✓
+- `/agenda/9/fichas-tecnicas` (rota redesenhada, evento real existente)
+  → `HTTP 307` (sem sessão) ✓ — conferido manualmente além do smoke
+  test padrão do script, já que é a rota que mudou nesta sessão.
+
+PM2: `anjos-eventos-app` reiniciado, `online`, commit `bc402f1` rodando
+em `http://oracle:3001`.
+
+**Redesenho da Ficha Técnica está em produção.**
