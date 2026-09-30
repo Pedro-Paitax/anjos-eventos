@@ -242,7 +242,12 @@ export function FormularioPreparo({
               min="0"
               defaultValue={valoresIniciais?.porcaoMaximaIndividual ?? ""}
               className={campoClasse}
+              aria-describedby="porcaoMaximaIndividualAjuda"
             />
+            <p id="porcaoMaximaIndividualAjuda" className="text-xs text-paper-dim">
+              Sempre em gramas (ou ml) por pessoa, na mesma unidade da macro
+              — nunca em número de unidades. Ex.: 2 fatias de 10 g = 20.
+            </p>
           </div>
         </div>
       </section>
