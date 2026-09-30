@@ -1,0 +1,10 @@
+# Exemplo de crontab (usuário opc, Oracle). NÃO contém segredos: o token fica em
+# ~/.anjos-cron.env (chmod 600) com uma linha:  CRON_TOKEN=...
+# Fuso do negócio: America/Sao_Paulo.
+CRON_TZ=America/Sao_Paulo
+
+# 06:00 — Ordem de Ação (eventos de hoje)
+0 6 * * * . ~/.anjos-cron.env && curl -fsS -X POST -H "Authorization: Bearer $CRON_TOKEN" http://127.0.0.1:3000/api/cron/ordem-acao >> ~/anjos-cron.log 2>&1
+
+# 09:00 — Lembrete de 7 dias (pendências)
+0 9 * * * . ~/.anjos-cron.env && curl -fsS -X POST -H "Authorization: Bearer $CRON_TOKEN" http://127.0.0.1:3000/api/cron/lembrete-7-dias >> ~/anjos-cron.log 2>&1

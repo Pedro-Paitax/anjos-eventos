@@ -868,3 +868,44 @@ Se for necessário Ficha Técnica ou Margem Real real pra esse evento
 específico, o caminho é montar o cardápio equivalente no
 Simulador/Orçamento novo e gerar um Evento novo manualmente — não há
 migração retroativa prevista.
+
+---
+
+# Ordem de Ação automática e Lembrete de 7 dias via WhatsApp (2026-09-30)
+
+**Decisão do Pedro (desvio da recomendação original do Gemini, que era botão
+manual):** a Ordem de Ação é **automática, disparada no dia do evento**, sem botão.
+**Risco aceito conscientemente:** se algo mudar depois do disparo (ex.: colaborador
+cancela de última hora), a Ordem já enviada fica desatualizada — não há recall nem
+atualização de mensagem já enviada. A tela do evento mostra "Ordens de Ação
+enviadas em …" com esse aviso.
+
+**Como funciona**
+- Rotas `POST /api/cron/ordem-acao` e `POST /api/cron/lembrete-7-dias`, protegidas
+  por `Authorization: Bearer $CRON_TOKEN`, chamadas pelo **crontab do SO** no Oracle
+  (não `setInterval` no Next). Exemplo em `scripts/crontab-whatsapp.example`.
+- **Ordem de Ação** (horário sugerido **06:00**, ajustável só no crontab): eventos
+  confirmados do Senhor Churrasco de HOJE (fuso America/Sao_Paulo), **sem
+  pendência** (`pendencias-evento.ts`) e com `ordens_disparadas_em` nulo. Com
+  pendência, NÃO dispara (log `[automacao-whatsapp] ordem NÃO enviada …` + campo
+  `resultado: "pendente"` na resposta; a ⚠️ na Home já indica a pendência). Envia,
+  para cada colaborador alocado e ativo, um PDF (pdf-lib) filtrado por papel:
+  assador = carnes + prato; copeira/garçom = prato, sousplat, copo/taça, taças,
+  talher (copeira também bebidas); todos = evento, horários, endereço, veículo.
+- **Anti-duplicidade:** `ordens_disparadas_em` é reservado com UPDATE atômico
+  (`… WHERE ordens_disparadas_em IS NULL`) antes de enviar; cron rodando 2× no dia
+  não reenvia. Se **nenhum** envio saiu (worker falhou/ninguém com WhatsApp), a
+  reserva é liberada para o próximo ciclo; se foi **parcial**, a marca fica (evita
+  duplicar a quem já recebeu) e as falhas vão para log/resposta — sem tabela de
+  log por destinatário (isso exigiria migração; fica como melhoria futura).
+- **Lembrete de 7 dias** (09:00): eventos confirmados do Senhor Churrasco de hoje a
+  hoje+7 com qualquer pendência → **uma mensagem consolidada** (cliente, data e o
+  que falta) para cada número de `FAMILIA_WHATSAPP_NUMEROS`.
+- Antes de qualquer envio consulta `/status` do worker; se não estiver `connected`,
+  nada é enviado, registra em log e a rota responde 503 (`worker_desconectado`).
+- Envios sempre sequenciais (sem `Promise.all`); o intervalo de 3 s vem da fila do
+  worker (Etapa 3), não reimplementada.
+
+**Variáveis de ambiente (nunca no Git):** `CRON_TOKEN` (≥16 caracteres),
+`FAMILIA_WHATSAPP_NUMEROS` (3 números com DDI, separados por vírgula),
+`WHATSAPP_WORKER_TOKEN`, `WHATSAPP_WORKER_URL` (opcional).

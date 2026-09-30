@@ -2317,3 +2317,26 @@ Pão de Alho calc=60 g → cap=20 → final=20 g, volume 2000 g, **quantidade_pa
   adicionar a entrada de `ecosystem.config.cjs` ao PM2 e as variáveis
   `WHATSAPP_WORKER_TOKEN`/`WHATSAPP_WORKER_URL` no `ecosystem.config.js` do app
   (não versionado) — tudo sob smoke test.
+
+---
+
+## 2026-09-30 — Etapa 4 (Ordem de Ação automática + Lembrete de 7 dias): código pronto, SEM teste real de envio
+
+Implementado e validado só localmente (tsc/eslint/vitest da raiz limpos: 84 testes
+passando, 12 pulados). Decisão e funcionamento em `docs/DECISOES.md` (seção
+"Ordem de Ação automática e Lembrete de 7 dias"). Exemplo de crontab em
+`scripts/crontab-whatsapp.example`.
+
+Testado sem enviar nada (worker desligado, sem números configurados): rotas dão 401
+sem token/token errado; com token, `ordem-acao` → 503 `worker_desconectado` e
+`lembrete-7-dias` → 503 `destinatarios_nao_configurados`. **Nenhuma mensagem real foi
+enviada; o worker não foi ligado; a sessão do WhatsApp continua deslogada.**
+
+Leituras razoáveis adotadas (confirmar): horário da Ordem 06:00 e do lembrete 09:00
+(só no crontab); lembrete consolidado em 1 mensagem por número (não 1 por evento);
+sem log persistente por destinatário (evitou migração) — falhas ficam no log do
+PM2/resposta do curl.
+
+Antes de ativar: `CRON_TOKEN`, `FAMILIA_WHATSAPP_NUMEROS`, `WHATSAPP_WORKER_TOKEN`
+no `ecosystem.config.js` do Oracle; worker no PM2 + QR; crontab; deploy com smoke
+test. Teste real só após o Pedro reconectar o WhatsApp e confirmar destinos.
