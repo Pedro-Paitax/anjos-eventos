@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { IndicadorWhatsapp } from "@/components/indicador-whatsapp";
 
 // Links fixos, visíveis de qualquer tela (exceto /login). Novos itens
 // globais entram aqui.
@@ -35,6 +36,7 @@ export function NavegacaoPrincipal() {
             </Link>
           );
         })}
+        <IndicadorWhatsapp />
       </nav>
     </header>
   );
