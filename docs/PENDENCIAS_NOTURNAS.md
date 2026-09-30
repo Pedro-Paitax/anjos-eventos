@@ -2271,3 +2271,49 @@ Observação de UX (sem correção): após erro de validação o formulário lim
 campo Nome (comportamento do `useActionState` com campos não controlados, o
 mesmo padrão do formulário de Insumos). Na automação, o clique no botão
 Cadastrar nem sempre disparou o submit; Enter no campo sempre funcionou.
+
+---
+
+## 2026-09-29/30 (noite autônoma) — Etapa 3 (WhatsApp Worker) validada + Pão de Alho
+
+### Pão de Alho — Hard Cap corrigido (dado de produção, autorizado pelo Pedro)
+`preparos` id 6: `porcao_maxima_individual` 2 → **20** (UPDATE escopado por id +
+nome + valor antigo, 1 linha). `rendimento` = 10 e `peso_medio_unidade_g` = 10
+mantidos. Regra: **`Porcao_Maxima_Individual` é sempre em gramas/ml da macro
+(igual aos demais Hard Caps), nunca em contagem de unidades** — 20 g = 2 fatias
+de 10 g. Explicação adicionada sob o campo no formulário de Preparos, para os 8
+preparos ainda sem Hard Cap.
+Reteste (100 convidados, Pão de Alho + Linguiça Toscana, macro "Entradas e
+Petiscos", teto 120 g; motor real contra o banco, teste temporário já removido):
+Pão de Alho calc=60 g → cap=20 → final=20 g, volume 2000 g, **quantidade_para_custo
+= 200 fatias** (antes 100). Linguiça Toscana: 60 g, 6000 g, 100 un (sem cap).
+
+### WhatsApp Worker — validação com o número pessoal do Pedro
+- Worker local (`whatsapp-worker/`, Baileys 6.7.24) subiu; `/health` 200; `/status`
+  sem token 401, com token devolveu `{status, qr_code}`; indicador 🔴 e modal com QR
+  conferidos no navegador.
+- Pedro escaneou o QR → `status: connected`.
+- Enviado exatamente **1 texto e 1 PDF pequeno de teste** ao PRÓPRIO número (lido de
+  `auth/creds.json` da sessão, sem digitar/registrar o número). Ambos retornaram
+  `200 {"ok":true}` — ou seja, **aceitos pelo servidor do WhatsApp (ack de envio)**.
+  ATENÇÃO: o worker não expõe ainda confirmação de *entrega/leitura* no aparelho; o
+  Pedro precisa conferir de manhã que as duas mensagens chegaram.
+- Logo em seguida: `POST /logout` → 200; aparelho desvinculado; pasta `auth/` vazia;
+  status voltou a `disconnected` com novo QR pendente. Worker e servidor de
+  desenvolvimento foram encerrados (portas 3000/3100 livres).
+- **A sessão do número pessoal está ENCERRADA. Para reativar será preciso novo QR
+  Code** (número pessoal de novo ou já o chip descartável): subir o worker
+  (`whatsapp-worker/.env` local com `WORKER_TOKEN`; o ERP precisa de
+  `WHATSAPP_WORKER_TOKEN` igual e, se não for 127.0.0.1:3100, `WHATSAPP_WORKER_URL`),
+  clicar no 🔴 do cabeçalho e escanear.
+- Ajuste do indicador: primeira consulta de status agora ocorre mesmo com a aba em
+  segundo plano; modal fecha sozinho ao conectar (sem setState em effect).
+
+### Não feito de propósito
+- **Etapa 4 NÃO iniciada** (botão "Disparar Ordens de Ação" e cron das 09:00), por
+  ordem do Pedro: dispara mensagens reais a terceiros e precisa de revisão dele.
+- **Sem deploy** do worker nem do ERP; nenhuma migração nesta rodada. No Oracle, o
+  worker precisa: `npm ci && npm run build` em `whatsapp-worker/`, `.env` próprio,
+  adicionar a entrada de `ecosystem.config.cjs` ao PM2 e as variáveis
+  `WHATSAPP_WORKER_TOKEN`/`WHATSAPP_WORKER_URL` no `ecosystem.config.js` do app
+  (não versionado) — tudo sob smoke test.

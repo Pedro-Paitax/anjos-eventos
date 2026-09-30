@@ -24,8 +24,8 @@ export function IndicadorWhatsapp() {
   useEffect(() => {
     let ativo = true;
 
-    async function consultar() {
-      if (document.visibilityState === "hidden") return;
+    async function consultar(forcar = false) {
+      if (!forcar && document.visibilityState === "hidden") return;
       try {
         const resposta = await fetch("/api/whatsapp/status", { cache: "no-store" });
         if (!resposta.ok) throw new Error();
@@ -36,8 +36,8 @@ export function IndicadorWhatsapp() {
       }
     }
 
-    void consultar();
-    const timer = setInterval(consultar, modalAberto ? INTERVALO_MODAL_MS : INTERVALO_NORMAL_MS);
+    void consultar(true);
+    const timer = setInterval(() => void consultar(), modalAberto ? INTERVALO_MODAL_MS : INTERVALO_NORMAL_MS);
     return () => {
       ativo = false;
       clearInterval(timer);
