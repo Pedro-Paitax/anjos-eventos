@@ -11,8 +11,17 @@ import { montarMensagemLembrete, type EventoComPendencia } from "@/lib/lembrete-
 import { enviarDocumento, enviarTexto, statusWorker } from "@/lib/whatsapp-worker";
 import { formatarData, formatarHora } from "@/lib/formatacao";
 
-// "Hoje" sempre no fuso do negócio, independente do fuso do servidor/banco.
-const HOJE_SP = "(NOW() AT TIME ZONE 'America/Sao_Paulo')::date";
+// "Agora/hoje" sempre no fuso do negócio, independente do fuso do servidor/banco
+// (`data_evento` é timestamp sem fuso, em horário de São Paulo).
+const AGORA_SP = "(NOW() AT TIME ZONE 'America/Sao_Paulo')";
+const HOJE_SP = `${AGORA_SP}::date`;
+
+// Ordem de Ação sai ~2h antes do início do evento. Janela de tolerância (1h50 a
+// 2h10 antes) para não perder o disparo se o cron não rodar no minuto exato;
+// com cron a cada 15 min, cada evento cai em 1–2 execuções (o UPDATE atômico
+// de ordens_disparadas_em impede o envio duplicado).
+const ORDEM_JANELA_MIN_INICIO = 110;
+const ORDEM_JANELA_MIN_FIM = 130;
 
 export type ResultadoEventoOrdem = {
   evento_id: number;
@@ -82,8 +91,10 @@ async function liberarDisparo(eventoId: number): Promise<void> {
 }
 
 /**
- * Ordem de Ação (automática, no dia do evento). Eventos confirmados do Senhor
- * Churrasco de HOJE, sem pendência e ainda sem disparo. Envio estritamente
+ * Ordem de Ação (automática, ~2h antes de cada evento). Eventos confirmados do
+ * Senhor Churrasco cujo início está entre 1h50 e 2h10 à frente, sem pendência
+ * e ainda sem disparo. Evento que só fica pronto depois da janela não recebe a
+ * ordem (a ⚠️ na Home e o lembrete de 7 dias cobrem esse caso). Envio estritamente
  * sequencial (a fila de 3 s vive no worker). Só marca `ordens_disparadas_em`
  * se ao menos um envio saiu: se tudo falhou, libera para o próximo ciclo; se
  * foi parcial, mantém a marca (evita duplicar a quem já recebeu) e reporta as
@@ -92,7 +103,10 @@ async function liberarDisparo(eventoId: number): Promise<void> {
 export async function executarOrdemAcao(): Promise<ResultadoOrdemAcao> {
   if (!(await workerConectado("ordem de ação"))) return { ok: false, motivo: "worker_desconectado" };
 
-  const hoje = await eventosChurrasco(`e.data_evento::date = ${HOJE_SP}`);
+  const hoje = await eventosChurrasco(
+    `e.data_evento BETWEEN ${AGORA_SP} + interval '${ORDEM_JANELA_MIN_INICIO} minutes'
+                       AND ${AGORA_SP} + interval '${ORDEM_JANELA_MIN_FIM} minutes'`
+  );
   const pendencias = await pendenciasPorEvento(hoje.map((e) => e.id));
   const resultados: ResultadoEventoOrdem[] = [];
 
@@ -131,6 +145,11 @@ export async function executarOrdemAcao(): Promise<ResultadoOrdemAcao> {
           dataHora: `${formatarData(evento!.data_evento)}, ${formatarHora(evento!.data_evento)}`,
           tipoEvento: evento!.tipo_evento,
           endereco: evento!.endereco_evento,
+          horaInicio: formatarHora(evento!.data_evento),
+          qtdAdultos: evento!.qtd_adultos,
+          qtdCriancasAte5: evento!.qtd_criancas_ate_5,
+          qtdCriancas5a10: evento!.qtd_criancas_5_a_10,
+          qtdFornecedores: evento!.qtd_fornecedores,
           horaChegadaEquipe: evento!.hora_chegada_equipe,
           horaAperitivo: evento!.hora_aperitivo,
           horaAlmoco: evento!.hora_almoco,

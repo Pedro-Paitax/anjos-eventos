@@ -12,6 +12,11 @@ const base: DadosOrdemAcao = {
   dataHora: "sáb., 03 de outubro de 2026, 12:00",
   tipoEvento: "Casamento",
   endereco: "Rua X, 1",
+  horaInicio: "12:00",
+  qtdAdultos: 80,
+  qtdCriancasAte5: 5,
+  qtdCriancas5a10: 10,
+  qtdFornecedores: 4,
   horaChegadaEquipe: "09:00:00",
   horaAperitivo: null,
   horaAlmoco: "12:30:00",
@@ -54,6 +59,24 @@ describe("montarSecoesOrdemAcao", () => {
     expect(t).not.toContain("Bebidas");
     expect(t).not.toContain("Carnes");
     expect(t).toContain("Talher: Inox");
+  });
+
+  it("todos os papéis recebem convidados (com total), início, horários e endereço completo", () => {
+    for (const papel of ["assador", "copeira", "garcom"] as const) {
+      const t = texto({ ...base, papel });
+      expect(t).toContain("Adultos: 80");
+      expect(t).toContain("Crianças até 5 anos: 5");
+      expect(t).toContain("Crianças de 5 a 10 anos: 10");
+      expect(t).toContain("Total de convidados: 95");
+      expect(t).toContain("Fornecedores: 4");
+      expect(t).toContain("Início do evento: 12:00");
+      expect(t).toContain("Endereço: Rua X, 1");
+    }
+  });
+
+  it("omite a seção de convidados quando nenhuma quantidade foi informada", () => {
+    const t = texto({ ...base, qtdAdultos: null, qtdCriancasAte5: null, qtdCriancas5a10: null, qtdFornecedores: null });
+    expect(t).not.toContain("Convidados");
   });
 
   it("horários omitem os vazios e cortam os segundos", () => {

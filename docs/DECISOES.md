@@ -884,9 +884,11 @@ enviadas em …" com esse aviso.
 - Rotas `POST /api/cron/ordem-acao` e `POST /api/cron/lembrete-7-dias`, protegidas
   por `Authorization: Bearer $CRON_TOKEN`, chamadas pelo **crontab do SO** no Oracle
   (não `setInterval` no Next). Exemplo em `scripts/crontab-whatsapp.example`.
-- **Ordem de Ação** (horário sugerido **06:00**, ajustável só no crontab): eventos
-  confirmados do Senhor Churrasco de HOJE (fuso America/Sao_Paulo), **sem
-  pendência** (`pendencias-evento.ts`) e com `ordens_disparadas_em` nulo. Com
+- **Ordem de Ação** (**AJUSTADO em 2026-09-30**: não é mais 1×/dia às 06:00; sai
+  **~2h antes do início de cada evento**): o cron roda a cada 15 min e pega eventos
+  confirmados do Senhor Churrasco cujo início (`data_evento`, horário de
+  America/Sao_Paulo) está entre **1h50 e 2h10** à frente (janela em
+  `automacao-whatsapp.ts`), **sem pendência** (`pendencias-evento.ts`) e com `ordens_disparadas_em` nulo. Com
   pendência, NÃO dispara (log `[automacao-whatsapp] ordem NÃO enviada …` + campo
   `resultado: "pendente"` na resposta; a ⚠️ na Home já indica a pendência). Envia,
   para cada colaborador alocado e ativo, um PDF (pdf-lib) filtrado por papel:
@@ -909,3 +911,13 @@ enviadas em …" com esse aviso.
 **Variáveis de ambiente (nunca no Git):** `CRON_TOKEN` (≥16 caracteres),
 `FAMILIA_WHATSAPP_NUMEROS` (3 números com DDI, separados por vírgula),
 `WHATSAPP_WORKER_TOKEN`, `WHATSAPP_WORKER_URL` (opcional).
+
+**Ordem 2h antes — pontos a saber:** a janela é estrita: evento que só fica sem
+pendência depois de 2h10 antes do início não recebe a ordem (a ⚠️ na Home e o
+lembrete de 7 dias cobrem isso); evento criado/confirmado a menos de ~2h também não
+recebe. Com cron de 15 min cada evento cai em 1–2 execuções; o `UPDATE` atômico de
+`ordens_disparadas_em` impede duplicidade. O PDF passou a trazer explicitamente
+adultos, crianças (até 5 / 5 a 10) com **total de convidados**, fornecedores, início
+do evento, horários e endereço (`endereco_evento`, único campo de endereço que o
+evento tem); já constavam antes: cliente, data/hora, tipo, endereço, horários da
+equipe/aperitivo/almoço/encerramento e as decisões por papel.

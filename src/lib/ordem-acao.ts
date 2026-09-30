@@ -16,6 +16,12 @@ export type DadosOrdemAcao = {
   dataHora: string;
   tipoEvento: string | null;
   endereco: string | null;
+  /** Hora de início do evento (já formatada, ex.: "12:00"). */
+  horaInicio: string | null;
+  qtdAdultos: number | null;
+  qtdCriancasAte5: number | null;
+  qtdCriancas5a10: number | null;
+  qtdFornecedores: number | null;
   horaChegadaEquipe: string | null;
   horaAperitivo: string | null;
   horaAlmoco: string | null;
@@ -44,6 +50,22 @@ function compactar(linhas: (string | null)[]): string[] {
   return linhas.filter((l): l is string => l !== null);
 }
 
+function secaoConvidados(d: DadosOrdemAcao): SecaoOrdem {
+  const partes = [d.qtdAdultos, d.qtdCriancasAte5, d.qtdCriancas5a10];
+  const informado = partes.some((n) => n !== null);
+  const total = partes.reduce<number>((soma, n) => soma + (n ?? 0), 0);
+  return {
+    titulo: "Convidados",
+    linhas: compactar([
+      d.qtdAdultos !== null ? `Adultos: ${d.qtdAdultos}` : null,
+      d.qtdCriancasAte5 !== null ? `Crianças até 5 anos: ${d.qtdCriancasAte5}` : null,
+      d.qtdCriancas5a10 !== null ? `Crianças de 5 a 10 anos: ${d.qtdCriancas5a10}` : null,
+      informado ? `Total de convidados: ${total}` : null,
+      d.qtdFornecedores !== null ? `Fornecedores: ${d.qtdFornecedores}` : null,
+    ]),
+  };
+}
+
 /** Conteúdo da Ordem de Ação, filtrado pelo que importa a cada papel. */
 export function montarSecoesOrdemAcao(d: DadosOrdemAcao): SecaoOrdem[] {
   const secoes: SecaoOrdem[] = [
@@ -56,9 +78,11 @@ export function montarSecoesOrdemAcao(d: DadosOrdemAcao): SecaoOrdem[] {
         linha("Endereço", d.endereco),
       ]),
     },
+    secaoConvidados(d),
     {
       titulo: "Horários",
       linhas: compactar([
+        linha("Início do evento", hora(d.horaInicio)),
         linha("Chegada da equipe", hora(d.horaChegadaEquipe)),
         linha("Aperitivo", hora(d.horaAperitivo)),
         linha("Almoço", hora(d.horaAlmoco)),
