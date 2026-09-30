@@ -12,6 +12,7 @@ import {
   listarEquipeEvento,
   pendenciasPorEvento,
 } from "@/lib/decisoes-operacionais";
+import { formatarData, formatarHora } from "@/lib/formatacao";
 import { atualizarEventoAction } from "@/app/actions/evento";
 import { salvarDecisoesOperacionaisAction } from "@/app/actions/decisoes-operacionais";
 import { FormularioDecisoesOperacionais } from "@/components/formulario-decisoes-operacionais";
@@ -105,6 +106,14 @@ export default async function EventoPage({ params }: PaginaEventoProps) {
             <h2 className="font-display text-2xl italic text-paper">
               Decisões operacionais
             </h2>
+            {decisoes?.ordens_disparadas_em && (
+              <p className="text-sm text-paper-dim">
+                Ordens de Ação enviadas em{" "}
+                {formatarData(decisoes.ordens_disparadas_em)},{" "}
+                {formatarHora(decisoes.ordens_disparadas_em)}. Mudanças feitas depois
+                não atualizam mensagens já enviadas.
+              </p>
+            )}
             {pendencias.length > 0 && (
               <ul className="list-disc rounded-[2px] border border-ember/40 p-3 pl-7 text-sm text-ember">
                 {pendencias.map((p) => (
