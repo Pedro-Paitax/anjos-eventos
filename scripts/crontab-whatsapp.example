@@ -3,7 +3,7 @@
 # Fuso do negócio: America/Sao_Paulo.
 CRON_TZ=America/Sao_Paulo
 
-# A cada 15 min — Ordem de Ação (evento cujo início está a ~2h: janela 1h50–2h10;
+# A cada 15 min — Ordem de Ação (dispara quando faltam 2h10 ou menos e o evento ainda não começou;
 # o disparo duplicado é impedido por ordens_disparadas_em, então rodar 2x é seguro)
 */15 * * * * . ~/.anjos-cron.env && curl -fsS -X POST -H "Authorization: Bearer $CRON_TOKEN" http://127.0.0.1:3000/api/cron/ordem-acao >> ~/anjos-cron.log 2>&1
 

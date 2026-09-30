@@ -16,12 +16,12 @@ import { formatarData, formatarHora } from "@/lib/formatacao";
 const AGORA_SP = "(NOW() AT TIME ZONE 'America/Sao_Paulo')";
 const HOJE_SP = `${AGORA_SP}::date`;
 
-// Ordem de Ação sai ~2h antes do início do evento. Janela de tolerância (1h50 a
-// 2h10 antes) para não perder o disparo se o cron não rodar no minuto exato;
-// com cron a cada 15 min, cada evento cai em 1–2 execuções (o UPDATE atômico
-// de ordens_disparadas_em impede o envio duplicado).
-const ORDEM_JANELA_MIN_INICIO = 110;
-const ORDEM_JANELA_MIN_FIM = 130;
+// Ordem de Ação sai quando faltam 2h10 ou menos para o início do evento e
+// enquanto ele ainda não começou: quem resolve a pendência dentro da janela
+// normal dispara ~2h antes; quem resolve mais tarde dispara na próxima execução
+// do cron (melhor atrasada do que nunca). Depois que o evento começa, para de
+// tentar. O UPDATE atômico de ordens_disparadas_em impede o envio duplicado.
+const ORDEM_ANTECEDENCIA_MAX_MIN = 130;
 
 export type ResultadoEventoOrdem = {
   evento_id: number;
@@ -91,10 +91,9 @@ async function liberarDisparo(eventoId: number): Promise<void> {
 }
 
 /**
- * Ordem de Ação (automática, ~2h antes de cada evento). Eventos confirmados do
- * Senhor Churrasco cujo início está entre 1h50 e 2h10 à frente, sem pendência
- * e ainda sem disparo. Evento que só fica pronto depois da janela não recebe a
- * ordem (a ⚠️ na Home e o lembrete de 7 dias cobrem esse caso). Envio estritamente
+ * Ordem de Ação (automática). Eventos confirmados do Senhor Churrasco que
+ * ainda não começaram e cujo início está a 2h10 ou menos, sem pendência e ainda
+ * sem disparo. Envio estritamente
  * sequencial (a fila de 3 s vive no worker). Só marca `ordens_disparadas_em`
  * se ao menos um envio saiu: se tudo falhou, libera para o próximo ciclo; se
  * foi parcial, mantém a marca (evita duplicar a quem já recebeu) e reporta as
@@ -104,8 +103,8 @@ export async function executarOrdemAcao(): Promise<ResultadoOrdemAcao> {
   if (!(await workerConectado("ordem de ação"))) return { ok: false, motivo: "worker_desconectado" };
 
   const hoje = await eventosChurrasco(
-    `e.data_evento BETWEEN ${AGORA_SP} + interval '${ORDEM_JANELA_MIN_INICIO} minutes'
-                       AND ${AGORA_SP} + interval '${ORDEM_JANELA_MIN_FIM} minutes'`
+    `e.data_evento > ${AGORA_SP}
+     AND e.data_evento <= ${AGORA_SP} + interval '${ORDEM_ANTECEDENCIA_MAX_MIN} minutes'`
   );
   const pendencias = await pendenciasPorEvento(hoje.map((e) => e.id));
   const resultados: ResultadoEventoOrdem[] = [];
