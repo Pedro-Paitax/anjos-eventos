@@ -121,9 +121,43 @@ describe("calcularPrecificacaoCardapio", () => {
     // que Custo_Por_Pessoa x 1,40 realmente fecha — bug de arredondamento
     // duplo corrigido pra expor os dois valores lado a lado sem
     // inconsistência (ver src/lib/precificacao-cardapio.ts).
+    // Rateio operacional (61 convidados): assador 250 + copeira 2x250 +
+    // consumíveis (80 + 2,5x61 = 232,50) = 982,50 -> /61 = 16,11/pessoa.
+    // Base = 28,65 + 16,11 = 44,76 -> TETO(44,76 x 1,40) = 62,67 (antes: 40,11).
     expect(resultado.custo_cardapio_por_pessoa).toBe(28.65);
-    expect(resultado.valor_sugerido_por_pessoa).toBe(40.11);
-    expect(resultado.valor_sugerido_crianca).toBe(20.06);
+    expect(resultado.custo_consumiveis_total).toBe(232.5);
+    expect(resultado.custo_operacional_total).toBe(982.5);
+    expect(resultado.custo_base_por_pessoa).toBe(44.76);
+    expect(resultado.valor_sugerido_por_pessoa).toBe(62.67);
+    expect(resultado.valor_sugerido_crianca).toBe(31.34); // 62,67 / 2 = 31,335 -> 31,34 (antes: 20,06)
+  });
+
+  it("evento pequeno (13 convidados, caso real da auditoria): rateio operacional é somado antes do markup", () => {
+    const resultado = calcularPrecificacaoCardapio(CARDAPIO, {
+      numConvidados: 13,
+      regiaoMetropolitanaCuritiba: false,
+    });
+
+    // 13 convidados: 1 assador (250) + 1 copeira (250) + consumíveis
+    // (80 + 2,5x13 = 112,50) = 612,50 -> /13 = 47,115 -> 47,12/pessoa de operação.
+    expect(resultado.custo_consumiveis_total).toBe(112.5);
+    expect(resultado.custo_operacional_total).toBe(612.5);
+
+    // Cardápio por pessoa não depende de N (porções são por convidado).
+    // custo_base = custo_cardapio_por_pessoa + 47,12; preço = TETO(base x 1,40).
+    expect(resultado.custo_cardapio_por_pessoa).toBe(28.65);
+    expect(resultado.custo_base_por_pessoa).toBe(75.77);
+    expect(resultado.valor_sugerido_por_pessoa).toBe(106.08); // 75,77 x 1,40 = 106,078 -> 106,08
+    // Sem o rateio seria 40,11: o custo operacional pesa >60% da base aqui.
+    expect(resultado.custo_base_por_pessoa).toBeGreaterThan(resultado.custo_cardapio_por_pessoa * 2);
+  });
+
+  it("numConvidados 0 ou inválido lança erro claro (nunca NaN/Infinity)", () => {
+    for (const n of [0, -3, Number.NaN]) {
+      expect(() =>
+        calcularPrecificacaoCardapio(CARDAPIO, { numConvidados: n, regiaoMetropolitanaCuritiba: false })
+      ).toThrow(/numConvidados/);
+    }
   });
 
   it("Valor_Sugerido_Total_Evento COM toggle de região metropolitana (soma taxa de R$250)", () => {
@@ -132,11 +166,11 @@ describe("calcularPrecificacaoCardapio", () => {
       regiaoMetropolitanaCuritiba: true,
     });
 
-    // (40.11 * 61) + 250 (deslocamento) + (3 garçons sugeridos * 230)
+    // (62.67 * 61) + 250 (deslocamento) + (3 garçons sugeridos * 230)
     expect(resultado.taxa_deslocamento).toBe(250);
     expect(resultado.quantidade_garcom_usada).toBe(3);
     expect(resultado.valor_garcom).toBe(230);
-    expect(resultado.valor_sugerido_total_evento).toBeCloseTo(40.11 * 61 + 250 + 3 * 230, 2);
+    expect(resultado.valor_sugerido_total_evento).toBeCloseTo(62.67 * 61 + 250 + 3 * 230, 2);
   });
 
   it("Valor_Sugerido_Total_Evento SEM o toggle (sem taxa de deslocamento)", () => {
@@ -146,7 +180,7 @@ describe("calcularPrecificacaoCardapio", () => {
     });
 
     expect(resultado.taxa_deslocamento).toBe(0);
-    expect(resultado.valor_sugerido_total_evento).toBeCloseTo(40.11 * 61 + 0 + 3 * 230, 2);
+    expect(resultado.valor_sugerido_total_evento).toBeCloseTo(62.67 * 61 + 0 + 3 * 230, 2);
   });
 
   it("quantidade de garçom e valor de garçom são editáveis, sobrepondo a sugestão/padrão", () => {
@@ -160,7 +194,7 @@ describe("calcularPrecificacaoCardapio", () => {
     expect(resultado.quantidade_garcom_sugerida).toBe(3); // sugestão não muda
     expect(resultado.quantidade_garcom_usada).toBe(5); // valor usado é o editado
     expect(resultado.valor_garcom).toBe(200);
-    expect(resultado.valor_sugerido_total_evento).toBeCloseTo(40.11 * 61 + 0 + 5 * 200, 2);
+    expect(resultado.valor_sugerido_total_evento).toBeCloseTo(62.67 * 61 + 0 + 5 * 200, 2);
   });
 });
 
@@ -188,7 +222,7 @@ describe("calcularPrecificacaoCardapio com precoPorPessoaEscolhido (preço fixo/
       regiaoMetropolitanaCuritiba: false,
     });
 
-    expect(resultado.valor_sugerido_por_pessoa).toBe(40.11);
+    expect(resultado.valor_sugerido_por_pessoa).toBe(62.67);
   });
 });
 
@@ -237,7 +271,7 @@ describe("calcularPrecificacaoParaEvento com preço escolhido — regressão Car
       { adultos: 61, criancasAte5: 0, criancas5a10: 0 }
     );
 
-    expect(resultado.valor_sugerido_por_pessoa).toBe(40.11);
+    expect(resultado.valor_sugerido_por_pessoa).toBe(62.67);
   });
 });
 
@@ -277,13 +311,13 @@ describe("calcularPrecificacaoParaEvento", () => {
     });
     const resultadoBase = calcularPrecificacaoCardapio(CARDAPIO, opcoes);
 
-    // 50*40.11 + 11*20.06 + 0 + 3*230 = 2005.50 + 220.66 + 0 + 690 = 2916.16
+    // 50*62.67 + 11*31.34 + 0 + 3*230 = 3133.50 + 344.74 + 0 + 690 = 4168.24 (antes do rateio: 2916.16)
     expect(resultadoEvento.valor_sugerido_total_evento).toBeCloseTo(
-      50 * 40.11 + 11 * 20.06 + 0 + 3 * 230,
+      50 * 62.67 + 11 * 31.34 + 0 + 3 * 230,
       2
     );
     // Confirma que diverge do valor "preço cheio para todos" do Simulador
-    // (61*40.11 + 0 + 690 = 3136.71) — é exatamente a diferença que motivou
+    // (61*62.67 + 0 + 690 = 4512.87) — é exatamente a diferença que motivou
     // a decisão do Pedro.
     expect(resultadoEvento.valor_sugerido_total_evento).not.toBe(
       resultadoBase.valor_sugerido_total_evento

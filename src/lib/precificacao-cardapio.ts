@@ -1,6 +1,8 @@
 import { distribuirPorcoes, type ItemResolvido } from "@/lib/dimensionamento-cardapio";
 import {
   MARKUP_CARDAPIO,
+  BASE_CONSUMIVEIS_FIXA,
+  CONSUMIVEIS_POR_CONVIDADO,
   VALOR_GARCOM_PADRAO,
   VALOR_COPEIRA,
   VALOR_ASSADOR,
@@ -79,6 +81,10 @@ export type PrecificacaoResultado = {
   custo_copeira_total: number;
   quantidade_assador_sugerida: number;
   custo_assador_total: number;
+  /** Auditoria interna (nunca exposto ao cliente): rateio operacional embutido no preço por pessoa. */
+  custo_consumiveis_total: number;
+  custo_operacional_total: number;
+  custo_base_por_pessoa: number;
   valor_sugerido_total_evento: number;
 };
 
@@ -95,6 +101,12 @@ export function calcularPrecificacaoCardapio(
   opcoes: OpcoesPrecificacao
 ): PrecificacaoResultado {
   const { numConvidados, regiaoMetropolitanaCuritiba } = opcoes;
+  // Sem isso, as divisões por numConvidados abaixo geravam NaN/Infinity
+  // silenciosamente. Os wrappers de I/O (precificacao-evento.ts) já barram
+  // antes com { erro }; este guard cobre quem chama o núcleo direto.
+  if (!Number.isFinite(numConvidados) || numConvidados <= 0) {
+    throw new Error("numConvidados deve ser maior que zero para calcular a precificação.");
+  }
   const valorGarcom = opcoes.valorGarcom ?? VALOR_GARCOM_PADRAO;
   const quantidadeGarcomSugerida = ceilDivisao(numConvidados, CONVIDADOS_POR_GARCOM);
   const quantidadeGarcomUsada = opcoes.quantidadeGarcom ?? quantidadeGarcomSugerida;
@@ -139,17 +151,28 @@ export function calcularPrecificacaoCardapio(
   // dois valores lado a lado no Simulador de Cardápio — ver
   // src/lib/precificacao-cardapio.test.ts.
   const custoCardapioPorPessoa = arredondar(custoCardapioTotal / numConvidados);
-  const valorSugeridoPorPessoaCalculado = arredondarParaCimaCentavos(custoCardapioPorPessoa * MARKUP_CARDAPIO);
-  const valorSugeridoPorPessoa = opcoes.precoPorPessoaEscolhido ?? valorSugeridoPorPessoaCalculado;
-  const valorSugeridoCrianca = arredondar(valorSugeridoPorPessoa / 2);
-
-  const taxaDeslocamento = calcularTaxaDeslocamento(regiaoMetropolitanaCuritiba);
 
   const quantidadeCopeiraSugerida = ceilDivisao(numConvidados, CONVIDADOS_POR_COPEIRA);
   const custoCopeiraTotal = quantidadeCopeiraSugerida * VALOR_COPEIRA;
 
   const quantidadeAssadorSugerida = ceilDivisao(numConvidados, CONVIDADOS_POR_ASSADOR);
   const custoAssadorTotal = quantidadeAssadorSugerida * VALOR_ASSADOR;
+
+  // Rateio Operacional Explícito: custo fixo de equipe + consumíveis entra na
+  // base ANTES do markup. Em eventos pequenos a premissa antiga (o markup de
+  // 40% cobre isso) quebrava, porque esse custo não escala com convidados.
+  const custoConsumiveisTotal = arredondar(
+    BASE_CONSUMIVEIS_FIXA + CONSUMIVEIS_POR_CONVIDADO * numConvidados
+  );
+  const custoOperacionalTotal = arredondar(custoAssadorTotal + custoCopeiraTotal + custoConsumiveisTotal);
+  const custoOperacionalPorPessoa = arredondar(custoOperacionalTotal / numConvidados);
+  const custoBasePorPessoa = arredondar(custoCardapioPorPessoa + custoOperacionalPorPessoa);
+
+  const valorSugeridoPorPessoaCalculado = arredondarParaCimaCentavos(custoBasePorPessoa * MARKUP_CARDAPIO);
+  const valorSugeridoPorPessoa = opcoes.precoPorPessoaEscolhido ?? valorSugeridoPorPessoaCalculado;
+  const valorSugeridoCrianca = arredondar(valorSugeridoPorPessoa / 2);
+
+  const taxaDeslocamento = calcularTaxaDeslocamento(regiaoMetropolitanaCuritiba);
 
   const valorSugeridoTotalEvento = arredondar(
     valorSugeridoPorPessoa * numConvidados + taxaDeslocamento + quantidadeGarcomUsada * valorGarcom
@@ -168,6 +191,9 @@ export function calcularPrecificacaoCardapio(
     custo_copeira_total: custoCopeiraTotal,
     quantidade_assador_sugerida: quantidadeAssadorSugerida,
     custo_assador_total: custoAssadorTotal,
+    custo_consumiveis_total: custoConsumiveisTotal,
+    custo_operacional_total: custoOperacionalTotal,
+    custo_base_por_pessoa: custoBasePorPessoa,
     valor_sugerido_total_evento: valorSugeridoTotalEvento,
   };
 }

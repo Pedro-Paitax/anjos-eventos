@@ -138,7 +138,9 @@ describe("BUG: mistura de unidades no motor de dimensionamento (investigação 2
     // (não é uma trava "correta", é uma trava "isso é o que o bug faz
     // hoje" — remover/ajustar quando o Pedro decidir como corrigir).
     expect(resultado.custo_cardapio_por_pessoa).toBeCloseTo(112.79, 1);
-    expect(resultado.valor_sugerido_por_pessoa).toBeCloseTo(157.92, 1);
+    // Rateio operacional (61 convidados) soma R$16,11/pessoa à base:
+    // TETO((112,79 + 16,11) × 1,40) = 180,46 (antes do rateio: 157,92).
+    expect(resultado.valor_sugerido_por_pessoa).toBeCloseTo(180.46, 1);
   });
 
   it("CORRETO (se o motor convertesse unidade->grama pelo peso médio do rendimento): custo real seria ~R$4-5/pessoa, não ~R$113", () => {
@@ -208,7 +210,10 @@ describe("CORRIGIDO: com Peso_Medio_Unidade_G preenchido, o valor deixa de ser i
     // O ponto central: deixa de ser da mesma ORDEM DE GRANDEZA do bug
     // (~R$113/pessoa, ~R$158 sugerido) — cai pra uma fração disso.
     expect(resultado.custo_cardapio_por_pessoa).toBeLessThan(20);
-    expect(resultado.valor_sugerido_por_pessoa).toBeLessThan(30);
+    // Com o rateio operacional (R$16,11/pessoa a 61 convidados):
+    // TETO((6,23 + 16,11) × 1,40) = 31,28 (antes do rateio: < 30). O teto
+    // deixou de ser 30 só por causa do rateio, não do bug de unidades.
+    expect(resultado.valor_sugerido_por_pessoa).toBeLessThan(35);
   });
 
   it("só a Linguiça Toscana corrigida (Canudinho continua sem o campo) — mistura parcial dentro do mesmo cardápio", () => {
