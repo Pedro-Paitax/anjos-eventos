@@ -926,3 +926,54 @@ adultos, crianças (até 5 / 5 a 10) com **total de convidados**, fornecedores, 
 do evento, horários e endereço (`endereco_evento`, único campo de endereço que o
 evento tem); já constavam antes: cliente, data/hora, tipo, endereço, horários da
 equipe/aperitivo/almoço/encerramento e as decisões por papel.
+
+## Rateio Operacional Explícito no preço por pessoa (2026-10-02)
+
+**Contexto**: auditoria real de evento (13 convidados) deu custo real de
+R$71,00/pessoa contra R$52,49 simulado. `Custo_Copeira_Total` e
+`Custo_Assador_Total` eram calculados mas nunca entravam no preço; a premissa
+era que o markup de 40% os cobria, e em eventos pequenos (10-25 convidados)
+isso quebra, porque custo fixo operacional não escala com convidados.
+
+**Decisão** (`src/lib/precificacao-cardapio.ts`, constantes em
+`src/lib/precificacao-constantes.ts`):
+
+```text
+Custo_Consumiveis_Total   = BASE_CONSUMIVEIS_FIXA (R$80,00) + CONSUMIVEIS_POR_CONVIDADO (R$2,50) × Num_Convidados
+Custo_Operacional_Total   = Custo_Assador_Total + Custo_Copeira_Total + Custo_Consumiveis_Total
+Custo_Base_Por_Pessoa     = Custo_Cardapio_Por_Pessoa + (Custo_Operacional_Total / Num_Convidados)
+Valor_Sugerido_Por_Pessoa = TETO(Custo_Base_Por_Pessoa × 1,40)
+```
+
+Nenhuma linha nova aparece para o cliente. `custo_consumiveis_total`,
+`custo_operacional_total` e `custo_base_por_pessoa` são só auditoria interna.
+`Num_Convidados <= 0` agora lança erro no núcleo puro (antes dava NaN/Infinity).
+Preço escolhido/congelado no Orçamento continua substituindo o cálculo (o
+Passo 3 não recalcula — verificado).
+
+**⚠️ Calibração inicial**: `BASE_CONSUMIVEIS_FIXA = 80` e
+`CONSUMIVEIS_POR_CONVIDADO = 2,50` foram calibrados a partir de **um único
+evento real (13 convidados)**. Não são definitivos: revisar com mais eventos
+antes de tratá-los como regra fechada.
+
+**Efeito no Motor de Margem**: a receita da Margem Projetada (caminho Oracle)
+passou a incluir o rateio. Para não inflar a margem, `calcularMargemProjetada`
+agora desconta `custo_operacional_total` (campo próprio no resultado):
+`Margem Projetada = Receita − Custo do cardápio − Custo operacional`. No
+caminho legado NocoDB (`Valor_Base_Por_Pessoa` manual, sem rateio) o desconto é 0.
+
+### Dois problemas de margem SEPARADOS (não confundir)
+
+**(a) Margem Projetada nunca descontou copeira/assador** desde a implementação
+original (~25 dias, 2026-09-07) — já estava inflada antes desta sessão. A
+correção de hoje resolve a inflação adicional causada pelo rateio operacional
+entrar na receita. Observação técnica: como `custo_operacional_total` já contém
+assador + copeira + consumíveis, no caminho Oracle o desconto cobre também
+copeira/assador; a inflação original permanece apenas no caminho legado NocoDB
+(em descontinuação) e a margem continua sem descontar garçom (a receita
+projetada também não o inclui).
+
+**(b) Margem Real (Evento)** — fórmula completa: Receita − Cardápio − Garçom −
+Copeira − Assador − Custos Operacionais do Evento, formalizada com o Gemini —
+**nunca foi implementada**. Pendência separada, a formalizar em sessão própria
+(opera sobre Evento, não Orçamento). Não confundir com a Margem Projetada acima.

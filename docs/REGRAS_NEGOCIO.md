@@ -57,7 +57,10 @@ A margem projetada não deve ser armazenada como valor definitivo.
 Aplica-se em duas telas com a mesma lógica de cálculo: Criar Evento (Senhor Churrasco) e o Simulador de Cardápio público.
 
 ```text
-Valor_Sugerido_Por_Pessoa = TETO(Custo_Cardapio_Por_Pessoa × 1,40)
+Custo_Operacional_Total   = Custo_Assador_Total + Custo_Copeira_Total
+                            + (80,00 + 2,50 × Num_Convidados)   -- consumíveis
+Custo_Base_Por_Pessoa     = Custo_Cardapio_Por_Pessoa + Custo_Operacional_Total / Num_Convidados
+Valor_Sugerido_Por_Pessoa = TETO(Custo_Base_Por_Pessoa × 1,40)
 
 Valor_Sugerido_Total_Evento (o que o CLIENTE paga) =
     (Valor_Sugerido_Por_Pessoa × Num_Convidados)
@@ -68,7 +71,7 @@ Valor_Sugerido_Total_Evento (o que o CLIENTE paga) =
 - `Taxa_Deslocamento` = R$250 se o toggle "Região Metropolitana de Curitiba?" = Sim, senão R$0 (toggle manual, sem geolocalização automática).
 - Criança paga meia sobre `Valor_Sugerido_Por_Pessoa` (não sobre o custo).
 - **Garçom**: R$230/profissional, sugestão de 1 a cada 30 convidados (arredondado para cima), cobrado **à parte** do valor por pessoa.
-- **Copeira**: R$250/profissional, 1 a cada 50 convidados. **Assador**: R$250/profissional, 1 a cada 100 convidados. Nenhum dos dois é cobrado à parte — estão absorvidos pelo markup de 1,40. Ainda assim são rastreados obrigatoriamente (`Quantidade_Copeira`, `Quantidade_Assador`, `Custo_Copeira_Total`, `Custo_Assador_Total` em `eventos`), para uso exclusivo no cálculo de Margem Real — nunca exibidos ou cobrados no valor apresentado ao cliente.
+- **Copeira**: R$250/profissional, 1 a cada 50 convidados. **Assador**: R$250/profissional, 1 a cada 100 convidados. Nenhum dos dois é cobrado à parte — entram na base de custo por pessoa (rateio operacional, acima) antes do markup de 1,40, sem linha própria para o cliente. Ainda assim são rastreados obrigatoriamente (`Quantidade_Copeira`, `Quantidade_Assador`, `Custo_Copeira_Total`, `Custo_Assador_Total` em `eventos`), para uso exclusivo no cálculo de Margem Real — nunca exibidos ou cobrados no valor apresentado ao cliente.
 
 ```text
 Margem_Real_Evento (uso interno, nunca visível ao cliente) =
@@ -78,6 +81,12 @@ Margem_Real_Evento (uso interno, nunca visível ao cliente) =
     − Custo_Copeira_Total
     − Custo_Assador_Total
 ```
+
+**Rateio operacional — calibração inicial**: `BASE_CONSUMIVEIS_FIXA = 80` e `CONSUMIVEIS_POR_CONVIDADO = 2,50` vêm de **um único evento real (13 convidados)**; revisar com mais dados antes de tratá-los como definitivos (`docs/DECISOES.md`, "Rateio Operacional Explícito").
+
+**Margem Projetada vs. Margem Real — dois problemas separados**:
+(a) a Margem Projetada nunca descontou copeira/assador desde sua implementação (2026-09-07) — já estava inflada. A correção de 2026-10-02 passou a descontar `custo_operacional_total` (assador + copeira + consumíveis) no caminho Oracle, para compensar o rateio que agora entra na receita; no legado NocoDB e quanto a garçom a margem continua sem esse desconto.
+(b) a Margem Real (Receita − Cardápio − Garçom − Copeira − Assador − Custos Operacionais do Evento) nunca foi implementada — pendência separada, não confundir com (a).
 
 **Status de implementação**: fórmula **aprovada** (`docs/DECISOES.md`), dados de entrada (`Custo_Copeira_Total`, `Custo_Assador_Total`, `Quantidade_Copeira_Sugerida`) já são persistidos em `eventos`, mas **não há, até o momento desta auditoria (2026-09-22), nenhuma função no código que calcule `Margem_Real_Evento`**. É um gap real de implementação — a fórmula existe como decisão de negócio fechada, aguardando ser codificada.
 
