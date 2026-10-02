@@ -189,7 +189,7 @@ export function FormularioConfirmarEvento({ orcamento, action, precificacaoChurr
           <p className="text-xs text-paper-dim">
             Quantidade de assadores calculada automaticamente:{" "}
             {orcamento.numConvidados > 0 ? sugerirQuantidadeAssador(orcamento.numConvidados) : 0} (uso interno,
-            Margem Real).
+            registrado para a futura Margem Real, ainda não calculada).
           </p>
         )}
       </section>

@@ -38,6 +38,8 @@ export type MargemResultado = {
    * sem rateio na receita). Ver docs/DECISOES.md, "Rateio Operacional".
    */
   custo_operacional_total: number;
+  /** Aviso fixo de escopo: este número NÃO é o lucro final do evento. */
+  escopo: string;
   margem_projetada: number;
   detalhe: {
     valor_base: number;
@@ -47,7 +49,10 @@ export type MargemResultado = {
   avisos: string[];
 };
 
-export type MargemErro = { erro: string; status: number };
+const ESCOPO_MARGEM_PROJETADA =
+  "Margem sobre cardápio + equipe de cozinha (assador/copeira) + consumíveis. Exclui garçom e taxa de deslocamento. NÃO é a margem final do evento (Margem Real, ainda não implementada).";
+
+export type MargemErro ={ erro: string; status: number };
 
 function arredondar(valor: number): number {
   return Math.round(Number(valor.toFixed(8)) * 100) / 100;
@@ -243,6 +248,7 @@ export async function calcularMargemProjetada(
     receita_projetada: receitaProjetada,
     custo_projetado: custoProjetado,
     custo_operacional_total: custoOperacionalTotal,
+    escopo: ESCOPO_MARGEM_PROJETADA,
     margem_projetada: margemProjetada,
     detalhe: {
       valor_base: valorBase,

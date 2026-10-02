@@ -5,6 +5,8 @@ import { calcularMargemProjetada } from "@/lib/margem-orcamento";
 // (docs/DECISOES.md, "Arquitetura Financeira do Orçamento"). Autenticação
 // de acesso fica a cargo do middleware/camada de auth do app quando essa
 // rota for exposta além de uso interno.
+// Atenção: a margem devolvida NÃO é o lucro final do evento (exclui garçom e
+// deslocamento; Margem Real não implementada) — ver o campo `escopo`.
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }

@@ -683,7 +683,7 @@ export function FormularioEventoChurrasco({
                   ? `${sugerirQuantidadeAssador(numConvidados)} (calculado — uso interno)`
                   : "—"
               }
-              title="Calculado automaticamente (1 a cada 100 convidados) — uso exclusivo no cálculo de Margem Real, não editável."
+              title="Calculado automaticamente (1 a cada 100 convidados) — registrado para a futura Margem Real (ainda não calculada), não editável."
               className={`${campoClasse} cursor-not-allowed text-paper-dim`}
             />
           </div>
