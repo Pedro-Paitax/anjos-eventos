@@ -2460,3 +2460,53 @@ subset latin) versionados no repositório (ex.: `src/app/fonts/`). Efeitos: buil
 custo: ~centenas de KB de binário no Git e atualização manual das fontes. Antes de implementar: conferir a licença
 (ambas OFL) e que os arquivos `.woff2` baixados são os mesmos da versão do Google Fonts.
 
+## Redesign visual (branch `redesign-ui`): pendências para decisão do Pedro (2026-10-03)
+
+Nada abaixo foi implementado. Cada item precisa de decisão.
+
+### (a) `connectionTimeoutMillis` no pool de `src/lib/db.ts`
+`src/app/layout.tsx` agora chama `obterUsuarioAtual()` em **toda** página (para mostrar o nome no header). O `.catch(() => null)`
+cobre erro/recusa de conexão, mas **não cobre banco que não responde**: `new Pool({ connectionString })` não define
+`connectionTimeoutMillis`, então `pool.query` pode ficar pendurado até o timeout do SO e, como o layout espera essa consulta,
+**a página inteira trava** (antes só travavam as páginas que consultavam o banco). Sem cookie de sessão a função retorna antes
+de consultar, então `/login` e as rotas protegidas sem sessão não são afetadas.
+Opção: definir `connectionTimeoutMillis` (e, se quiser, `query_timeout`) no `Pool`. Mexe em `db.ts` (fora do escopo visual) e
+muda o comportamento de todas as consultas, por isso ficou para decisão.
+
+### (b) `next/font/local` para o build sem rede
+Ver a seção "Build no `ender`: falha intermitente ao baixar fontes" acima: o `npm run build` busca Archivo e Fraunces em
+`fonts.googleapis.com` e falhou 2 vezes seguidas (passou na 3ª). Alternativa: `next/font/local` com os arquivos das duas
+fontes versionados no repositório. Não implementada.
+
+### (c) O que NÃO foi verificado nas Etapas 2 a 5 do redesign
+**Etapa 2 (Botao, BotaoEnviar, Campo, Alerta, Painel)**
+- `BotaoEnviar` durante um envio real (botão desabilitado e "Salvando…"): nenhum formulário foi enviado (travas de escrita).
+- Payload do Passo 3 (`formulario-confirmar-evento.tsx`) só comparado estaticamente (não há orçamento aberto para exibir o form).
+- Navegação por teclado completa e foco em todos os controles (o anel dos botões só foi corrigido e visto na Etapa 3).
+- Contraste do texto sobre o fundo translúcido do `Alerta` (cor a 12 %): não medido.
+- Zoom automático do iOS nos campos de 16 px: não testado em aparelho.
+- Larguras: 360 px em 12 telas, 768 px em 3, 1280 px em 3 e 390 px em 2 (as demais telas e larguras não foram medidas).
+
+**Etapa 3 (modais)**
+- WhatsApp com QR Code, conectando e "Aguardando o QR": só vi o estado "serviço não responde".
+- Modais de seleção "Adicionar itens" (cardápio e simulador): não abertos na tela.
+- Exclusão de preparo/cardápio/evento até o fim ("Excluindo…", erro dentro do modal, redirect): não exercitada.
+- Foco preso em tela estreita e teclado virtual do celular: não testados.
+
+**Etapa 4 (header)**
+- Tab depois do skip link: instável na automação; conferida só a ordem do DOM.
+- Header em aparelho real (toque, barra de rolagem da linha de itens, nomes de usuário longos).
+- Header com WhatsApp conectado ou conectando.
+
+**Etapa 5 (listas, estados, alvos, aria)**
+- Esqueleto do `loading.tsx` em tela (só markup via `curl` e build).
+- Ordem de foco por Tab real (medi posição e ordem do DOM).
+- Alvos de 44 px em `/agenda/novo`, `/agenda/14`, `/cardapios-modelo` e `/simulador-cardapio`; a maioria das telas só em 390 px.
+- `aria-live` com leitor de tela (só conferido no código).
+- Contraste de `texto-suave-papel` sobre `paper-dim` (4,99:1) onde aparece.
+- Cartões ainda com sombras literais antigas (não migrados para `elev-1`/`elev-2`); colaboradores inativos ainda com `opacity-50`.
+- Componente `Badge` e tabelas em cartões no mobile: não feitos.
+
+**Geral (Etapas 1 a 5)**
+- Verificações visuais usaram iframes de 360/390/768/1280 px dentro de um Chrome desktop (não aparelhos reais).
+- Etapa 6 (Ficha Técnica e `@media print`) **não foi feita**; exige teste de PDF real (1 e N preparos) antes de qualquer mudança.
