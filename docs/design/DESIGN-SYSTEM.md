@@ -421,25 +421,30 @@ Acessibilidade: erros/avisos dinâmicos com `role="alert"` (urgente) ou `role="s
 
 ## 12. Navegação
 
-### 12.1 Header **[ajuste]**
+### 12.1 Header **[implementado na Etapa 4/5 do redesign]**
 
-Hoje: marca "Anjos Eventos" + link "Colaboradores" + semáforo do WhatsApp. Usuário volta à Home para ir a qualquer lugar (UX-AUDIT §4.2).
+Antes: marca "Anjos Eventos" + link "Colaboradores" + semáforo do WhatsApp; o usuário voltava à Home para ir a qualquer lugar (UX-AUDIT §4.2). Hoje (`src/components/navegacao-principal.tsx`):
 
-Proposta (4 itens, que cobrem as áreas existentes):
-
-| Item | Rota | Observação |
+| Item | Rota | Ativo (`aria-current="page"`) em |
 |---|---|---|
-| Início | `/` | Marca à esquerda leva aqui também |
-| Agenda | `/agenda` | Inclui criar evento/orçamento |
-| Senhor Churrasco | `/senhor-churrasco` | Hub: Preparos, Insumos, Cardápios Feitos, Simulador |
-| Colaboradores | `/colaboradores` | — |
+| Início | `/` | só `/` |
+| Agenda | `/agenda` | `/agenda` e filhas |
+| Senhor Churrasco | `/senhor-churrasco` | o hub e suas telas: `/preparos`, `/insumos`, `/cardapios-modelo`, `/simulador-cardapio` |
+| Colaboradores | `/colaboradores` | `/colaboradores` e filhas |
 
-À direita: **usuário atual** (nome) com menu "Trocar usuário" (hoje só existe no fim da Home) + indicador do WhatsApp. O indicador deixa de ser só emoji: **ícone + texto curto** ("WhatsApp: conectado") em ≥ md; em mobile, ícone com `aria-label` e **cor + forma** diferentes (círculo cheio/vazado/ponto de exclamação).
+**Disposição (desktop, ≥ sm):** uma linha — **marca**, depois **usuário atual (nome) + "Trocar usuário" + indicador do WhatsApp** junto da marca, à esquerda, e os **4 itens à direita**. *Mudança em relação à proposta original (usuário à direita):* a ordem de foco (Tab) é a ordem do DOM e precisa coincidir com a ordem visual nas duas larguras; como no mobile o usuário fica na primeira linha e os itens na segunda, o DOM é marca → usuário → itens, e o desktop segue a mesma sequência.
 
-- Altura 56 px; fundo `ink`; borda inferior `borda-suave-escuro`; **rolagem normal** (não fixo) em mobile para não consumir tela; fixo só em ≥ md **[confirmar]**.
-- Item ativo: texto `paper` + sublinhado de 2 px `brass` + `aria-current="page"`. *Porque* já é o padrão do app (sublinhado) e `brass` sobre `ink` tem 6,1:1.
-- **Mobile (< sm):** itens **em uma segunda linha** do header, rolagem horizontal se necessário; **sem hambúrguer**. *Porque* são só 4 itens e esconder navegação reduz descoberta para uma equipe de poucos usuários.
-- Skip link "Ir para o conteúdo" como primeiro foco **[novo]**.
+**Mobile (< sm):** duas linhas, sem hambúrguer. Linha 1: marca à esquerda; nome (truncado), "Trocar" e o indicador à direita. Linha 2: os 4 itens, com rolagem horizontal quando não cabem (em 360 px "Colaboradores" fica parcialmente fora). O texto "Trocar" aparece completo ("Trocar usuário") só a partir de `lg`; o nome acessível é sempre "Trocar usuário".
+
+**Ordem de foco:** skip link → marca → nome/Trocar/WhatsApp → Início, Agenda, Senhor Churrasco, Colaboradores → conteúdo.
+
+- "Trocar usuário" reaproveita a action `trocarUsuario` (`src/app/actions/usuario.ts`); o nome vem de `obterUsuarioAtual()` chamado em `src/app/layout.tsx` (com `.catch(() => null)`). **Consequência:** o layout consulta o banco em toda página (ver pendência de `connectionTimeoutMillis` em `docs/PENDENCIAS_NOTURNAS.md`).
+- Alvos de toque de 44 px (mobile) em todos os itens; em ≥ sm o botão "Trocar usuário" tem 32 px.
+- O indicador do WhatsApp continua sendo o emoji 🟢🟡🔴 com `aria-label`/`title`; **ícone + texto curto ("WhatsApp: conectado") ainda não foi feito** (§13 prevê os SVGs).
+- Header **não fixo** (rolagem normal) em qualquer largura; fixo em ≥ md segue **[confirmar]**. Borda inferior `borda-suave-escuro`.
+- Item ativo: texto `paper` + sublinhado de 2 px `brass` (`box-shadow` inset) + `aria-current="page"` (brass sobre `ink` tem 6,1:1).
+- **Skip link** "Ir para o conteúdo": primeiro foco, visível só ao focar (fixo no canto, fundo `paper`, anel `paper-ink`); destino `<div id="conteudo" tabIndex={-1}>` logo após o header. Não aparece em `/login`, que não tem header.
+- Título da aba por página: `metadata` estática (modelo `%s · Anjos Eventos`); páginas por id usam títulos fixos, nunca o nome do cliente.
 
 ### 12.2 Sidebar — decisão: **não adotar agora**
 
