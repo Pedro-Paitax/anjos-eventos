@@ -79,7 +79,7 @@ export function ComposicaoPreparo({
         {linhas.length === 0 && (
           <p className="text-sm text-paper-dim">Nenhum insumo adicionado ainda.</p>
         )}
-        {linhas.map((linha) => (
+        {linhas.map((linha, i) => (
           <div
             key={linha.chave}
             className="flex flex-col gap-3 rounded-[2px] border border-paper-dim/20 bg-ink-soft p-3 sm:flex-row sm:items-end"
@@ -89,6 +89,7 @@ export function ComposicaoPreparo({
               <label className={rotuloClasse}>Insumo</label>
               <select
                 required
+                aria-label="Insumo"
                 name="composicaoInsumoId"
                 value={linha.insumoId}
                 onChange={(e) => aoMudarInsumo(linha.chave, e.target.value)}
@@ -109,6 +110,7 @@ export function ComposicaoPreparo({
               <label className={rotuloClasse}>Quantidade</label>
               <input
                 required
+                aria-label="Quantidade"
                 type="number"
                 step="0.001"
                 min="0"
@@ -121,6 +123,7 @@ export function ComposicaoPreparo({
             <button
               type="button"
               onClick={() => removerLinha(linha.chave)}
+              aria-label={`Remover insumo ${i + 1}`}
               className="self-start text-sm text-ember underline decoration-ember/40 underline-offset-4 transition hover:decoration-ember sm:self-center"
             >
               Remover
@@ -193,11 +196,12 @@ function ModalNovoInsumo({
 
       <div className="flex flex-col gap-1.5">
         <label className={rotuloClasse}>Nome</label>
-        <input value={nome} onChange={(e) => setNome(e.target.value)} className={campoClasse} />
+        <input aria-label="Nome" value={nome} onChange={(e) => setNome(e.target.value)} className={campoClasse} />
       </div>
       <div className="flex flex-col gap-1.5">
         <label className={rotuloClasse}>Unidade</label>
         <select
+          aria-label="Unidade"
           value={udm}
           onChange={(e) => setUdm(e.target.value as UnidadeInsumo)}
           className={campoClasse}
@@ -213,6 +217,7 @@ function ModalNovoInsumo({
         <div className="flex flex-col gap-1.5">
           <label className={rotuloClasse}>Preço (R$)</label>
           <input
+            aria-label="Preço (R$)"
             type="number"
             step="0.01"
             min="0"
@@ -224,6 +229,7 @@ function ModalNovoInsumo({
         <div className="flex flex-col gap-1.5">
           <label className={rotuloClasse}>Fator de correção</label>
           <input
+            aria-label="Fator de correção"
             type="number"
             step="0.01"
             min="0"

@@ -51,7 +51,8 @@ export default async function ColaboradoresPage() {
                   </div>
                   <Link
                     href={`/colaboradores/${c.id}`}
-                    className="text-sm underline decoration-paper-ink/30 underline-offset-4 transition hover:decoration-paper-ink"
+                    aria-label={`Editar ${c.nome}`}
+                    className="-my-2 py-2 text-sm underline decoration-paper-ink/30 underline-offset-4 transition hover:decoration-paper-ink"
                   >
                     Editar
                   </Link>

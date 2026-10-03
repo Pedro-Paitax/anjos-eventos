@@ -82,6 +82,7 @@ export function EditorPassosPreparo({
             <label className={rotuloClasse}>Descrição</label>
             <textarea
               required
+              aria-label={`Descrição do passo ${i + 1}`}
               rows={2}
               value={linha.descricao}
               onChange={(e) => atualizarLinha(linha.chave, { descricao: e.target.value })}
@@ -91,6 +92,7 @@ export function EditorPassosPreparo({
           <div className="flex flex-col gap-1.5 sm:w-40">
             <label className={rotuloClasse}>Tempo estimado (min)</label>
             <input
+              aria-label={`Tempo estimado do passo ${i + 1} (min)`}
               type="number"
               min="1"
               step="1"
@@ -119,6 +121,7 @@ export function EditorPassosPreparo({
             <button
               type="button"
               onClick={() => removerLinha(linha.chave)}
+              aria-label={`Remover passo ${i + 1}`}
               className="text-sm text-ember underline decoration-ember/40 underline-offset-4 transition hover:decoration-ember"
             >
               Remover

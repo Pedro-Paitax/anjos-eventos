@@ -43,7 +43,8 @@ function LinhaInsumo({ insumo }: { insumo: InsumoComPrecoCorrigido }) {
       </div>
       <Link
         href={`/insumos/${insumo.id}`}
-        className="self-start text-sm underline decoration-paper-ink/30 underline-offset-4 transition hover:decoration-paper-ink sm:self-center"
+        aria-label={`Editar ${insumo.nome}`}
+        className="-my-2 self-start py-2 text-sm underline decoration-paper-ink/30 underline-offset-4 transition hover:decoration-paper-ink sm:self-center"
       >
         Editar
       </Link>
@@ -83,9 +84,11 @@ export function ListaInsumos({ insumos }: { insumos: InsumoComPrecoCorrigido[] }
           value={buscaNome}
           onChange={(e) => setBuscaNome(e.target.value)}
           placeholder="Buscar por nome…"
+          aria-label="Buscar insumo por nome"
           className={`${campoFiltroClasse} sm:flex-1`}
         />
         <select
+          aria-label="Filtrar por unidade"
           value={unidadeFiltro}
           onChange={(e) => setUnidadeFiltro(e.target.value)}
           className={`${campoFiltroClasse} sm:w-44`}
@@ -98,6 +101,7 @@ export function ListaInsumos({ insumos }: { insumos: InsumoComPrecoCorrigido[] }
           ))}
         </select>
         <select
+          aria-label="Ordenação"
           value={ordenacao}
           onChange={(e) => setOrdenacao(e.target.value as Ordenacao)}
           className={`${campoFiltroClasse} sm:w-44`}

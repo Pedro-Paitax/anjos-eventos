@@ -58,7 +58,8 @@ function CardCardapioModelo({ cardapio }: { cardapio: CardapioModeloResumo }) {
       <div className="mt-1 flex items-center gap-4">
         <Link
           href={`/cardapios-modelo/${cardapio.id}`}
-          className="text-sm underline decoration-paper-ink/30 underline-offset-4 transition hover:decoration-paper-ink"
+          aria-label={`Editar ${cardapio.nome}`}
+          className="-my-2 py-2 text-sm underline decoration-paper-ink/30 underline-offset-4 transition hover:decoration-paper-ink"
         >
           Editar
         </Link>
@@ -66,7 +67,8 @@ function CardCardapioModelo({ cardapio }: { cardapio: CardapioModeloResumo }) {
           type="button"
           onClick={() => setConfirmando(true)}
           disabled={pendente}
-          className="text-sm text-ember underline decoration-ember/40 underline-offset-4 transition hover:decoration-ember disabled:opacity-50"
+          aria-label={`Excluir ${cardapio.nome}`}
+          className="-my-2 py-2 text-sm text-ember underline decoration-ember/40 underline-offset-4 transition hover:decoration-ember disabled:opacity-50"
         >
           {pendente ? "Excluindo…" : "Excluir"}
         </button>

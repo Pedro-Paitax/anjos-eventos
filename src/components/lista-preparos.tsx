@@ -65,7 +65,8 @@ function LinhaPreparo({ preparo }: { preparo: PreparoResumo }) {
         <div className="flex items-center gap-4 pl-0 sm:pl-0">
           <Link
             href={`/preparos/${preparo.id}`}
-            className="text-sm underline decoration-paper-ink/30 underline-offset-4 transition hover:decoration-paper-ink"
+            aria-label={`Editar ${preparo.nome}`}
+            className="-my-2 py-2 text-sm underline decoration-paper-ink/30 underline-offset-4 transition hover:decoration-paper-ink"
           >
             Editar
           </Link>
@@ -73,7 +74,8 @@ function LinhaPreparo({ preparo }: { preparo: PreparoResumo }) {
             type="button"
             onClick={() => setConfirmando(true)}
             disabled={pendente}
-            className="text-sm text-ember underline decoration-ember/40 underline-offset-4 transition hover:decoration-ember disabled:opacity-50"
+            aria-label={`Excluir ${preparo.nome}`}
+            className="-my-2 py-2 text-sm text-ember underline decoration-ember/40 underline-offset-4 transition hover:decoration-ember disabled:opacity-50"
           >
             {pendente ? "Excluindo…" : "Excluir"}
           </button>
@@ -155,9 +157,11 @@ export function ListaPreparos({ preparos }: { preparos: PreparoResumo[] }) {
           value={buscaNome}
           onChange={(e) => setBuscaNome(e.target.value)}
           placeholder="Buscar por nome…"
+          aria-label="Buscar preparo por nome"
           className={`${campoFiltroClasse} sm:flex-1`}
         />
         <select
+          aria-label="Filtrar por categoria"
           value={categoriaFiltro}
           onChange={(e) => setCategoriaFiltro(e.target.value)}
           className={`${campoFiltroClasse} sm:w-52`}
@@ -170,6 +174,7 @@ export function ListaPreparos({ preparos }: { preparos: PreparoResumo[] }) {
           ))}
         </select>
         <select
+          aria-label="Agrupamento"
           value={agrupamento}
           onChange={(e) => setAgrupamento(e.target.value as Agrupamento)}
           className={`${campoFiltroClasse} sm:w-44`}
@@ -178,6 +183,7 @@ export function ListaPreparos({ preparos }: { preparos: PreparoResumo[] }) {
           <option value="categoria">Agrupar por Categoria</option>
         </select>
         <select
+          aria-label="Ordenação"
           value={ordenacao}
           onChange={(e) => setOrdenacao(e.target.value as Ordenacao)}
           className={`${campoFiltroClasse} sm:w-44`}
