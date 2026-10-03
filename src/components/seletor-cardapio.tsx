@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import type { Evento } from "@/lib/eventos";
 import { CATEGORIAS_CARDAPIO, type CategoriaCardapio, type Preparo } from "@/lib/cardapio";
 import { rotuloClasse } from "@/components/formulario-evento";
+import { Modal } from "@/components/modal";
 
 type SelecaoCardapio = Record<CategoriaCardapio, string[]>;
 
@@ -196,75 +197,67 @@ export function SeletorCardapio({
       </div>
 
       {modalAberto && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
-          onClick={() => setModalAberto(false)}
-        >
-          <div
-            className="flex max-h-[80vh] w-full max-w-lg flex-col gap-4 rounded-[2px] bg-ink p-5 shadow-[0_30px_60px_-20px_rgba(0,0,0,0.8)]"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between">
-              <h4 className="font-display text-lg italic text-paper">
-                Adicionar ao cardápio
-              </h4>
-              <button
-                type="button"
-                onClick={() => setModalAberto(false)}
-                className="text-sm text-paper-dim underline decoration-paper-dim/40 underline-offset-4 transition hover:text-paper hover:decoration-paper"
-              >
-                Fechar
-              </button>
-            </div>
+        <Modal onFechar={() => setModalAberto(false)} rotulo="Adicionar ao cardápio" className="max-w-lg bg-ink">
+          <div className="flex items-center justify-between">
+            <h4 className="font-display text-lg italic text-paper">
+              Adicionar ao cardápio
+            </h4>
+            <button
+              type="button"
+              onClick={() => setModalAberto(false)}
+              className="text-sm text-paper-dim underline decoration-paper-dim/40 underline-offset-4 transition hover:text-paper hover:decoration-paper"
+            >
+              Fechar
+            </button>
+          </div>
 
-            <div className="flex flex-wrap gap-1 rounded-[2px] bg-ink-soft p-1">
-              {CATEGORIAS_CARDAPIO.map((categoria) => (
+          <div className="flex flex-wrap gap-1 rounded-[2px] bg-ink-soft p-1">
+            {CATEGORIAS_CARDAPIO.map((categoria) => (
+              <button
+                key={categoria}
+                type="button"
+                onClick={() => setCategoriaAtiva(categoria)}
+                className={`rounded-[2px] px-3 py-1.5 text-sm transition ${
+                  categoriaAtiva === categoria
+                    ? "bg-paper text-paper-ink"
+                    : "text-paper-dim hover:text-paper"
+                }`}
+              >
+                {categoria}
+                {selecao[categoria].length > 0 && ` (${selecao[categoria].length})`}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex flex-col gap-1 overflow-y-auto">
+            {preparosPorCategoria[categoriaAtiva].length === 0 && (
+              <p className="px-1 py-2 text-sm text-paper-dim">
+                Nenhum item cadastrado nessa categoria.
+              </p>
+            )}
+            {preparosPorCategoria[categoriaAtiva].map((item) => {
+              const jaSelecionado = selecao[categoriaAtiva].includes(item.nome);
+              return (
                 <button
-                  key={categoria}
+                  key={item.id}
                   type="button"
-                  onClick={() => setCategoriaAtiva(categoria)}
-                  className={`rounded-[2px] px-3 py-1.5 text-sm transition ${
-                    categoriaAtiva === categoria
-                      ? "bg-paper text-paper-ink"
-                      : "text-paper-dim hover:text-paper"
+                  disabled={jaSelecionado}
+                  onClick={() => adicionar(categoriaAtiva, item.nome)}
+                  className={`flex items-center justify-between rounded-[2px] px-3 py-2 text-left text-sm transition ${
+                    jaSelecionado
+                      ? "cursor-not-allowed bg-ink-soft/60 text-paper-dim/50"
+                      : "text-paper hover:bg-ink-soft"
                   }`}
                 >
-                  {categoria}
-                  {selecao[categoria].length > 0 && ` (${selecao[categoria].length})`}
+                  <span>{item.nome}</span>
+                  <span className="text-xs">
+                    {jaSelecionado ? "Adicionado" : "+ Adicionar"}
+                  </span>
                 </button>
-              ))}
-            </div>
-
-            <div className="flex flex-col gap-1 overflow-y-auto">
-              {preparosPorCategoria[categoriaAtiva].length === 0 && (
-                <p className="px-1 py-2 text-sm text-paper-dim">
-                  Nenhum item cadastrado nessa categoria.
-                </p>
-              )}
-              {preparosPorCategoria[categoriaAtiva].map((item) => {
-                const jaSelecionado = selecao[categoriaAtiva].includes(item.nome);
-                return (
-                  <button
-                    key={item.id}
-                    type="button"
-                    disabled={jaSelecionado}
-                    onClick={() => adicionar(categoriaAtiva, item.nome)}
-                    className={`flex items-center justify-between rounded-[2px] px-3 py-2 text-left text-sm transition ${
-                      jaSelecionado
-                        ? "cursor-not-allowed bg-ink-soft/60 text-paper-dim/50"
-                        : "text-paper hover:bg-ink-soft"
-                    }`}
-                  >
-                    <span>{item.nome}</span>
-                    <span className="text-xs">
-                      {jaSelecionado ? "Adicionado" : "+ Adicionar"}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
+              );
+            })}
           </div>
-        </div>
+        </Modal>
       )}
     </div>
   );

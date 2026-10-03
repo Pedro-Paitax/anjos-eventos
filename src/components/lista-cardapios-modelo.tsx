@@ -4,6 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import type { CardapioModeloResumo } from "@/lib/cardapios-modelo";
 import { excluirCardapioModeloAction } from "@/app/actions/cardapio-modelo";
+import { Modal } from "@/components/modal";
 
 function formatarPreco(preco: number | null): string {
   if (preco == null) return "Sem preço fixo";
@@ -73,37 +74,29 @@ function CardCardapioModelo({ cardapio }: { cardapio: CardapioModeloResumo }) {
       {erro && <p className="text-sm text-ember">{erro}</p>}
 
       {confirmando && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
-          onClick={() => setConfirmando(false)}
-        >
-          <div
-            className="flex w-full max-w-sm flex-col gap-4 rounded-[2px] bg-ink p-5 shadow-[0_30px_60px_-20px_rgba(0,0,0,0.8)]"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h4 className="font-display text-lg italic text-paper">Excluir cardápio</h4>
-            <p className="text-sm text-paper-dim">
-              Excluir o cardápio &quot;{cardapio.nome}&quot;? Essa ação não pode ser
-              desfeita.
-            </p>
-            <div className="flex justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => setConfirmando(false)}
-                className="text-sm text-paper-dim underline decoration-paper-dim/40 underline-offset-4 transition hover:text-paper hover:decoration-paper"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                onClick={confirmarExclusao}
-                className="inline-flex items-center justify-center rounded-[2px] bg-ember px-4 py-2 text-sm font-medium text-paper shadow-[0_10px_20px_-10px_rgba(0,0,0,0.6)] transition hover:brightness-110"
-              >
-                Excluir
-              </button>
-            </div>
+        <Modal onFechar={() => setConfirmando(false)} rotulo="Excluir cardápio" className="max-w-sm bg-ink">
+          <h4 className="font-display text-lg italic text-paper">Excluir cardápio</h4>
+          <p className="text-sm text-paper-dim">
+            Excluir o cardápio &quot;{cardapio.nome}&quot;? Essa ação não pode ser
+            desfeita.
+          </p>
+          <div className="flex justify-end gap-3">
+            <button
+              type="button"
+              onClick={() => setConfirmando(false)}
+              className="text-sm text-paper-dim underline decoration-paper-dim/40 underline-offset-4 transition hover:text-paper hover:decoration-paper"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              onClick={confirmarExclusao}
+              className="inline-flex items-center justify-center rounded-[2px] bg-ember px-4 py-2 text-sm font-medium text-paper shadow-[0_10px_20px_-10px_rgba(0,0,0,0.6)] transition hover:brightness-110"
+            >
+              Excluir
+            </button>
           </div>
-        </div>
+        </Modal>
       )}
     </div>
   );

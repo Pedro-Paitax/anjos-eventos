@@ -5,6 +5,7 @@ import type { Insumo } from "@/lib/insumos";
 import { UNIDADES_INSUMO, type UnidadeInsumo } from "@/lib/preparos-opcoes";
 import { criarInsumoInlineAction } from "@/app/actions/preparo";
 import { campoClasse, rotuloClasse, secaoTituloClasse } from "@/components/formulario-evento";
+import { Modal } from "@/components/modal";
 
 type LinhaComposicao = {
   chave: string; // key estável pro React — não é o Id do NocoDB
@@ -178,79 +179,71 @@ function ModalNovoInsumo({
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
-      onClick={onFechar}
-    >
-      <div
-        className="flex w-full max-w-md flex-col gap-4 rounded-[2px] bg-ink p-5 shadow-[0_30px_60px_-20px_rgba(0,0,0,0.8)]"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between">
-          <h4 className="font-display text-lg italic text-paper">Novo insumo</h4>
-          <button
-            type="button"
-            onClick={onFechar}
-            className="text-sm text-paper-dim underline decoration-paper-dim/40 underline-offset-4 transition hover:text-paper hover:decoration-paper"
-          >
-            Fechar
-          </button>
-        </div>
-
-        <div className="flex flex-col gap-1.5">
-          <label className={rotuloClasse}>Nome</label>
-          <input value={nome} onChange={(e) => setNome(e.target.value)} className={campoClasse} />
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <label className={rotuloClasse}>Unidade</label>
-          <select
-            value={udm}
-            onChange={(e) => setUdm(e.target.value as UnidadeInsumo)}
-            className={campoClasse}
-          >
-            {UNIDADES_INSUMO.map((u) => (
-              <option key={u} value={u}>
-                {u}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div className="flex flex-col gap-1.5">
-            <label className={rotuloClasse}>Preço (R$)</label>
-            <input
-              type="number"
-              step="0.01"
-              min="0"
-              value={preco}
-              onChange={(e) => setPreco(e.target.value)}
-              className={campoClasse}
-            />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <label className={rotuloClasse}>Fator de correção</label>
-            <input
-              type="number"
-              step="0.01"
-              min="0"
-              value={fatorCorrecao}
-              onChange={(e) => setFatorCorrecao(e.target.value)}
-              className={campoClasse}
-            />
-          </div>
-        </div>
-
-        {erro && <p className="text-sm text-ember">{erro}</p>}
-
+    <Modal onFechar={onFechar} rotulo="Novo insumo" className="max-w-md bg-ink">
+      <div className="flex items-center justify-between">
+        <h4 className="font-display text-lg italic text-paper">Novo insumo</h4>
         <button
           type="button"
-          onClick={salvar}
-          disabled={pendente || !nome.trim() || !preco}
-          className="mt-1 inline-flex items-center justify-center self-start rounded-[2px] bg-ember px-5 py-2 text-sm font-medium text-paper shadow-[0_10px_20px_-10px_rgba(0,0,0,0.6)] transition hover:brightness-110 disabled:opacity-50"
+          onClick={onFechar}
+          className="text-sm text-paper-dim underline decoration-paper-dim/40 underline-offset-4 transition hover:text-paper hover:decoration-paper"
         >
-          {pendente ? "Salvando…" : "Criar insumo"}
+          Fechar
         </button>
       </div>
-    </div>
+
+      <div className="flex flex-col gap-1.5">
+        <label className={rotuloClasse}>Nome</label>
+        <input value={nome} onChange={(e) => setNome(e.target.value)} className={campoClasse} />
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <label className={rotuloClasse}>Unidade</label>
+        <select
+          value={udm}
+          onChange={(e) => setUdm(e.target.value as UnidadeInsumo)}
+          className={campoClasse}
+        >
+          {UNIDADES_INSUMO.map((u) => (
+            <option key={u} value={u}>
+              {u}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="flex flex-col gap-1.5">
+          <label className={rotuloClasse}>Preço (R$)</label>
+          <input
+            type="number"
+            step="0.01"
+            min="0"
+            value={preco}
+            onChange={(e) => setPreco(e.target.value)}
+            className={campoClasse}
+          />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <label className={rotuloClasse}>Fator de correção</label>
+          <input
+            type="number"
+            step="0.01"
+            min="0"
+            value={fatorCorrecao}
+            onChange={(e) => setFatorCorrecao(e.target.value)}
+            className={campoClasse}
+          />
+        </div>
+      </div>
+
+      {erro && <p className="text-sm text-ember">{erro}</p>}
+
+      <button
+        type="button"
+        onClick={salvar}
+        disabled={pendente || !nome.trim() || !preco}
+        className="mt-1 inline-flex items-center justify-center self-start rounded-[2px] bg-ember px-5 py-2 text-sm font-medium text-paper shadow-[0_10px_20px_-10px_rgba(0,0,0,0.6)] transition hover:brightness-110 disabled:opacity-50"
+      >
+        {pendente ? "Salvando…" : "Criar insumo"}
+      </button>
+    </Modal>
   );
 }
