@@ -22,6 +22,8 @@ import { CabecalhoPagina } from "@/components/cabecalho-pagina";
 import { FormularioEventoChurrasco } from "@/components/formulario-evento-churrasco";
 import { FormularioEventoGenerico } from "@/components/formulario-evento-generico";
 import { BotaoExcluirEvento } from "@/components/botao-excluir-evento";
+import { Painel } from "@/components/painel";
+import { Alerta } from "@/components/alerta";
 
 type PaginaEventoProps = {
   params: Promise<{ id: string }>;
@@ -84,7 +86,7 @@ export default async function EventoPage({ params }: PaginaEventoProps) {
           }
         />
 
-        <div className="rounded-[2px] bg-ink-soft/60 p-6 shadow-[0_20px_40px_-24px_rgba(0,0,0,0.6)]">
+        <Painel>
           {ehChurrasco ? (
             <FormularioEventoChurrasco
               empresaId={evento.empresa_id}
@@ -103,10 +105,10 @@ export default async function EventoPage({ params }: PaginaEventoProps) {
               rotuloEnvio="Salvar alterações"
             />
           )}
-        </div>
+        </Painel>
 
         {ehChurrasco && (
-          <section id={ANCORA_DECISOES_OPERACIONAIS} className="flex scroll-mt-6 flex-col gap-4 rounded-[2px] bg-ink-soft/60 p-6 shadow-[0_20px_40px_-24px_rgba(0,0,0,0.6)]">
+          <Painel como="section" id={ANCORA_DECISOES_OPERACIONAIS} className="flex scroll-mt-6 flex-col gap-4">
             <h2 className="font-display text-2xl italic text-paper">
               Decisões operacionais
             </h2>
@@ -119,7 +121,7 @@ export default async function EventoPage({ params }: PaginaEventoProps) {
               </p>
             )}
             {pendencias.length > 0 && (
-              <div className="flex flex-col items-start gap-3 rounded-[2px] border border-aviso-claro/40 p-3 text-sm text-aviso-claro">
+              <Alerta tipo="aviso">
                 <ul className="list-disc pl-4">
                   {pendencias.map((p) => (
                     <li key={p.texto}>{p.texto}</li>
@@ -130,7 +132,7 @@ export default async function EventoPage({ params }: PaginaEventoProps) {
                   itens={pendencias}
                   ativosPorFuncao={ativosPorFuncao}
                 />
-              </div>
+              </Alerta>
             )}
             <FormularioDecisoesOperacionais
               colaboradoresAtivos={colaboradoresAtivos}
@@ -138,7 +140,7 @@ export default async function EventoPage({ params }: PaginaEventoProps) {
               valoresIniciais={decisoes}
               action={salvarDecisoesOperacionaisAction.bind(null, evento.id)}
             />
-          </section>
+          </Painel>
         )}
       </div>
     </main>

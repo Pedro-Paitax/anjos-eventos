@@ -4,6 +4,7 @@ import { listarPreparosPorCategoria } from "@/lib/preparos";
 import { listarCardapiosModelo } from "@/lib/cardapios-modelo";
 import { CabecalhoPagina } from "@/components/cabecalho-pagina";
 import { SimuladorCardapio } from "@/components/simulador-cardapio";
+import { Painel } from "@/components/painel";
 
 export default async function SimuladorCardapioPage() {
   const usuarioAtual = await obterUsuarioAtual();
@@ -23,12 +24,12 @@ export default async function SimuladorCardapioPage() {
           voltarPara={{ href: "/", rotulo: "← Início" }}
         />
 
-        <div className="rounded-[2px] bg-ink-soft/60 p-6 shadow-[0_20px_40px_-24px_rgba(0,0,0,0.6)]">
+        <Painel>
           <SimuladorCardapio
             preparosPorCategoria={preparosPorCategoria}
             cardapiosModelo={cardapiosModelo}
           />
-        </div>
+        </Painel>
       </div>
     </main>
   );

@@ -4,6 +4,7 @@ import { obterUsuarioAtual } from "@/lib/usuario-atual";
 import { listarPreparos } from "@/lib/preparos";
 import { CabecalhoPagina } from "@/components/cabecalho-pagina";
 import { ListaPreparos } from "@/components/lista-preparos";
+import { botaoClasse } from "@/components/botao";
 
 export default async function PreparosPage() {
   const usuarioAtual = await obterUsuarioAtual();
@@ -23,7 +24,7 @@ export default async function PreparosPage() {
           acao={
             <Link
               href="/preparos/novo"
-              className="inline-flex items-center justify-center rounded-[2px] bg-acao px-5 py-2.5 text-sm font-medium text-paper shadow-[0_10px_20px_-10px_rgba(0,0,0,0.6)] transition hover:bg-acao-forte focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brass"
+              className={botaoClasse()}
             >
               Novo Preparo
             </Link>

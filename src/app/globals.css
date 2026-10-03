@@ -165,11 +165,22 @@ body {
       box-shadow var(--motion-fast) var(--motion-ease),
       background-color var(--motion-fast) var(--motion-ease);
   }
-  input:focus-visible,
-  select:focus-visible,
-  textarea:focus-visible {
-    box-shadow: 0 0 0 3px rgba(184, 147, 63, 0.18);
-  }
+}
+
+/*
+ * Anel de foco: brass sobre escuro (5,5:1 sobre ink-soft), mas sobre papel brass
+ * tem só 2,52:1; nas superfícies de papel o anel é paper-ink (13,9:1). Sem
+ * camada, esta regra vence as utilidades `focus-visible:outline-brass`.
+ */
+.bg-paper :focus-visible,
+.bg-paper:focus-visible,
+.bg-paper-dim :focus-visible,
+.bg-paper-dim:focus-visible {
+  outline-color: var(--color-paper-ink);
+}
+.bg-paper .bg-ink-soft:focus-visible,
+.bg-paper .bg-ink:focus-visible {
+  outline-color: var(--color-brass);
 }
 
 @keyframes entrada {

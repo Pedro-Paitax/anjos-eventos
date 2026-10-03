@@ -3,6 +3,7 @@ import { obterUsuarioAtual } from "@/lib/usuario-atual";
 import { criarColaboradorAction } from "@/app/actions/colaborador";
 import { CabecalhoPagina } from "@/components/cabecalho-pagina";
 import { FormularioColaborador } from "@/components/formulario-colaborador";
+import { Painel } from "@/components/painel";
 
 export default async function NovoColaboradorPage() {
   const usuarioAtual = await obterUsuarioAtual();
@@ -17,12 +18,12 @@ export default async function NovoColaboradorPage() {
           titulo="Novo colaborador"
           voltarPara={{ href: "/colaboradores", rotulo: "← Colaboradores" }}
         />
-        <div className="rounded-[2px] bg-ink-soft/60 p-6 shadow-[0_20px_40px_-24px_rgba(0,0,0,0.6)]">
+        <Painel>
           <FormularioColaborador
             action={criarColaboradorAction}
             rotuloEnvio="Cadastrar"
           />
-        </div>
+        </Painel>
       </div>
     </main>
   );

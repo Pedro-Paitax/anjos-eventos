@@ -14,6 +14,8 @@ import {
   type CampoOpcao,
 } from "@/lib/decisoes-operacionais-opcoes";
 import type { EstadoFormularioDecisoes } from "@/app/actions/decisoes-operacionais";
+import { BotaoEnviar } from "@/components/botao-enviar";
+import { Alerta } from "@/components/alerta";
 
 type ValoresDecisoes = {
   veiculo: string | null;
@@ -71,7 +73,7 @@ export function FormularioDecisoesOperacionais({
   valoresIniciais,
   action,
 }: FormularioDecisoesProps) {
-  const [estado, formAction, pendente] = useActionState(action, {});
+  const [estado, formAction] = useActionState(action, {});
 
   return (
     <form action={formAction} className="flex flex-col gap-6">
@@ -124,16 +126,10 @@ export function FormularioDecisoesOperacionais({
         </label>
       </div>
 
-      {estado.erro && <p className="text-sm text-perigo-claro">{estado.erro}</p>}
+      {estado.erro && <Alerta tipo="perigo">{estado.erro}</Alerta>}
       {estado.salvo && <p className="text-sm text-sage">Decisões salvas.</p>}
 
-      <button
-        type="submit"
-        disabled={pendente}
-        className="inline-flex items-center justify-center self-start rounded-[2px] bg-acao px-5 py-2.5 text-sm font-medium text-paper shadow-[0_10px_20px_-10px_rgba(0,0,0,0.6)] transition hover:bg-acao-forte disabled:opacity-50"
-      >
-        {pendente ? "Salvando…" : "Salvar decisões operacionais"}
-      </button>
+      <BotaoEnviar rotulo={"Salvar decisões operacionais"} className="w-full sm:w-auto sm:self-start" />
     </form>
   );
 }

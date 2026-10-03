@@ -8,6 +8,7 @@ import {
   type AtivosPorFuncao,
   type ItemPendencia,
 } from "@/lib/pendencias-evento";
+import { botaoClasse } from "@/components/botao";
 
 type Props = {
   eventoId: number;
@@ -33,8 +34,7 @@ export function BotaoResolverPendencias({ eventoId, itens, ativosPorFuncao, clas
         type="button"
         onClick={() => setAberto(true)}
         className={
-          className ??
-          "rounded-[2px] border border-acao-claro/60 px-3 py-1.5 text-sm text-acao-claro transition hover:bg-acao-claro/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brass"
+          className ?? botaoClasse("secundario", "sm")
         }
       >
         Resolver pendências

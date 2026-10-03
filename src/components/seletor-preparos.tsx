@@ -4,6 +4,7 @@ import { useState } from "react";
 import { CATEGORIAS_CARDAPIO, type CategoriaCardapio, type Preparo } from "@/lib/cardapio";
 import { rotuloClasse } from "@/components/formulario-evento";
 import { Modal } from "@/components/modal";
+import { botaoClasse } from "@/components/botao";
 
 export function SeletorPreparos({
   preparosPorCategoria,
@@ -38,7 +39,7 @@ export function SeletorPreparos({
         <button
           type="button"
           onClick={() => setModalAberto(true)}
-          className="rounded-[2px] bg-paper px-3 py-1.5 text-sm font-medium text-paper-ink transition hover:brightness-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brass"
+          className={botaoClasse("secundario", "sm")}
         >
           + Adicionar itens
         </button>

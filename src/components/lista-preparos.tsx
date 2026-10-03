@@ -6,9 +6,11 @@ import type { PreparoResumo } from "@/lib/preparos";
 import { excluirPreparoAction } from "@/app/actions/preparo";
 import { CATEGORIAS_PREPARO } from "@/lib/preparos-opcoes";
 import { Modal } from "@/components/modal";
+import { Alerta } from "@/components/alerta";
+import { campoClassePapel } from "@/components/campo";
+import { botaoClasse } from "@/components/botao";
 
-const campoFiltroClasse =
-  "rounded-[2px] border border-paper-ink/20 bg-transparent px-3 py-2 text-sm text-paper-ink placeholder:text-paper-ink/40 focus:border-brass focus:outline-none";
+const campoFiltroClasse = campoClassePapel;
 
 type Agrupamento = "nenhum" | "categoria";
 type Ordenacao = "nome" | "categoria" | "unidade";
@@ -66,7 +68,7 @@ function LinhaPreparo({ preparo }: { preparo: PreparoResumo }) {
           <Link
             href={`/preparos/${preparo.id}`}
             aria-label={`Editar ${preparo.nome}`}
-            className="-my-2 py-2 text-sm underline decoration-paper-ink/30 underline-offset-4 transition hover:decoration-paper-ink"
+            className={botaoClasse("link", "sm", "papel")}
           >
             Editar
           </Link>
@@ -75,13 +77,13 @@ function LinhaPreparo({ preparo }: { preparo: PreparoResumo }) {
             onClick={() => setConfirmando(true)}
             disabled={pendente}
             aria-label={`Excluir ${preparo.nome}`}
-            className="-my-2 py-2 text-sm text-acao underline decoration-acao/40 underline-offset-4 transition hover:decoration-acao disabled:opacity-50"
+            className={botaoClasse("link", "sm", "papel")}
           >
             {pendente ? "Excluindo…" : "Excluir"}
           </button>
         </div>
       </div>
-      {erro && <p className="text-sm text-perigo-escuro">{erro}</p>}
+      {erro && <Alerta tipo="perigo" sobre="papel">{erro}</Alerta>}
 
       {confirmando && (
         <Modal onFechar={() => setConfirmando(false)} rotulo="Excluir preparo" className="max-w-sm bg-ink">
@@ -101,7 +103,7 @@ function LinhaPreparo({ preparo }: { preparo: PreparoResumo }) {
             <button
               type="button"
               onClick={confirmarExclusao}
-              className="inline-flex items-center justify-center rounded-[2px] bg-acao px-4 py-2 text-sm font-medium text-paper shadow-[0_10px_20px_-10px_rgba(0,0,0,0.6)] transition hover:bg-acao-forte"
+              className={botaoClasse("perigo")}
             >
               Excluir
             </button>

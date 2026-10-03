@@ -6,6 +6,8 @@ import { UNIDADES_INSUMO, type UnidadeInsumo } from "@/lib/preparos-opcoes";
 import { criarInsumoInlineAction } from "@/app/actions/preparo";
 import { campoClasse, rotuloClasse, secaoTituloClasse } from "@/components/formulario-evento";
 import { Modal } from "@/components/modal";
+import { Alerta } from "@/components/alerta";
+import { botaoClasse } from "@/components/botao";
 
 type LinhaComposicao = {
   chave: string; // key estável pro React — não é o Id do NocoDB
@@ -240,13 +242,13 @@ function ModalNovoInsumo({
         </div>
       </div>
 
-      {erro && <p className="text-sm text-perigo-claro">{erro}</p>}
+      {erro && <Alerta tipo="perigo">{erro}</Alerta>}
 
       <button
         type="button"
         onClick={salvar}
         disabled={pendente || !nome.trim() || !preco}
-        className="mt-1 inline-flex items-center justify-center self-start rounded-[2px] bg-acao px-5 py-2 text-sm font-medium text-paper shadow-[0_10px_20px_-10px_rgba(0,0,0,0.6)] transition hover:bg-acao-forte disabled:opacity-50"
+        className={`${botaoClasse()} mt-1 self-start`}
       >
         {pendente ? "Salvando…" : "Criar insumo"}
       </button>

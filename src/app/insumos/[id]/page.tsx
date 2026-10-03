@@ -4,6 +4,7 @@ import { obterInsumo } from "@/lib/insumos";
 import { atualizarInsumoAction } from "@/app/actions/insumo";
 import { CabecalhoPagina } from "@/components/cabecalho-pagina";
 import { FormularioInsumo } from "@/components/formulario-insumo";
+import { Painel } from "@/components/painel";
 
 type PaginaInsumoProps = {
   params: Promise<{ id: string }>;
@@ -36,13 +37,13 @@ export default async function InsumoPage({ params }: PaginaInsumoProps) {
           voltarPara={{ href: "/insumos", rotulo: "← Insumos" }}
         />
 
-        <div className="rounded-[2px] bg-ink-soft/60 p-6 shadow-[0_20px_40px_-24px_rgba(0,0,0,0.6)]">
+        <Painel>
           <FormularioInsumo
             valoresIniciais={insumo}
             action={atualizarComId}
             rotuloEnvio="Salvar alterações"
           />
-        </div>
+        </Painel>
       </div>
     </main>
   );

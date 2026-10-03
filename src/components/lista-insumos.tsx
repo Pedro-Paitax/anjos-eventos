@@ -4,14 +4,14 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { InsumoResumo } from "@/lib/insumos";
 import { UNIDADES_INSUMO } from "@/lib/preparos-opcoes";
+import { campoClassePapel } from "@/components/campo";
 
 // Preço corrigido já vem calculado do servidor (calcularPrecoCorrigido em
 // src/lib/custo-preparo.ts, que depende de "server-only" — não pode ser
 // importado num "use client"). Ver src/app/insumos/page.tsx.
 export type InsumoComPrecoCorrigido = InsumoResumo & { precoCorrigido: number };
 
-const campoFiltroClasse =
-  "rounded-[2px] border border-paper-ink/20 bg-transparent px-3 py-2 text-sm text-paper-ink placeholder:text-paper-ink/40 focus:border-brass focus:outline-none";
+const campoFiltroClasse = campoClassePapel;
 
 // Insumos não têm campo Categoria no banco (src/db/schema/insumos.ts) —
 // só Unidade, Nome e Preço fazem sentido como filtro/ordenação aqui.

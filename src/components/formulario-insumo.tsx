@@ -3,8 +3,11 @@
 import { useActionState } from "react";
 import type { InsumoResumo } from "@/lib/insumos";
 import { UNIDADES_INSUMO } from "@/lib/preparos-opcoes";
-import { campoClasse, rotuloClasse, secaoTituloClasse } from "@/components/formulario-evento";
+import { secaoTituloClasse } from "@/components/formulario-evento";
+import { Campo } from "@/components/campo";
 import type { EstadoFormularioInsumo } from "@/app/actions/insumo";
+import { BotaoEnviar } from "@/components/botao-enviar";
+import { Alerta } from "@/components/alerta";
 
 type FormularioInsumoProps = {
   valoresIniciais: InsumoResumo;
@@ -20,84 +23,66 @@ export function FormularioInsumo({
   action,
   rotuloEnvio,
 }: FormularioInsumoProps) {
-  const [estado, formAction, pendente] = useActionState(action, {});
+  const [estado, formAction] = useActionState(action, {});
 
   return (
     <form action={formAction} className="flex flex-col gap-6">
       <h3 className={secaoTituloClasse}>Dados do insumo</h3>
 
-      <div className="flex flex-col gap-1.5">
-        <label htmlFor="nome" className={rotuloClasse}>
-          Nome
-        </label>
-        <input
-          id="nome"
-          name="nome"
-          defaultValue={estado.valores?.nome ?? valoresIniciais.nome}
-          required
-          className={campoClasse}
-        />
-      </div>
+      <Campo rotulo="Nome">
+        {(p) => (
+          <input {...p}
+            name="nome"
+            defaultValue={estado.valores?.nome ?? valoresIniciais.nome}
+            required
+          />
+        )}
+      </Campo>
 
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="udm" className={rotuloClasse}>
-            Unidade
-          </label>
-          <select
-            id="udm"
-            name="udm"
-            defaultValue={estado.valores?.udm ?? valoresIniciais.udm}
-            className={campoClasse}
-          >
-            {UNIDADES_INSUMO.map((u) => (
-              <option key={u} value={u}>
-                {u}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="preco" className={rotuloClasse}>
-            Preço (R$)
-          </label>
-          <input
-            id="preco"
-            name="preco"
-            type="number"
-            step="0.01"
-            min="0"
-            required
-            defaultValue={estado.valores?.preco ?? valoresIniciais.preco ?? ""}
-            className={campoClasse}
-          />
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="fatorCorrecao" className={rotuloClasse}>
-            Fator de correção
-          </label>
-          <input
-            id="fatorCorrecao"
-            name="fatorCorrecao"
-            type="number"
-            step="0.01"
-            min="0"
-            required
-            defaultValue={estado.valores?.fatorCorrecao ?? valoresIniciais.fatorCorrecao ?? ""}
-            className={campoClasse}
-          />
-        </div>
+        <Campo rotulo="Unidade">
+          {(p) => (
+            <select {...p}
+              name="udm"
+              defaultValue={estado.valores?.udm ?? valoresIniciais.udm}
+            >
+              {UNIDADES_INSUMO.map((u) => (
+                <option key={u} value={u}>
+                  {u}
+                </option>
+              ))}
+            </select>
+          )}
+        </Campo>
+        <Campo rotulo="Preço (R$)">
+          {(p) => (
+            <input {...p}
+              name="preco"
+              type="number"
+              step="0.01"
+              min="0"
+              required
+              defaultValue={estado.valores?.preco ?? valoresIniciais.preco ?? ""}
+            />
+          )}
+        </Campo>
+        <Campo rotulo="Fator de correção">
+          {(p) => (
+            <input {...p}
+              name="fatorCorrecao"
+              type="number"
+              step="0.01"
+              min="0"
+              required
+              defaultValue={estado.valores?.fatorCorrecao ?? valoresIniciais.fatorCorrecao ?? ""}
+            />
+          )}
+        </Campo>
       </div>
 
-      {estado.erro && <p className="text-sm text-perigo-claro">{estado.erro}</p>}
+      {estado.erro && <Alerta tipo="perigo">{estado.erro}</Alerta>}
 
-      <button
-        type="submit"
-        disabled={pendente}
-        className="inline-flex items-center justify-center self-start rounded-[2px] bg-acao px-5 py-2.5 text-sm font-medium text-paper shadow-[0_10px_20px_-10px_rgba(0,0,0,0.6)] transition hover:bg-acao-forte disabled:opacity-50"
-      >
-        {pendente ? "Salvando…" : rotuloEnvio}
-      </button>
+      <BotaoEnviar rotulo={rotuloEnvio} className="w-full sm:w-auto sm:self-start" />
     </form>
   );
 }

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import type { Preparo, CategoriaCardapio } from "@/lib/cardapio";
 import { campoClasse, rotuloClasse, secaoTituloClasse } from "@/components/formulario-evento";
+import { Campo } from "@/components/campo";
 import { SeletorCardapio, paraValoresIniciaisCardapio, type ValoresIniciaisCardapio } from "@/components/seletor-cardapio";
 import { obterItensCardapioModeloAction } from "@/app/actions/cardapio-modelo";
 import { calcularPrecificacaoEventoAction } from "@/app/actions/precificacao";
@@ -12,6 +13,8 @@ import {
   sugerirQuantidadeGarcom,
   VALOR_GARCOM_PADRAO,
 } from "@/lib/precificacao-constantes";
+import { BotaoEnviar } from "@/components/botao-enviar";
+import { Alerta } from "@/components/alerta";
 
 type FormularioOrcamentoChurrascoProps = {
   empresaId: number;
@@ -186,59 +189,49 @@ export function FormularioOrcamentoChurrasco({
 
       <section className="flex flex-col gap-5">
         <h3 className={secaoTituloClasse}>Dados do cliente</h3>
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="clienteNome" className={rotuloClasse}>
-            Cliente
-          </label>
-          <input id="clienteNome" name="clienteNome" type="text" required className={campoClasse} />
-        </div>
+        <Campo rotulo="Cliente">
+          {(p) => (
+            <input {...p} name="clienteNome" type="text" required />
+          )}
+        </Campo>
       </section>
 
       <section className="flex flex-col gap-5">
         <h3 className={secaoTituloClasse}>Convidados</h3>
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="qtdAdultos" className={rotuloClasse}>
-              Adultos
-            </label>
-            <input
-              id="qtdAdultos"
-              name="qtdAdultos"
-              type="number"
-              min={0}
-              value={qtdAdultos}
-              onChange={(e) => setQtdAdultos(e.target.value)}
-              className={campoClasse}
-            />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="qtdCriancasAte5" className={rotuloClasse}>
-              Crianças até 5 anos
-            </label>
-            <input
-              id="qtdCriancasAte5"
-              name="qtdCriancasAte5"
-              type="number"
-              min={0}
-              value={qtdCriancasAte5}
-              onChange={(e) => setQtdCriancasAte5(e.target.value)}
-              className={campoClasse}
-            />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="qtdCriancas5a10" className={rotuloClasse}>
-              Crianças de 5 a 10 anos
-            </label>
-            <input
-              id="qtdCriancas5a10"
-              name="qtdCriancas5a10"
-              type="number"
-              min={0}
-              value={qtdCriancas5a10}
-              onChange={(e) => setQtdCriancas5a10(e.target.value)}
-              className={campoClasse}
-            />
-          </div>
+          <Campo rotulo="Adultos">
+            {(p) => (
+              <input {...p}
+                name="qtdAdultos"
+                type="number"
+                min={0}
+                value={qtdAdultos}
+                onChange={(e) => setQtdAdultos(e.target.value)}
+              />
+            )}
+          </Campo>
+          <Campo rotulo="Crianças até 5 anos">
+            {(p) => (
+              <input {...p}
+                name="qtdCriancasAte5"
+                type="number"
+                min={0}
+                value={qtdCriancasAte5}
+                onChange={(e) => setQtdCriancasAte5(e.target.value)}
+              />
+            )}
+          </Campo>
+          <Campo rotulo="Crianças de 5 a 10 anos">
+            {(p) => (
+              <input {...p}
+                name="qtdCriancas5a10"
+                type="number"
+                min={0}
+                value={qtdCriancas5a10}
+                onChange={(e) => setQtdCriancas5a10(e.target.value)}
+              />
+            )}
+          </Campo>
         </div>
       </section>
 
@@ -268,7 +261,7 @@ export function FormularioOrcamentoChurrasco({
               Só pré-preenche os itens abaixo — você ainda pode adicionar ou
               remover livremente.
             </p>
-            {erroTemplate && <p className="text-sm text-perigo-claro">{erroTemplate}</p>}
+            {erroTemplate && <Alerta tipo="perigo">{erroTemplate}</Alerta>}
           </div>
         )}
 
@@ -310,9 +303,9 @@ export function FormularioOrcamentoChurrasco({
           (Aprovar e Confirmar Evento) não recalcula preço, só confirma
           logística.
         </p>
-        {precificacaoAtiva && erroPrecificacao && <p className="text-sm text-perigo-claro">{erroPrecificacao}</p>}
+        {precificacaoAtiva && erroPrecificacao && <Alerta tipo="perigo">{erroPrecificacao}</Alerta>}
         {precificacaoAtiva && itensExcluidos.length > 0 && (
-          <div className="rounded-[2px] border border-perigo-claro/40 bg-perigo-claro/10 p-3 text-sm text-perigo-claro">
+          <Alerta tipo="aviso">
             <p className="font-medium">
               Atenção: {itensExcluidos.length}{" "}
               {itensExcluidos.length === 1 ? "item selecionado não entrou" : "itens selecionados não entraram"}{" "}
@@ -325,56 +318,47 @@ export function FormularioOrcamentoChurrasco({
                 </li>
               ))}
             </ul>
-          </div>
+          </Alerta>
         )}
 
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="precoPessoa" className={rotuloClasse}>
-              Preço por pessoa (R$)
-            </label>
-            <input
-              id="precoPessoa"
-              name="precoPessoa"
-              type="number"
-              min={0}
-              step="0.01"
-              required
-              value={precoPessoa}
-              onChange={(e) => setPrecoPessoa(e.target.value)}
-              className={campoClasse}
-            />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="valorGarcom" className={rotuloClasse}>
-              Valor por garçom (R$)
-            </label>
-            <input
-              id="valorGarcom"
-              name="valorGarcom"
-              type="number"
-              min={0}
-              step="0.01"
-              value={valorGarcom}
-              onChange={(e) => setValorGarcom(e.target.value)}
-              className={campoClasse}
-            />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="qtdGarcons" className={rotuloClasse}>
-              Quantidade de garçons
-            </label>
-            <input
-              id="qtdGarcons"
-              name="qtdGarcons"
-              type="number"
-              min={0}
-              placeholder={numConvidados > 0 ? String(quantidadeGarcomSugerida) : ""}
-              value={qtdGarcons}
-              onChange={(e) => setQtdGarcons(e.target.value)}
-              className={campoClasse}
-            />
-          </div>
+          <Campo rotulo="Preço por pessoa (R$)">
+            {(p) => (
+              <input {...p}
+                name="precoPessoa"
+                type="number"
+                min={0}
+                step="0.01"
+                required
+                value={precoPessoa}
+                onChange={(e) => setPrecoPessoa(e.target.value)}
+              />
+            )}
+          </Campo>
+          <Campo rotulo="Valor por garçom (R$)">
+            {(p) => (
+              <input {...p}
+                name="valorGarcom"
+                type="number"
+                min={0}
+                step="0.01"
+                value={valorGarcom}
+                onChange={(e) => setValorGarcom(e.target.value)}
+              />
+            )}
+          </Campo>
+          <Campo rotulo="Quantidade de garçons">
+            {(p) => (
+              <input {...p}
+                name="qtdGarcons"
+                type="number"
+                min={0}
+                placeholder={numConvidados > 0 ? String(quantidadeGarcomSugerida) : ""}
+                value={qtdGarcons}
+                onChange={(e) => setQtdGarcons(e.target.value)}
+              />
+            )}
+          </Campo>
           <div className="flex flex-col gap-1.5">
             <label htmlFor="valorTotalPreview" className={rotuloClasse}>
               Valor Total (R$) — preço x adultos + meia x crianças + garçom + deslocamento
@@ -391,12 +375,7 @@ export function FormularioOrcamentoChurrasco({
         </div>
       </section>
 
-      <button
-        type="submit"
-        className="mt-2 inline-flex items-center justify-center self-start rounded-[2px] bg-acao px-6 py-2.5 text-sm font-medium text-paper shadow-[0_10px_20px_-10px_rgba(0,0,0,0.6)] transition hover:bg-acao-forte focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brass"
-      >
-        Gerar Orçamento
-      </button>
+      <BotaoEnviar rotulo="Gerar Orçamento" className="w-full sm:w-auto sm:self-start" />
     </form>
   );
 }

@@ -8,6 +8,7 @@ import { criarOrcamentoAction } from "@/app/actions/orcamento";
 import { CabecalhoPagina } from "@/components/cabecalho-pagina";
 import { FormularioOrcamentoChurrasco } from "@/components/formulario-orcamento-churrasco";
 import { FormularioOrcamentoGenerico } from "@/components/formulario-orcamento-generico";
+import { Painel } from "@/components/painel";
 
 type NovoEventoPageProps = {
   searchParams: Promise<{ empresa?: string }>;
@@ -60,7 +61,7 @@ export default async function NovoEventoPage({
             ))}
           </div>
         ) : (
-          <div className="rounded-[2px] bg-ink-soft/60 p-6 shadow-[0_20px_40px_-24px_rgba(0,0,0,0.6)]">
+          <Painel>
             {empresaEscolhida.nome === "Buffet Senhor Churrasco" ? (
               <FormularioOrcamentoChurrasco
                 empresaId={empresaEscolhida.id}
@@ -71,7 +72,7 @@ export default async function NovoEventoPage({
             ) : (
               <FormularioOrcamentoGenerico empresaId={empresaEscolhida.id} action={criarOrcamentoAction} />
             )}
-          </div>
+          </Painel>
         )}
       </div>
     </main>

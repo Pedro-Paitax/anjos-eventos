@@ -5,6 +5,7 @@ import { listarPreparosPorCategoria } from "@/lib/preparos";
 import { atualizarCardapioModeloAction } from "@/app/actions/cardapio-modelo";
 import { CabecalhoPagina } from "@/components/cabecalho-pagina";
 import { FormularioCardapioModelo } from "@/components/formulario-cardapio-modelo";
+import { Painel } from "@/components/painel";
 
 type PaginaCardapioModeloProps = {
   params: Promise<{ id: string }>;
@@ -41,14 +42,14 @@ export default async function CardapioModeloPage({ params }: PaginaCardapioModel
           voltarPara={{ href: "/cardapios-modelo", rotulo: "← Cardápios Feitos" }}
         />
 
-        <div className="rounded-[2px] bg-ink-soft/60 p-6 shadow-[0_20px_40px_-24px_rgba(0,0,0,0.6)]">
+        <Painel>
           <FormularioCardapioModelo
             valoresIniciais={cardapio}
             preparosPorCategoria={preparosPorCategoria}
             action={atualizarComId}
             rotuloEnvio="Salvar alterações"
           />
-        </div>
+        </Painel>
       </div>
     </main>
   );

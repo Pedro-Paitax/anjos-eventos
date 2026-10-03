@@ -4,6 +4,7 @@ import { listarPreparosPorCategoria } from "@/lib/preparos";
 import { criarCardapioModeloAction } from "@/app/actions/cardapio-modelo";
 import { CabecalhoPagina } from "@/components/cabecalho-pagina";
 import { FormularioCardapioModelo } from "@/components/formulario-cardapio-modelo";
+import { Painel } from "@/components/painel";
 
 export default async function NovoCardapioModeloPage() {
   const usuarioAtual = await obterUsuarioAtual();
@@ -21,13 +22,13 @@ export default async function NovoCardapioModeloPage() {
           voltarPara={{ href: "/cardapios-modelo", rotulo: "← Cardápios Feitos" }}
         />
 
-        <div className="rounded-[2px] bg-ink-soft/60 p-6 shadow-[0_20px_40px_-24px_rgba(0,0,0,0.6)]">
+        <Painel>
           <FormularioCardapioModelo
             preparosPorCategoria={preparosPorCategoria}
             action={criarCardapioModeloAction}
             rotuloEnvio="Cadastrar cardápio"
           />
-        </div>
+        </Painel>
       </div>
     </main>
   );

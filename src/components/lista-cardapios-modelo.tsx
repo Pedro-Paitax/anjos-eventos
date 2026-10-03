@@ -5,6 +5,9 @@ import Link from "next/link";
 import type { CardapioModeloResumo } from "@/lib/cardapios-modelo";
 import { excluirCardapioModeloAction } from "@/app/actions/cardapio-modelo";
 import { Modal } from "@/components/modal";
+import { Alerta } from "@/components/alerta";
+import { campoClasse } from "@/components/campo";
+import { botaoClasse } from "@/components/botao";
 
 function formatarPreco(preco: number | null): string {
   if (preco == null) return "Sem preço fixo";
@@ -59,7 +62,7 @@ function CardCardapioModelo({ cardapio }: { cardapio: CardapioModeloResumo }) {
         <Link
           href={`/cardapios-modelo/${cardapio.id}`}
           aria-label={`Editar ${cardapio.nome}`}
-          className="-my-2 py-2 text-sm underline decoration-paper-ink/30 underline-offset-4 transition hover:decoration-paper-ink"
+          className={botaoClasse("link", "sm", "papel")}
         >
           Editar
         </Link>
@@ -68,12 +71,12 @@ function CardCardapioModelo({ cardapio }: { cardapio: CardapioModeloResumo }) {
           onClick={() => setConfirmando(true)}
           disabled={pendente}
           aria-label={`Excluir ${cardapio.nome}`}
-          className="-my-2 py-2 text-sm text-acao underline decoration-acao/40 underline-offset-4 transition hover:decoration-acao disabled:opacity-50"
+          className={botaoClasse("link", "sm", "papel")}
         >
           {pendente ? "Excluindo…" : "Excluir"}
         </button>
       </div>
-      {erro && <p className="text-sm text-perigo-escuro">{erro}</p>}
+      {erro && <Alerta tipo="perigo" sobre="papel">{erro}</Alerta>}
 
       {confirmando && (
         <Modal onFechar={() => setConfirmando(false)} rotulo="Excluir cardápio" className="max-w-sm bg-ink">
@@ -93,7 +96,7 @@ function CardCardapioModelo({ cardapio }: { cardapio: CardapioModeloResumo }) {
             <button
               type="button"
               onClick={confirmarExclusao}
-              className="inline-flex items-center justify-center rounded-[2px] bg-acao px-4 py-2 text-sm font-medium text-paper shadow-[0_10px_20px_-10px_rgba(0,0,0,0.6)] transition hover:bg-acao-forte"
+              className={botaoClasse("perigo")}
             >
               Excluir
             </button>
@@ -134,7 +137,7 @@ export function ListaCardapiosModelo({ cardapios }: { cardapios: CardapioModeloR
           id="filtroPreco"
           value={filtro}
           onChange={(e) => setFiltro(e.target.value as FiltroPreco)}
-          className="rounded-[2px] border border-paper-dim/20 bg-ink-soft px-3 py-2 text-sm text-paper focus:border-brass focus:outline-none"
+          className={campoClasse}
         >
           <option value="todos">Todos</option>
           <option value="com-preco-fixo">Com preço fixo</option>

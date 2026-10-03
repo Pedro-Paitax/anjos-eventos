@@ -8,6 +8,7 @@ import { listarColaboradoresAtivos } from "@/lib/colaboradores";
 import type { AtivosPorFuncao } from "@/lib/pendencias-evento";
 import { BotaoResolverPendencias } from "@/components/botao-resolver-pendencias";
 import { corEmpresa, formatarData, formatarHora } from "@/lib/formatacao";
+import { botaoClasse } from "@/components/botao";
 
 const DIAS_PROXIMOS_EVENTOS = 15;
 
@@ -103,7 +104,7 @@ export default async function Home() {
                           eventoId={evento.id}
                           itens={pendencias.get(evento.id) ?? []}
                           ativosPorFuncao={ativosPorFuncao}
-                          className="rounded-[2px] border border-acao/60 px-3 py-1.5 text-sm text-acao transition hover:bg-acao/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brass"
+                          className={botaoClasse("secundario", "sm")}
                         />
                       </div>
                     )}

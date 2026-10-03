@@ -4,6 +4,7 @@ import { obterColaborador } from "@/lib/colaboradores";
 import { atualizarColaboradorAction } from "@/app/actions/colaborador";
 import { CabecalhoPagina } from "@/components/cabecalho-pagina";
 import { FormularioColaborador } from "@/components/formulario-colaborador";
+import { Painel } from "@/components/painel";
 
 type PaginaColaboradorProps = {
   params: Promise<{ id: string }>;
@@ -33,13 +34,13 @@ export default async function ColaboradorPage({ params }: PaginaColaboradorProps
           titulo={colaborador.nome}
           voltarPara={{ href: "/colaboradores", rotulo: "← Colaboradores" }}
         />
-        <div className="rounded-[2px] bg-ink-soft/60 p-6 shadow-[0_20px_40px_-24px_rgba(0,0,0,0.6)]">
+        <Painel>
           <FormularioColaborador
             valoresIniciais={colaborador}
             action={atualizarColaboradorAction.bind(null, colaborador.id)}
             rotuloEnvio="Salvar alterações"
           />
-        </div>
+        </Painel>
       </div>
     </main>
   );

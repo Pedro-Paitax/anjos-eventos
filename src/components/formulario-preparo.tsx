@@ -10,6 +10,7 @@ import {
   UNIDADES_RENDIMENTO_PREPARO,
 } from "@/lib/preparos-opcoes";
 import { campoClasse, rotuloClasse, secaoTituloClasse } from "@/components/formulario-evento";
+import { Campo } from "@/components/campo";
 import { ComposicaoPreparo } from "@/components/composicao-preparo";
 import {
   EditorPassosPreparo,
@@ -17,6 +18,8 @@ import {
   linhasParaPassos,
 } from "@/components/editor-passos-preparo";
 import type { EstadoFormularioPreparo } from "@/app/actions/preparo";
+import { BotaoEnviar } from "@/components/botao-enviar";
+import { Alerta } from "@/components/alerta";
 
 type FormularioPreparoProps = {
   valoresIniciais?: PreparoDetalhado;
@@ -34,7 +37,7 @@ export function FormularioPreparo({
   action,
   rotuloEnvio,
 }: FormularioPreparoProps) {
-  const [estado, formAction, pendente] = useActionState(action, {});
+  const [estado, formAction] = useActionState(action, {});
   const [categoria, setCategoria] = useState(
     valoresIniciais?.categoria ?? CATEGORIAS_PREPARO[0]
   );
@@ -51,98 +54,83 @@ export function FormularioPreparo({
       <section className="flex flex-col gap-5">
         <h3 className={secaoTituloClasse}>Dados do preparo</h3>
 
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="nome" className={rotuloClasse}>
-            Nome Do Preparo
-          </label>
-          <input
-            id="nome"
-            name="nome"
-            type="text"
-            required
-            defaultValue={valoresIniciais?.nome}
-            className={campoClasse}
-          />
-        </div>
+        <Campo rotulo="Nome Do Preparo">
+          {(p) => (
+            <input {...p}
+              name="nome"
+              type="text"
+              required
+              defaultValue={valoresIniciais?.nome}
+            />
+          )}
+        </Campo>
 
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="categoria" className={rotuloClasse}>
-              Categoria
-            </label>
-            <select
-              id="categoria"
-              name="categoria"
-              required
-              value={categoria ?? ""}
-              onChange={(e) => setCategoria(e.target.value)}
-              className={campoClasse}
-            >
-              {CATEGORIAS_PREPARO.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {categoria === "Carnes" && (
-            <div className="flex flex-col gap-1.5">
-              <label htmlFor="subcategoriaProteina" className={rotuloClasse}>
-                Subcategoria da proteína
-              </label>
-              <select
-                id="subcategoriaProteina"
-                name="subcategoriaProteina"
-                defaultValue={valoresIniciais?.subcategoriaProteina ?? ""}
-                className={campoClasse}
+          <Campo rotulo="Categoria">
+            {(p) => (
+              <select {...p}
+                name="categoria"
+                required
+                value={categoria ?? ""}
+                onChange={(e) => setCategoria(e.target.value)}
               >
-                <option value="">Não definida</option>
-                {SUBCATEGORIAS_PROTEINA.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
+                {CATEGORIAS_PREPARO.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
                   </option>
                 ))}
               </select>
-            </div>
+            )}
+          </Campo>
+
+          {categoria === "Carnes" && (
+            <Campo rotulo="Subcategoria da proteína">
+              {(p) => (
+                <select {...p}
+                  name="subcategoriaProteina"
+                  defaultValue={valoresIniciais?.subcategoriaProteina ?? ""}
+                >
+                  <option value="">Não definida</option>
+                  {SUBCATEGORIAS_PROTEINA.map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </Campo>
           )}
         </div>
 
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="rendimento" className={rotuloClasse}>
-              Rendimento
-            </label>
-            <input
-              id="rendimento"
-              name="rendimento"
-              type="number"
-              step="0.01"
-              min="0"
-              required
-              defaultValue={valoresIniciais?.rendimento ?? ""}
-              className={campoClasse}
-            />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="unidadeRendimento" className={rotuloClasse}>
-              Unidade do rendimento
-            </label>
-            <select
-              id="unidadeRendimento"
-              name="unidadeRendimento"
-              required
-              value={unidadeRendimento}
-              onChange={(e) => setUnidadeRendimento(e.target.value)}
-              className={campoClasse}
-            >
-              {UNIDADES_RENDIMENTO_PREPARO.map((u) => (
-                <option key={u} value={u}>
-                  {u}
-                </option>
-              ))}
-            </select>
-          </div>
+          <Campo rotulo="Rendimento">
+            {(p) => (
+              <input {...p}
+                name="rendimento"
+                type="number"
+                step="0.01"
+                min="0"
+                required
+                defaultValue={valoresIniciais?.rendimento ?? ""}
+              />
+            )}
+          </Campo>
+          <Campo rotulo="Unidade do rendimento">
+            {(p) => (
+              <select {...p}
+                name="unidadeRendimento"
+                required
+                value={unidadeRendimento}
+                onChange={(e) => setUnidadeRendimento(e.target.value)}
+              >
+                {UNIDADES_RENDIMENTO_PREPARO.map((u) => (
+                  <option key={u} value={u}>
+                    {u}
+                  </option>
+                ))}
+              </select>
+            )}
+          </Campo>
         </div>
 
         {unidadeRendimento === "Unidade" && (
@@ -203,33 +191,27 @@ export function FormularioPreparo({
         </div>
 
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="tempoPreparoMinutos" className={rotuloClasse}>
-              Tempo de preparo (min)
-            </label>
-            <input
-              id="tempoPreparoMinutos"
-              name="tempoPreparoMinutos"
-              type="number"
-              min="0"
-              defaultValue={valoresIniciais?.tempoPreparoMinutos ?? ""}
-              className={campoClasse}
-            />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="pesoAtratividade" className={rotuloClasse}>
-              Peso de atratividade
-            </label>
-            <input
-              id="pesoAtratividade"
-              name="pesoAtratividade"
-              type="number"
-              step="0.01"
-              min="0"
-              defaultValue={valoresIniciais?.pesoAtratividade ?? ""}
-              className={campoClasse}
-            />
-          </div>
+          <Campo rotulo="Tempo de preparo (min)">
+            {(p) => (
+              <input {...p}
+                name="tempoPreparoMinutos"
+                type="number"
+                min="0"
+                defaultValue={valoresIniciais?.tempoPreparoMinutos ?? ""}
+              />
+            )}
+          </Campo>
+          <Campo rotulo="Peso de atratividade">
+            {(p) => (
+              <input {...p}
+                name="pesoAtratividade"
+                type="number"
+                step="0.01"
+                min="0"
+                defaultValue={valoresIniciais?.pesoAtratividade ?? ""}
+              />
+            )}
+          </Campo>
           <div className="flex flex-col gap-1.5">
             <label htmlFor="porcaoMaximaIndividual" className={rotuloClasse}>
               Porção máxima individual
@@ -257,15 +239,9 @@ export function FormularioPreparo({
         composicaoInicial={valoresIniciais?.composicao ?? []}
       />
 
-      {estado?.erro && <p className="text-sm text-perigo-claro">{estado.erro}</p>}
+      {estado?.erro && <Alerta tipo="perigo">{estado.erro}</Alerta>}
 
-      <button
-        type="submit"
-        disabled={pendente}
-        className="mt-2 inline-flex items-center justify-center self-start rounded-[2px] bg-acao px-6 py-2.5 text-sm font-medium text-paper shadow-[0_10px_20px_-10px_rgba(0,0,0,0.6)] transition hover:bg-acao-forte focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brass disabled:opacity-50"
-      >
-        {pendente ? "Salvando…" : rotuloEnvio}
-      </button>
+      <BotaoEnviar rotulo={rotuloEnvio} className="w-full sm:w-auto sm:self-start" />
     </form>
   );
 }

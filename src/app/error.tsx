@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { botaoClasse } from "@/components/botao";
 
 // Não exibe error.message: pode conter detalhes de banco/servidor. O digest
 // identifica a falha no log do servidor (PM2).
@@ -24,13 +25,13 @@ export default function ErroDaPagina({
           <button
             type="button"
             onClick={reset}
-            className="rounded-[2px] bg-acao px-4 py-2 text-sm font-medium text-paper transition hover:bg-acao-forte focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brass"
+            className={botaoClasse()}
           >
             Tentar de novo
           </button>
           <Link
             href="/"
-            className="rounded-[2px] border border-paper-dim/30 px-4 py-2 text-sm text-paper transition hover:border-paper-dim hover:bg-paper/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brass"
+            className={botaoClasse("secundario")}
           >
             Voltar ao início
           </Link>

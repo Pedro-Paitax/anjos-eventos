@@ -1,6 +1,8 @@
 import type { Evento } from "@/lib/eventos";
 import { paraInputDatetimeLocal } from "@/lib/formatacao";
 import { campoClasse, rotuloClasse, secaoTituloClasse } from "@/components/formulario-evento";
+import { Campo } from "@/components/campo";
+import { BotaoEnviar } from "@/components/botao-enviar";
 
 type FormularioEventoGenericoProps = {
   empresaId: number;
@@ -28,103 +30,85 @@ export function FormularioEventoGenerico({
       <section className="flex flex-col gap-5">
         <h3 className={secaoTituloClasse}>Dados do cliente</h3>
 
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="cliente" className={rotuloClasse}>
-            Cliente
-          </label>
-          <input
-            id="cliente"
-            name="cliente"
-            type="text"
-            required
-            defaultValue={valoresIniciais?.cliente}
-            className={campoClasse}
-          />
-        </div>
+        <Campo rotulo="Cliente">
+          {(p) => (
+            <input {...p}
+              name="cliente"
+              type="text"
+              required
+              defaultValue={valoresIniciais?.cliente}
+            />
+          )}
+        </Campo>
 
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="telefone" className={rotuloClasse}>
-              Telefone
-            </label>
-            <input
-              id="telefone"
-              name="telefone"
-              type="text"
-              defaultValue={valoresIniciais?.telefone ?? ""}
-              className={campoClasse}
-            />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="enderecoEvento" className={rotuloClasse}>
-              Endereço do evento
-            </label>
-            <input
-              id="enderecoEvento"
-              name="enderecoEvento"
-              type="text"
-              defaultValue={valoresIniciais?.endereco_evento ?? ""}
-              className={campoClasse}
-            />
-          </div>
+          <Campo rotulo="Telefone">
+            {(p) => (
+              <input {...p}
+                name="telefone"
+                type="text"
+                defaultValue={valoresIniciais?.telefone ?? ""}
+              />
+            )}
+          </Campo>
+          <Campo rotulo="Endereço do evento">
+            {(p) => (
+              <input {...p}
+                name="enderecoEvento"
+                type="text"
+                defaultValue={valoresIniciais?.endereco_evento ?? ""}
+              />
+            )}
+          </Campo>
         </div>
 
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="tipoEvento" className={rotuloClasse}>
-            Tipo de evento
-          </label>
-          <input
-            id="tipoEvento"
-            name="tipoEvento"
-            type="text"
-            placeholder="Casamento, aniversário, corporativo..."
-            defaultValue={valoresIniciais?.tipo_evento ?? ""}
-            className={campoClasse}
-          />
-        </div>
+        <Campo rotulo="Tipo de evento">
+          {(p) => (
+            <input {...p}
+              name="tipoEvento"
+              type="text"
+              placeholder="Casamento, aniversário, corporativo..."
+              defaultValue={valoresIniciais?.tipo_evento ?? ""}
+            />
+          )}
+        </Campo>
       </section>
 
       {/* Datas e horários */}
       <section className="flex flex-col gap-5">
         <h3 className={secaoTituloClasse}>Datas e horários</h3>
 
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="dataEvento" className={rotuloClasse}>
-            Data e hora
-          </label>
-          <input
-            id="dataEvento"
-            name="dataEvento"
-            type="datetime-local"
-            required
-            defaultValue={
-              valoresIniciais
-                ? paraInputDatetimeLocal(valoresIniciais.data_evento)
-                : undefined
-            }
-            className={campoClasse}
-          />
-        </div>
+        <Campo rotulo="Data e hora">
+          {(p) => (
+            <input {...p}
+              name="dataEvento"
+              type="datetime-local"
+              required
+              defaultValue={
+                valoresIniciais
+                  ? paraInputDatetimeLocal(valoresIniciais.data_evento)
+                  : undefined
+              }
+            />
+          )}
+        </Campo>
       </section>
 
       {/* Valores */}
       <section className="flex flex-col gap-5">
         <h3 className={secaoTituloClasse}>Valores</h3>
 
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="valor" className={rotuloClasse}>
-            Valor do evento (R$)
-          </label>
-          <input
-            id="valor"
-            name="valor"
-            type="number"
-            min={0}
-            step="0.01"
-            defaultValue={valoresIniciais?.valor ?? ""}
-            className={campoClasse}
-          />
-        </div>
+        <Campo rotulo="Valor do evento (R$)">
+          {(p) => (
+            <input {...p}
+              name="valor"
+              type="number"
+              min={0}
+              step="0.01"
+              defaultValue={valoresIniciais?.valor ?? ""}
+            />
+          )}
+        </Campo>
       </section>
 
       {/* Financeiro / observações */}
@@ -149,22 +133,19 @@ export function FormularioEventoGenerico({
       <section className="flex flex-col gap-5">
         <h3 className={secaoTituloClasse}>Status</h3>
 
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="status" className={rotuloClasse}>
-            Status
-          </label>
-          <select
-            id="status"
-            name="status"
-            defaultValue={valoresIniciais?.status ?? "orcado"}
-            className={campoClasse}
-          >
-            <option value="orcado">Orçado</option>
-            <option value="confirmado">Confirmado</option>
-            <option value="realizado">Realizado</option>
-            <option value="cancelado">Cancelado</option>
-          </select>
-        </div>
+        <Campo rotulo="Status">
+          {(p) => (
+            <select {...p}
+              name="status"
+              defaultValue={valoresIniciais?.status ?? "orcado"}
+            >
+              <option value="orcado">Orçado</option>
+              <option value="confirmado">Confirmado</option>
+              <option value="realizado">Realizado</option>
+              <option value="cancelado">Cancelado</option>
+            </select>
+          )}
+        </Campo>
       </section>
 
       {/* Contrato */}
@@ -174,27 +155,19 @@ export function FormularioEventoGenerico({
           Cadastro manual — a extração automática de contrato (upload de PDF)
           vem numa etapa futura.
         </p>
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="caminhoContrato" className={rotuloClasse}>
-            Caminho do contrato (opcional)
-          </label>
-          <input
-            id="caminhoContrato"
-            name="caminhoContrato"
-            type="text"
-            placeholder="/uploads/contratos/empresa/arquivo.pdf"
-            defaultValue={valoresIniciais?.caminho_contrato ?? ""}
-            className={campoClasse}
-          />
-        </div>
+        <Campo rotulo="Caminho do contrato (opcional)">
+          {(p) => (
+            <input {...p}
+              name="caminhoContrato"
+              type="text"
+              placeholder="/uploads/contratos/empresa/arquivo.pdf"
+              defaultValue={valoresIniciais?.caminho_contrato ?? ""}
+            />
+          )}
+        </Campo>
       </section>
 
-      <button
-        type="submit"
-        className="mt-2 inline-flex items-center justify-center self-start rounded-[2px] bg-acao px-6 py-2.5 text-sm font-medium text-paper shadow-[0_10px_20px_-10px_rgba(0,0,0,0.6)] transition hover:bg-acao-forte focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brass"
-      >
-        {rotuloEnvio}
-      </button>
+      <BotaoEnviar rotulo={rotuloEnvio} className="w-full sm:w-auto sm:self-start" />
     </form>
   );
 }

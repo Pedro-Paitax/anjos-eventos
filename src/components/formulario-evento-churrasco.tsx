@@ -9,6 +9,7 @@ import {
   paraInputTime,
 } from "@/lib/formatacao";
 import { campoClasse, rotuloClasse, secaoTituloClasse } from "@/components/formulario-evento";
+import { Campo } from "@/components/campo";
 import {
   SeletorCardapio,
   paraValoresIniciaisCardapio,
@@ -23,6 +24,8 @@ import {
   sugerirQuantidadeAssador,
   VALOR_GARCOM_PADRAO,
 } from "@/lib/precificacao-constantes";
+import { BotaoEnviar } from "@/components/botao-enviar";
+import { Alerta } from "@/components/alerta";
 
 const DEBOUNCE_MS = 600;
 
@@ -229,73 +232,58 @@ export function FormularioEventoChurrasco({
       <section className="flex flex-col gap-5">
         <h3 className={secaoTituloClasse}>Dados do cliente</h3>
 
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="cliente" className={rotuloClasse}>
-            Cliente
-          </label>
-          <input
-            id="cliente"
-            name="cliente"
-            type="text"
-            required
-            defaultValue={valoresIniciais?.cliente}
-            className={campoClasse}
-          />
+        <Campo rotulo="Cliente">
+          {(p) => (
+            <input {...p}
+              name="cliente"
+              type="text"
+              required
+              defaultValue={valoresIniciais?.cliente}
+            />
+          )}
+        </Campo>
+
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+          <Campo rotulo="Contato (se diferente do cliente)">
+            {(p) => (
+              <input {...p}
+                name="contato"
+                type="text"
+                defaultValue={valoresIniciais?.contato ?? ""}
+              />
+            )}
+          </Campo>
+          <Campo rotulo="Celular">
+            {(p) => (
+              <input {...p}
+                name="telefone"
+                type="text"
+                defaultValue={valoresIniciais?.telefone ?? ""}
+              />
+            )}
+          </Campo>
         </div>
 
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="contato" className={rotuloClasse}>
-              Contato (se diferente do cliente)
-            </label>
-            <input
-              id="contato"
-              name="contato"
-              type="text"
-              defaultValue={valoresIniciais?.contato ?? ""}
-              className={campoClasse}
-            />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="telefone" className={rotuloClasse}>
-              Celular
-            </label>
-            <input
-              id="telefone"
-              name="telefone"
-              type="text"
-              defaultValue={valoresIniciais?.telefone ?? ""}
-              className={campoClasse}
-            />
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="enderecoEvento" className={rotuloClasse}>
-              Endereço do evento
-            </label>
-            <input
-              id="enderecoEvento"
-              name="enderecoEvento"
-              type="text"
-              defaultValue={valoresIniciais?.endereco_evento ?? ""}
-              className={campoClasse}
-            />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="tipoEvento" className={rotuloClasse}>
-              Tipo de evento
-            </label>
-            <input
-              id="tipoEvento"
-              name="tipoEvento"
-              type="text"
-              placeholder="Casamento, aniversário, corporativo..."
-              defaultValue={valoresIniciais?.tipo_evento ?? ""}
-              className={campoClasse}
-            />
-          </div>
+          <Campo rotulo="Endereço do evento">
+            {(p) => (
+              <input {...p}
+                name="enderecoEvento"
+                type="text"
+                defaultValue={valoresIniciais?.endereco_evento ?? ""}
+              />
+            )}
+          </Campo>
+          <Campo rotulo="Tipo de evento">
+            {(p) => (
+              <input {...p}
+                name="tipoEvento"
+                type="text"
+                placeholder="Casamento, aniversário, corporativo..."
+                defaultValue={valoresIniciais?.tipo_evento ?? ""}
+              />
+            )}
+          </Campo>
         </div>
       </section>
 
@@ -303,89 +291,74 @@ export function FormularioEventoChurrasco({
       <section className="flex flex-col gap-5">
         <h3 className={secaoTituloClasse}>Datas e horários</h3>
 
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="dataEvento" className={rotuloClasse}>
-            Data e hora
-          </label>
-          <input
-            id="dataEvento"
-            name="dataEvento"
-            type="datetime-local"
-            required
-            defaultValue={
-              valoresIniciais
-                ? paraInputDatetimeLocal(valoresIniciais.data_evento)
-                : undefined
-            }
-            className={campoClasse}
-          />
-        </div>
+        <Campo rotulo="Data e hora">
+          {(p) => (
+            <input {...p}
+              name="dataEvento"
+              type="datetime-local"
+              required
+              defaultValue={
+                valoresIniciais
+                  ? paraInputDatetimeLocal(valoresIniciais.data_evento)
+                  : undefined
+              }
+            />
+          )}
+        </Campo>
 
         <div className="grid grid-cols-2 gap-5 sm:grid-cols-4">
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="horaChegadaEquipe" className={rotuloClasse}>
-              Chegada da equipe
-            </label>
-            <input
-              id="horaChegadaEquipe"
-              name="horaChegadaEquipe"
-              type="time"
-              defaultValue={
-                valoresIniciais?.hora_chegada_equipe
-                  ? paraInputTime(valoresIniciais.hora_chegada_equipe)
-                  : ""
-              }
-              className={campoClasse}
-            />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="horaAperitivo" className={rotuloClasse}>
-              Aperitivo
-            </label>
-            <input
-              id="horaAperitivo"
-              name="horaAperitivo"
-              type="time"
-              defaultValue={
-                valoresIniciais?.hora_aperitivo
-                  ? paraInputTime(valoresIniciais.hora_aperitivo)
-                  : ""
-              }
-              className={campoClasse}
-            />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="horaAlmoco" className={rotuloClasse}>
-              Almoço
-            </label>
-            <input
-              id="horaAlmoco"
-              name="horaAlmoco"
-              type="time"
-              defaultValue={
-                valoresIniciais?.hora_almoco
-                  ? paraInputTime(valoresIniciais.hora_almoco)
-                  : ""
-              }
-              className={campoClasse}
-            />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="horaEncerramento" className={rotuloClasse}>
-              Limpeza/encerramento
-            </label>
-            <input
-              id="horaEncerramento"
-              name="horaEncerramento"
-              type="time"
-              defaultValue={
-                valoresIniciais?.hora_encerramento
-                  ? paraInputTime(valoresIniciais.hora_encerramento)
-                  : ""
-              }
-              className={campoClasse}
-            />
-          </div>
+          <Campo rotulo="Chegada da equipe">
+            {(p) => (
+              <input {...p}
+                name="horaChegadaEquipe"
+                type="time"
+                defaultValue={
+                  valoresIniciais?.hora_chegada_equipe
+                    ? paraInputTime(valoresIniciais.hora_chegada_equipe)
+                    : ""
+                }
+              />
+            )}
+          </Campo>
+          <Campo rotulo="Aperitivo">
+            {(p) => (
+              <input {...p}
+                name="horaAperitivo"
+                type="time"
+                defaultValue={
+                  valoresIniciais?.hora_aperitivo
+                    ? paraInputTime(valoresIniciais.hora_aperitivo)
+                    : ""
+                }
+              />
+            )}
+          </Campo>
+          <Campo rotulo="Almoço">
+            {(p) => (
+              <input {...p}
+                name="horaAlmoco"
+                type="time"
+                defaultValue={
+                  valoresIniciais?.hora_almoco
+                    ? paraInputTime(valoresIniciais.hora_almoco)
+                    : ""
+                }
+              />
+            )}
+          </Campo>
+          <Campo rotulo="Limpeza/encerramento">
+            {(p) => (
+              <input {...p}
+                name="horaEncerramento"
+                type="time"
+                defaultValue={
+                  valoresIniciais?.hora_encerramento
+                    ? paraInputTime(valoresIniciais.hora_encerramento)
+                    : ""
+                }
+              />
+            )}
+          </Campo>
         </div>
       </section>
 
@@ -503,7 +476,7 @@ export function FormularioEventoChurrasco({
                   Só pré-preenche os itens abaixo — você ainda pode adicionar ou
                   remover livremente.
                 </p>
-                {erroTemplate && <p className="text-sm text-perigo-claro">{erroTemplate}</p>}
+                {erroTemplate && <Alerta tipo="perigo">{erroTemplate}</Alerta>}
               </div>
             )}
 
@@ -547,10 +520,10 @@ export function FormularioEventoChurrasco({
               : "Preço por pessoa e preço criança meia vêm do custo real do cardápio selecionado (+ 40%) — pré-preenchidos, mas editáveis."}
         </p>
         {precificacaoAtiva && erroPrecificacao && (
-          <p className="text-sm text-perigo-claro">{erroPrecificacao}</p>
+          <Alerta tipo="perigo">{erroPrecificacao}</Alerta>
         )}
         {precificacaoAtiva && itensExcluidos.length > 0 && (
-          <div className="rounded-[2px] border border-perigo-claro/40 bg-perigo-claro/10 p-3 text-sm text-perigo-claro">
+          <Alerta tipo="aviso">
             <p className="font-medium">
               Atenção: {itensExcluidos.length}{" "}
               {itensExcluidos.length === 1 ? "item selecionado não entrou" : "itens selecionados não entraram"}{" "}
@@ -563,57 +536,48 @@ export function FormularioEventoChurrasco({
                 </li>
               ))}
             </ul>
-          </div>
+          </Alerta>
         )}
 
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="precoPessoa" className={rotuloClasse}>
-              Preço por pessoa (R$) — Valor Sugerido
-            </label>
-            <input
-              id="precoPessoa"
-              name="precoPessoa"
-              type="number"
-              min={0}
-              step="0.01"
-              value={precoPessoa}
-              onChange={(e) => setPrecoPessoa(e.target.value)}
-              className={campoClasse}
-            />
-          </div>
+          <Campo rotulo="Preço por pessoa (R$) — Valor Sugerido">
+            {(p) => (
+              <input {...p}
+                name="precoPessoa"
+                type="number"
+                min={0}
+                step="0.01"
+                value={precoPessoa}
+                onChange={(e) => setPrecoPessoa(e.target.value)}
+              />
+            )}
+          </Campo>
 
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="precoCriancaMeia" className={rotuloClasse}>
-              Preço criança meia (R$)
-            </label>
-            <input
-              id="precoCriancaMeia"
-              name="precoCriancaMeia"
-              type="number"
-              min={0}
-              step="0.01"
-              value={precoCriancaMeia}
-              onChange={(e) => setPrecoCriancaMeia(e.target.value)}
-              className={campoClasse}
-            />
-          </div>
+          <Campo rotulo="Preço criança meia (R$)">
+            {(p) => (
+              <input {...p}
+                name="precoCriancaMeia"
+                type="number"
+                min={0}
+                step="0.01"
+                value={precoCriancaMeia}
+                onChange={(e) => setPrecoCriancaMeia(e.target.value)}
+              />
+            )}
+          </Campo>
 
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="valorGarcom" className={rotuloClasse}>
-              Valor por garçom (R$)
-            </label>
-            <input
-              id="valorGarcom"
-              name="valorGarcom"
-              type="number"
-              min={0}
-              step="0.01"
-              value={valorGarcom}
-              onChange={(e) => setValorGarcom(e.target.value)}
-              className={campoClasse}
-            />
-          </div>
+          <Campo rotulo="Valor por garçom (R$)">
+            {(p) => (
+              <input {...p}
+                name="valorGarcom"
+                type="number"
+                min={0}
+                step="0.01"
+                value={valorGarcom}
+                onChange={(e) => setValorGarcom(e.target.value)}
+              />
+            )}
+          </Campo>
         </div>
 
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
@@ -632,20 +596,17 @@ export function FormularioEventoChurrasco({
             />
           </div>
 
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="valor" className={rotuloClasse}>
-              Valor total do evento (R$)
-            </label>
-            <input
-              id="valor"
-              name="valor"
-              type="number"
-              min={0}
-              step="0.01"
-              defaultValue={valoresIniciais?.valor ?? ""}
-              className={campoClasse}
-            />
-          </div>
+          <Campo rotulo="Valor total do evento (R$)">
+            {(p) => (
+              <input {...p}
+                name="valor"
+                type="number"
+                min={0}
+                step="0.01"
+                defaultValue={valoresIniciais?.valor ?? ""}
+              />
+            )}
+          </Campo>
         </div>
       </section>
 
@@ -654,21 +615,18 @@ export function FormularioEventoChurrasco({
         <h3 className={secaoTituloClasse}>Serviços</h3>
 
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="qtdGarcons" className={rotuloClasse}>
-              Quantidade de garçons
-            </label>
-            <input
-              id="qtdGarcons"
-              name="qtdGarcons"
-              type="number"
-              min={0}
-              placeholder={numConvidados > 0 ? String(quantidadeGarcomSugerida) : ""}
-              value={qtdGarcons}
-              onChange={(e) => setQtdGarcons(e.target.value)}
-              className={campoClasse}
-            />
-          </div>
+          <Campo rotulo="Quantidade de garçons">
+            {(p) => (
+              <input {...p}
+                name="qtdGarcons"
+                type="number"
+                min={0}
+                placeholder={numConvidados > 0 ? String(quantidadeGarcomSugerida) : ""}
+                value={qtdGarcons}
+                onChange={(e) => setQtdGarcons(e.target.value)}
+              />
+            )}
+          </Campo>
           <div className="flex flex-col gap-1.5">
             <label htmlFor="qtdChurrasqueiros" className={rotuloClasse}>
               Quantidade de assadores
@@ -687,19 +645,16 @@ export function FormularioEventoChurrasco({
               className={`${campoClasse} cursor-not-allowed text-paper-dim`}
             />
           </div>
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="qtdCopeiras" className={rotuloClasse}>
-              Quantidade de copeiras
-            </label>
-            <input
-              id="qtdCopeiras"
-              name="qtdCopeiras"
-              type="number"
-              min={0}
-              defaultValue={valoresIniciais?.qtd_copeiras ?? ""}
-              className={campoClasse}
-            />
-          </div>
+          <Campo rotulo="Quantidade de copeiras">
+            {(p) => (
+              <input {...p}
+                name="qtdCopeiras"
+                type="number"
+                min={0}
+                defaultValue={valoresIniciais?.qtd_copeiras ?? ""}
+              />
+            )}
+          </Campo>
         </div>
       </section>
 
@@ -708,34 +663,28 @@ export function FormularioEventoChurrasco({
         <h3 className={secaoTituloClasse}>Financeiro/observações</h3>
 
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="prazoPagamento" className={rotuloClasse}>
-              Prazo de pagamento
-            </label>
-            <input
-              id="prazoPagamento"
-              name="prazoPagamento"
-              type="date"
-              defaultValue={
-                valoresIniciais?.prazo_pagamento
-                  ? paraInputDate(valoresIniciais.prazo_pagamento)
-                  : ""
-              }
-              className={campoClasse}
-            />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="chavePix" className={rotuloClasse}>
-              Chave PIX
-            </label>
-            <input
-              id="chavePix"
-              name="chavePix"
-              type="text"
-              defaultValue={valoresIniciais?.chave_pix ?? ""}
-              className={campoClasse}
-            />
-          </div>
+          <Campo rotulo="Prazo de pagamento">
+            {(p) => (
+              <input {...p}
+                name="prazoPagamento"
+                type="date"
+                defaultValue={
+                  valoresIniciais?.prazo_pagamento
+                    ? paraInputDate(valoresIniciais.prazo_pagamento)
+                    : ""
+                }
+              />
+            )}
+          </Campo>
+          <Campo rotulo="Chave PIX">
+            {(p) => (
+              <input {...p}
+                name="chavePix"
+                type="text"
+                defaultValue={valoresIniciais?.chave_pix ?? ""}
+              />
+            )}
+          </Campo>
         </div>
 
         <div className="flex flex-col gap-1.5">
@@ -757,22 +706,19 @@ export function FormularioEventoChurrasco({
         <h3 className={secaoTituloClasse}>Status</h3>
 
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="status" className={rotuloClasse}>
-              Status
-            </label>
-            <select
-              id="status"
-              name="status"
-              defaultValue={valoresIniciais?.status ?? "orcado"}
-              className={campoClasse}
-            >
-              <option value="orcado">Orçado</option>
-              <option value="confirmado">Confirmado</option>
-              <option value="realizado">Realizado</option>
-              <option value="cancelado">Cancelado</option>
-            </select>
-          </div>
+          <Campo rotulo="Status">
+            {(p) => (
+              <select {...p}
+                name="status"
+                defaultValue={valoresIniciais?.status ?? "orcado"}
+              >
+                <option value="orcado">Orçado</option>
+                <option value="confirmado">Confirmado</option>
+                <option value="realizado">Realizado</option>
+                <option value="cancelado">Cancelado</option>
+              </select>
+            )}
+          </Campo>
         </div>
       </section>
 
@@ -783,27 +729,19 @@ export function FormularioEventoChurrasco({
           Cadastro manual — a extração automática de contrato (upload de PDF)
           vem numa etapa futura.
         </p>
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="caminhoContrato" className={rotuloClasse}>
-            Caminho do contrato (opcional)
-          </label>
-          <input
-            id="caminhoContrato"
-            name="caminhoContrato"
-            type="text"
-            placeholder="/uploads/contratos/senhor-churrasco/arquivo.pdf"
-            defaultValue={valoresIniciais?.caminho_contrato ?? ""}
-            className={campoClasse}
-          />
-        </div>
+        <Campo rotulo="Caminho do contrato (opcional)">
+          {(p) => (
+            <input {...p}
+              name="caminhoContrato"
+              type="text"
+              placeholder="/uploads/contratos/senhor-churrasco/arquivo.pdf"
+              defaultValue={valoresIniciais?.caminho_contrato ?? ""}
+            />
+          )}
+        </Campo>
       </section>
 
-      <button
-        type="submit"
-        className="mt-2 inline-flex items-center justify-center self-start rounded-[2px] bg-acao px-6 py-2.5 text-sm font-medium text-paper shadow-[0_10px_20px_-10px_rgba(0,0,0,0.6)] transition hover:bg-acao-forte focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brass"
-      >
-        {rotuloEnvio}
-      </button>
+      <BotaoEnviar rotulo={rotuloEnvio} className="w-full sm:w-auto sm:self-start" />
     </form>
   );
 }

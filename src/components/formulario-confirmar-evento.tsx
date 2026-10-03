@@ -1,8 +1,10 @@
 "use client";
 
 import { campoClasse, rotuloClasse, secaoTituloClasse } from "@/components/formulario-evento";
+import { Campo } from "@/components/campo";
 import type { OrcamentoResumo } from "@/lib/orcamentos";
 import { sugerirQuantidadeAssador } from "@/lib/precificacao-constantes";
+import { BotaoEnviar } from "@/components/botao-enviar";
 
 type PrecificacaoChurrasco = {
   precoPessoa: number;
@@ -45,74 +47,63 @@ export function FormularioConfirmarEvento({ orcamento, action, precificacaoChurr
       <section className="flex flex-col gap-5">
         <h3 className={secaoTituloClasse}>Dados do cliente</h3>
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="contato" className={rotuloClasse}>
-              Contato (se diferente do cliente)
-            </label>
-            <input id="contato" name="contato" type="text" className={campoClasse} />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="telefone" className={rotuloClasse}>
-              Celular
-            </label>
-            <input id="telefone" name="telefone" type="text" className={campoClasse} />
-          </div>
+          <Campo rotulo="Contato (se diferente do cliente)">
+            {(p) => (
+              <input {...p} name="contato" type="text" />
+            )}
+          </Campo>
+          <Campo rotulo="Celular">
+            {(p) => (
+              <input {...p} name="telefone" type="text" />
+            )}
+          </Campo>
         </div>
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="enderecoEvento" className={rotuloClasse}>
-              Endereço do evento
-            </label>
-            <input id="enderecoEvento" name="enderecoEvento" type="text" className={campoClasse} />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="tipoEvento" className={rotuloClasse}>
-              Tipo de evento
-            </label>
-            <input
-              id="tipoEvento"
-              name="tipoEvento"
-              type="text"
-              placeholder="Casamento, aniversário, corporativo..."
-              className={campoClasse}
-            />
-          </div>
+          <Campo rotulo="Endereço do evento">
+            {(p) => (
+              <input {...p} name="enderecoEvento" type="text" />
+            )}
+          </Campo>
+          <Campo rotulo="Tipo de evento">
+            {(p) => (
+              <input {...p}
+                name="tipoEvento"
+                type="text"
+                placeholder="Casamento, aniversário, corporativo..."
+              />
+            )}
+          </Campo>
         </div>
       </section>
 
       <section className="flex flex-col gap-5">
         <h3 className={secaoTituloClasse}>Datas e horários</h3>
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="dataEvento" className={rotuloClasse}>
-            Data e hora
-          </label>
-          <input id="dataEvento" name="dataEvento" type="datetime-local" required className={campoClasse} />
-        </div>
+        <Campo rotulo="Data e hora">
+          {(p) => (
+            <input {...p} name="dataEvento" type="datetime-local" required />
+          )}
+        </Campo>
         <div className="grid grid-cols-2 gap-5 sm:grid-cols-4">
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="horaChegadaEquipe" className={rotuloClasse}>
-              Chegada da equipe
-            </label>
-            <input id="horaChegadaEquipe" name="horaChegadaEquipe" type="time" className={campoClasse} />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="horaAperitivo" className={rotuloClasse}>
-              Aperitivo
-            </label>
-            <input id="horaAperitivo" name="horaAperitivo" type="time" className={campoClasse} />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="horaAlmoco" className={rotuloClasse}>
-              Almoço
-            </label>
-            <input id="horaAlmoco" name="horaAlmoco" type="time" className={campoClasse} />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="horaEncerramento" className={rotuloClasse}>
-              Limpeza/encerramento
-            </label>
-            <input id="horaEncerramento" name="horaEncerramento" type="time" className={campoClasse} />
-          </div>
+          <Campo rotulo="Chegada da equipe">
+            {(p) => (
+              <input {...p} name="horaChegadaEquipe" type="time" />
+            )}
+          </Campo>
+          <Campo rotulo="Aperitivo">
+            {(p) => (
+              <input {...p} name="horaAperitivo" type="time" />
+            )}
+          </Campo>
+          <Campo rotulo="Almoço">
+            {(p) => (
+              <input {...p} name="horaAlmoco" type="time" />
+            )}
+          </Campo>
+          <Campo rotulo="Limpeza/encerramento">
+            {(p) => (
+              <input {...p} name="horaEncerramento" type="time" />
+            )}
+          </Campo>
         </div>
       </section>
 
@@ -144,46 +135,40 @@ export function FormularioConfirmarEvento({ orcamento, action, precificacaoChurr
             Valor negociado no Orçamento:{" "}
             {formatarMoeda(orcamento.valorNegociado ?? 0)}
           </p>
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="valor" className={rotuloClasse}>
-              Valor total do evento (R$)
-            </label>
-            <input
-              id="valor"
-              name="valor"
-              type="number"
-              min={0}
-              step="0.01"
-              defaultValue={orcamento.valorNegociado ?? ""}
-              className={campoClasse}
-            />
-          </div>
+          <Campo rotulo="Valor total do evento (R$)">
+            {(p) => (
+              <input {...p}
+                name="valor"
+                type="number"
+                min={0}
+                step="0.01"
+                defaultValue={orcamento.valorNegociado ?? ""}
+              />
+            )}
+          </Campo>
         </section>
       )}
 
       <section className="flex flex-col gap-5">
         <h3 className={secaoTituloClasse}>Serviços</h3>
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="qtdFornecedores" className={rotuloClasse}>
-              Fornecedores
-            </label>
-            <input id="qtdFornecedores" name="qtdFornecedores" type="number" min={0} className={campoClasse} />
-          </div>
+          <Campo rotulo="Fornecedores">
+            {(p) => (
+              <input {...p} name="qtdFornecedores" type="number" min={0} />
+            )}
+          </Campo>
           {!ehChurrasco && (
-            <div className="flex flex-col gap-1.5">
-              <label htmlFor="qtdGarcons" className={rotuloClasse}>
-                Quantidade de garçons
-              </label>
-              <input id="qtdGarcons" name="qtdGarcons" type="number" min={0} className={campoClasse} />
-            </div>
+            <Campo rotulo="Quantidade de garçons">
+              {(p) => (
+                <input {...p} name="qtdGarcons" type="number" min={0} />
+              )}
+            </Campo>
           )}
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="qtdCopeiras" className={rotuloClasse}>
-              Quantidade de copeiras
-            </label>
-            <input id="qtdCopeiras" name="qtdCopeiras" type="number" min={0} className={campoClasse} />
-          </div>
+          <Campo rotulo="Quantidade de copeiras">
+            {(p) => (
+              <input {...p} name="qtdCopeiras" type="number" min={0} />
+            )}
+          </Campo>
         </div>
         {ehChurrasco && (
           <p className="text-xs text-paper-dim">
@@ -197,18 +182,16 @@ export function FormularioConfirmarEvento({ orcamento, action, precificacaoChurr
       <section className="flex flex-col gap-5">
         <h3 className={secaoTituloClasse}>Financeiro/observações</h3>
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="prazoPagamento" className={rotuloClasse}>
-              Prazo de pagamento
-            </label>
-            <input id="prazoPagamento" name="prazoPagamento" type="date" className={campoClasse} />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="chavePix" className={rotuloClasse}>
-              Chave PIX
-            </label>
-            <input id="chavePix" name="chavePix" type="text" className={campoClasse} />
-          </div>
+          <Campo rotulo="Prazo de pagamento">
+            {(p) => (
+              <input {...p} name="prazoPagamento" type="date" />
+            )}
+          </Campo>
+          <Campo rotulo="Chave PIX">
+            {(p) => (
+              <input {...p} name="chavePix" type="text" />
+            )}
+          </Campo>
         </div>
         <div className="flex flex-col gap-1.5">
           <label htmlFor="observacoes" className={rotuloClasse}>
@@ -220,20 +203,14 @@ export function FormularioConfirmarEvento({ orcamento, action, precificacaoChurr
 
       <section className="flex flex-col gap-3">
         <h3 className={secaoTituloClasse}>Contrato</h3>
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="caminhoContrato" className={rotuloClasse}>
-            Caminho do contrato (opcional)
-          </label>
-          <input id="caminhoContrato" name="caminhoContrato" type="text" className={campoClasse} />
-        </div>
+        <Campo rotulo="Caminho do contrato (opcional)">
+          {(p) => (
+            <input {...p} name="caminhoContrato" type="text" />
+          )}
+        </Campo>
       </section>
 
-      <button
-        type="submit"
-        className="mt-2 inline-flex items-center justify-center self-start rounded-[2px] bg-acao px-6 py-2.5 text-sm font-medium text-paper shadow-[0_10px_20px_-10px_rgba(0,0,0,0.6)] transition hover:bg-acao-forte focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brass"
-      >
-        Aprovar e Confirmar Evento
-      </button>
+      <BotaoEnviar rotulo="Aprovar e Confirmar Evento" className="w-full sm:w-auto sm:self-start" />
     </form>
   );
 }

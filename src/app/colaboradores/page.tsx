@@ -4,6 +4,7 @@ import { obterUsuarioAtual } from "@/lib/usuario-atual";
 import { listarColaboradores } from "@/lib/colaboradores";
 import { ROTULOS_FUNCAO } from "@/lib/colaboradores-opcoes";
 import { CabecalhoPagina } from "@/components/cabecalho-pagina";
+import { botaoClasse } from "@/components/botao";
 
 export default async function ColaboradoresPage() {
   const usuarioAtual = await obterUsuarioAtual();
@@ -23,7 +24,7 @@ export default async function ColaboradoresPage() {
           acao={
             <Link
               href="/colaboradores/novo"
-              className="rounded-[2px] bg-acao px-4 py-2 text-sm font-medium text-paper transition hover:bg-acao-forte"
+              className={botaoClasse()}
             >
               Novo colaborador
             </Link>

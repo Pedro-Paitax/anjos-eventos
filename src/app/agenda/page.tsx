@@ -6,6 +6,7 @@ import { chaveAnoMes } from "@/lib/formatacao";
 import { CabecalhoPagina } from "@/components/cabecalho-pagina";
 import { ListaEventos } from "@/components/lista-eventos";
 import { CalendarioEventos } from "@/components/calendario-eventos";
+import { botaoClasse } from "@/components/botao";
 
 type AgendaPageProps = {
   searchParams: Promise<{ visao?: string; mes?: string }>;
@@ -33,7 +34,7 @@ export default async function AgendaPage({ searchParams }: AgendaPageProps) {
           acao={
             <Link
               href="/agenda/novo"
-              className="inline-flex items-center justify-center rounded-[2px] bg-acao px-5 py-2.5 text-sm font-medium text-paper shadow-[0_10px_20px_-10px_rgba(0,0,0,0.6)] transition hover:bg-acao-forte focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brass"
+              className={botaoClasse()}
             >
               Novo evento
             </Link>

@@ -5,6 +5,7 @@ import { aprovarConfirmarEventoAction } from "@/app/actions/orcamento";
 import { calcularPrecificacaoParaEvento } from "@/lib/precificacao-cardapio";
 import { CabecalhoPagina } from "@/components/cabecalho-pagina";
 import { FormularioConfirmarEvento } from "@/components/formulario-confirmar-evento";
+import { Painel } from "@/components/painel";
 
 type PaginaOrcamentoProps = {
   params: Promise<{ id: string }>;
@@ -72,7 +73,7 @@ export default async function OrcamentoPage({ params }: PaginaOrcamentoProps) {
         />
 
         {orcamento.status !== "Simulação" ? (
-          <div className="rounded-[2px] bg-ink-soft/60 p-6 text-sm text-paper-dim shadow-[0_20px_40px_-24px_rgba(0,0,0,0.6)]">
+          <Painel className="text-sm text-paper-dim">
             Este Orçamento já foi {orcamento.status === "Aceito" ? "aceito e convertido em Evento" : orcamento.status.toLowerCase()}
             {orcamento.eventoId != null && (
               <>
@@ -80,9 +81,9 @@ export default async function OrcamentoPage({ params }: PaginaOrcamentoProps) {
                 — <a className="underline" href={`/agenda/${orcamento.eventoId}`}>ver o Evento</a>.
               </>
             )}
-          </div>
+          </Painel>
         ) : (
-          <div className="rounded-[2px] bg-ink-soft/60 p-6 shadow-[0_20px_40px_-24px_rgba(0,0,0,0.6)]">
+          <Painel>
             {orcamento.itens.length > 0 && (
               <div className="mb-6 flex flex-col gap-2 rounded-[2px] border border-paper-dim/20 bg-ink-soft p-3">
                 <p className="text-xs font-medium uppercase tracking-wide text-paper-dim/70">
@@ -101,7 +102,7 @@ export default async function OrcamentoPage({ params }: PaginaOrcamentoProps) {
               action={confirmarComId}
               precificacaoChurrasco={precificacaoChurrasco}
             />
-          </div>
+          </Painel>
         )}
       </div>
     </main>

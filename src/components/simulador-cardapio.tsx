@@ -13,6 +13,7 @@ import { calcularDebugCardapioAction, calcularPrecificacaoAction } from "@/app/a
 import { obterItensCardapioModeloAction } from "@/app/actions/cardapio-modelo";
 import type { CardapioModeloResumo } from "@/lib/cardapios-modelo";
 import { calcularTaxaDeslocamento, sugerirQuantidadeGarcom, VALOR_GARCOM_PADRAO } from "@/lib/precificacao-constantes";
+import { Alerta } from "@/components/alerta";
 
 type ResultadoDebug = Awaited<ReturnType<typeof calcularDebugCardapioAction>>;
 
@@ -234,7 +235,7 @@ export function SimuladorCardapio({
               Só pré-preenche os itens abaixo — você ainda pode adicionar ou
               remover livremente.
             </p>
-            {erroTemplate && <p className="text-sm text-perigo-claro">{erroTemplate}</p>}
+            {erroTemplate && <Alerta tipo="perigo">{erroTemplate}</Alerta>}
           </div>
         )}
 
@@ -310,9 +311,9 @@ export function SimuladorCardapio({
         {simulacaoAtiva && calculando && (
           <p className="text-sm text-paper-dim">Calculando…</p>
         )}
-        {erro && <p className="text-sm text-perigo-claro">{erro}</p>}
+        {erro && <Alerta tipo="perigo">{erro}</Alerta>}
         {simulacaoAtiva && itensExcluidos.length > 0 && (
-          <div className="rounded-[2px] border border-perigo-claro/40 bg-perigo-claro/10 p-3 text-sm text-perigo-claro">
+          <Alerta tipo="aviso">
             <p className="font-medium">
               Atenção: {itensExcluidos.length}{" "}
               {itensExcluidos.length === 1 ? "item selecionado não entrou" : "itens selecionados não entraram"}{" "}
@@ -325,7 +326,7 @@ export function SimuladorCardapio({
                 </li>
               ))}
             </ul>
-          </div>
+          </Alerta>
         )}
 
         {simulacaoAtiva && resultado && (

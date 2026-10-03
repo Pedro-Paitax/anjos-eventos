@@ -4,6 +4,7 @@ import { listarInsumos } from "@/lib/insumos";
 import { criarPreparoAction } from "@/app/actions/preparo";
 import { CabecalhoPagina } from "@/components/cabecalho-pagina";
 import { FormularioPreparo } from "@/components/formulario-preparo";
+import { Painel } from "@/components/painel";
 
 export default async function NovoPreparoPage() {
   const usuarioAtual = await obterUsuarioAtual();
@@ -21,13 +22,13 @@ export default async function NovoPreparoPage() {
           voltarPara={{ href: "/preparos", rotulo: "← Preparos" }}
         />
 
-        <div className="rounded-[2px] bg-ink-soft/60 p-6 shadow-[0_20px_40px_-24px_rgba(0,0,0,0.6)]">
+        <Painel>
           <FormularioPreparo
             insumosDisponiveis={insumos}
             action={criarPreparoAction}
             rotuloEnvio="Cadastrar preparo"
           />
-        </div>
+        </Painel>
       </div>
     </main>
   );
