@@ -128,16 +128,43 @@ log "5/5 — Smoke test"
 # já enviou o status 200 (tela "Carregando…") antes de o redirect() da página
 # rodar; o redirecionamento chega no corpo e o navegador troca para /login.
 # 200 SEM o marcador, ou com <h1> (página renderizada), é falha.
-ssh "${SSH_OPTS[@]}" "$ORACLE_HOST" bash -s <<'EOF'
+#
+# APIs internas (custo, margem, dimensionamento) exigem sessão: sem sessão o
+# smoke test prova o 401 e SEM dado. O custo de referência (16.96) é provado
+# por um caminho autenticado: token de serviço SMOKE_TOKEN enviado em
+# `x-smoke-token` (src/lib/api-auth.ts). Escolha: um segredo de serviço
+# comparado em tempo constante é o mecanismo mais simples que não exige
+# cookie/login no smoke test e não abre o endpoint a ninguém.
+# SMOKE_TOKEN precisa existir (mesmo valor) em DOIS lugares, fora do Git:
+#   1. ambiente de quem roda este script (variável SMOKE_TOKEN);
+#   2. env do app no Oracle (ecosystem.config.js; este script nunca o toca).
+# Sem SMOKE_TOKEN local o smoke FALHA (não dá para provar o acesso autenticado).
+SMOKE_TOKEN="${SMOKE_TOKEN:-}"
+{
+  printf 'SMOKE_TOKEN=%q\n' "$SMOKE_TOKEN"   # vai pelo stdin do ssh (não aparece em ps)
+  cat <<'EOF'
 set -uo pipefail
 sleep 2
 FALHAS=0
 falha() { echo "FALHA: $1"; FALHAS=$((FALHAS+1)); }
 
-echo "--- /api/preparos/2/custo (Vinagrete, referência conhecida: 16.96) ---"
-CUSTO=$(curl -s http://localhost:3001/api/preparos/2/custo)
-echo "$CUSTO"
-echo "$CUSTO" | grep -q '"custo_total_preparo":16.96' || falha "custo do preparo 2 diferente de 16.96"
+for api in /api/preparos/2/custo /api/orcamentos/1/margem-projetada /api/orcamentos/1/dimensionamento; do
+  echo "--- $api sem sessão (deve ser 401, sem dado) ---"
+  CORPO=$(curl -s -w '\n%{http_code}' "http://localhost:3001$api")
+  CODE="${CORPO##*$'\n'}"
+  echo "HTTP $CODE"
+  [ "$CODE" = "401" ] || falha "$api sem sessão devolveu $CODE (esperado 401)"
+  echo "$CORPO" | grep -q -E 'custo|margem|receita|macro_categorias' && falha "$api sem sessão devolveu dado"
+done
+
+echo "--- /api/preparos/2/custo com token de serviço (Vinagrete, referência: 16.96) ---"
+if [ -z "$SMOKE_TOKEN" ]; then
+  falha "SMOKE_TOKEN não definido: acesso autenticado não provado"
+else
+  CUSTO=$(curl -s -H "x-smoke-token: $SMOKE_TOKEN" http://localhost:3001/api/preparos/2/custo)
+  echo "$CUSTO" | sed -E 's/"custo_[a-z_]+":[0-9.]+/"custo_*":…/g' | cut -c1-80
+  echo "$CUSTO" | grep -q '"custo_total_preparo":16.96' || falha "custo do preparo 2 com token diferente de 16.96"
+fi
 
 echo "--- /login (deve ser 200) ---"
 CODE=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:3001/login)
@@ -163,6 +190,7 @@ pm2 list
 if [ "$FALHAS" -ne 0 ]; then echo "SMOKE TEST: $FALHAS falha(s)"; exit 1; fi
 echo "SMOKE TEST: ok"
 EOF
+} | ssh "${SSH_OPTS[@]}" "$ORACLE_HOST" bash -s || SMOKE_RC=$?
 
 log "Contagem DEPOIS (somente leitura)"
 CONTAGEM_DEPOIS=$(contagem_banco) || CONTAGEM_DEPOIS="(falha ao contar)"
@@ -170,6 +198,13 @@ echo "ANTES : $CONTAGEM_ANTES"
 echo "DEPOIS: $CONTAGEM_DEPOIS   ($(date -Is))"
 if [ "$CONTAGEM_ANTES" != "$CONTAGEM_DEPOIS" ]; then
   echo "ATENÇÃO: a contagem mudou durante o deploy. O deploy não escreve no banco; verifique se foi uso normal do app. Dump pré-deploy: $DUMP"
+fi
+
+if [ "${SMOKE_RC:-0}" -ne 0 ]; then
+  log "DEPLOY APLICADO, MAS O SMOKE TEST FALHOU (commit $COMMIT_SHORT) — ver FALHAs acima"
+  echo "Dump do banco pré-deploy: $DUMP"
+  echo "Rollback: extrair o backup do bundle (acima) por cima de ~/$ORACLE_APP_DIR e rodar pm2 restart anjos-eventos-app."
+  exit 1
 fi
 
 log "Deploy concluído: commit $COMMIT_SHORT rodando em http://oracle:3001"
