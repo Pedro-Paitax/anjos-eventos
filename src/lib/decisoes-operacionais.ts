@@ -1,9 +1,10 @@
 import "server-only";
 import { pool } from "@/lib/db";
 import {
-  calcularPendencias,
+  calcularItensPendencia,
   type DecisoesParaPendencia,
   type EquipeAlocada,
+  type ItemPendencia,
 } from "@/lib/pendencias-evento";
 
 export const EMPRESA_SENHOR_CHURRASCO = "Buffet Senhor Churrasco";
@@ -112,10 +113,10 @@ type LinhaPendencia = {
  * Pendências dos eventos informados, por id. Eventos que não são do Senhor
  * Churrasco ou não estão confirmados não entram no resultado (não se aplicam).
  */
-export async function pendenciasPorEvento(
+export async function itensPendenciaPorEvento(
   eventoIds: number[]
-): Promise<Map<number, string[]>> {
-  const resultado = new Map<number, string[]>();
+): Promise<Map<number, ItemPendencia[]>> {
+  const resultado = new Map<number, ItemPendencia[]>();
   if (eventoIds.length === 0) return resultado;
 
   const { rows } = await pool.query<LinhaPendencia>(
@@ -153,8 +154,15 @@ export async function pendenciasPorEvento(
       : null;
     resultado.set(
       l.evento_id,
-      calcularPendencias({ garconsNecessarios: l.qtd_garcons, equipe, decisoes })
+      calcularItensPendencia({ garconsNecessarios: l.qtd_garcons, equipe, decisoes })
     );
   }
   return resultado;
+}
+
+export async function pendenciasPorEvento(
+  eventoIds: number[]
+): Promise<Map<number, string[]>> {
+  const itens = await itensPendenciaPorEvento(eventoIds);
+  return new Map([...itens].map(([id, lista]) => [id, lista.map((i) => i.texto)]));
 }

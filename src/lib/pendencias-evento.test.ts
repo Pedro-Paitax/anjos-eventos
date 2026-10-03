@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { calcularPendencias, type EntradaPendencias } from "@/lib/pendencias-evento";
+import {
+  calcularItensPendencia,
+  calcularPendencias,
+  destinoItemPendencia,
+  type EntradaPendencias,
+} from "@/lib/pendencias-evento";
 
 const completo: EntradaPendencias = {
   garconsNecessarios: 2,
@@ -51,5 +56,31 @@ describe("calcularPendencias", () => {
       decisoes: { veiculo: "  ", modeloPrato: null, tipoBebidaRecipiente: "x", tipoTalher: "" },
     });
     expect(r).toEqual(["Definir veículo", "Definir modelo do prato", "Definir talher"]);
+  });
+});
+
+describe("itens e destino", () => {
+  const ativos = { copeira: 0, assador: 2, garcom: 3 };
+  const itens = calcularItensPendencia({
+    garconsNecessarios: 3,
+    equipe: { copeiras: 0, assadores: 0, garcons: 1 },
+    decisoes: { veiculo: null, modeloPrato: "x", tipoBebidaRecipiente: "x", tipoTalher: "x" },
+  });
+
+  it("itens estruturados trazem função e quantidade faltante", () => {
+    expect(itens.map((i) => i.texto)).toEqual(
+      calcularPendencias({
+        garconsNecessarios: 3,
+        equipe: { copeiras: 0, assadores: 0, garcons: 1 },
+        decisoes: { veiculo: null, modeloPrato: "x", tipoBebidaRecipiente: "x", tipoTalher: "x" },
+      })
+    );
+    expect(itens[2]).toMatchObject({ tipo: "equipe", funcao: "garcom", faltam: 2 });
+  });
+
+  it("sem ativo da função, leva a /colaboradores; senão à âncora do evento", () => {
+    expect(destinoItemPendencia(itens[0], 7, ativos).href).toBe("/colaboradores");
+    expect(destinoItemPendencia(itens[1], 7, ativos).href).toBe("/agenda/7#decisoes-operacionais");
+    expect(destinoItemPendencia(itens[3], 7, ativos).href).toBe("/agenda/7#decisoes-operacionais");
   });
 });

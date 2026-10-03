@@ -3,7 +3,10 @@ import { redirect } from "next/navigation";
 import { obterUsuarioAtual } from "@/lib/usuario-atual";
 import { trocarUsuario } from "@/app/actions/usuario";
 import { listarEventosProximos } from "@/lib/eventos";
-import { pendenciasPorEvento } from "@/lib/decisoes-operacionais";
+import { itensPendenciaPorEvento } from "@/lib/decisoes-operacionais";
+import { listarColaboradoresAtivos } from "@/lib/colaboradores";
+import type { AtivosPorFuncao } from "@/lib/pendencias-evento";
+import { BotaoResolverPendencias } from "@/components/botao-resolver-pendencias";
 import { corEmpresa, formatarData, formatarHora } from "@/lib/formatacao";
 
 const DIAS_PROXIMOS_EVENTOS = 15;
@@ -28,7 +31,12 @@ export default async function Home() {
   }
 
   const eventosProximos = await listarEventosProximos(DIAS_PROXIMOS_EVENTOS);
-  const pendencias = await pendenciasPorEvento(eventosProximos.map((e) => e.id));
+  const pendencias = await itensPendenciaPorEvento(eventosProximos.map((e) => e.id));
+  const temPendencia = [...pendencias.values()].some((l) => l.length > 0);
+  const ativosPorFuncao: AtivosPorFuncao = { copeira: 0, assador: 0, garcom: 0 };
+  if (temPendencia) {
+    for (const c of await listarColaboradoresAtivos()) ativosPorFuncao[c.funcao] += 1;
+  }
 
   return (
     <main className="venue-glow flex flex-1 flex-col items-center px-6 py-16">
@@ -58,32 +66,44 @@ export default async function Home() {
             <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               {eventosProximos.map((evento) => (
                 <li key={evento.id}>
-                  <Link
-                    href={`/agenda/${evento.id}`}
-                    className="relative flex h-full flex-col gap-1 overflow-hidden rounded-[2px] bg-paper p-4 text-paper-ink shadow-[0_18px_28px_-16px_rgba(0,0,0,0.6)] transition hover:-translate-y-1 focus-visible:-translate-y-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brass"
-                  >
+                  <div className="relative flex h-full flex-col overflow-hidden rounded-[2px] bg-paper text-paper-ink shadow-[0_18px_28px_-16px_rgba(0,0,0,0.6)] transition hover:-translate-y-1 focus-within:-translate-y-1">
                     <span
                       aria-hidden
                       className={`absolute inset-x-0 top-0 h-1.5 ${corEmpresa(evento.empresa_nome)}`}
                     />
-                    <p className="font-display text-lg italic">
-                      {evento.cliente}
-                      {(pendencias.get(evento.id)?.length ?? 0) > 0 && (
-                        <span
-                          role="img"
-                          aria-label="Item pendente"
-                          title={pendencias.get(evento.id)?.join("; ")}
-                          className="ml-2 not-italic"
-                        >
-                          ⚠️
-                        </span>
-                      )}
-                    </p>
-                    <p className="text-sm text-paper-ink/70">
-                      {formatarData(evento.data_evento)}, {formatarHora(evento.data_evento)}
-                    </p>
-                    <p className="text-xs text-paper-ink/60">{evento.empresa_nome}</p>
-                  </Link>
+                    <Link
+                      href={`/agenda/${evento.id}`}
+                      className="flex flex-1 flex-col gap-1 p-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brass"
+                    >
+                      <p className="font-display text-lg italic">
+                        {evento.cliente}
+                        {(pendencias.get(evento.id)?.length ?? 0) > 0 && (
+                          <span
+                            role="img"
+                            aria-label="Item pendente"
+                            title={pendencias.get(evento.id)?.map((i) => i.texto).join("; ")}
+                            className="ml-2 not-italic"
+                          >
+                            ⚠️
+                          </span>
+                        )}
+                      </p>
+                      <p className="text-sm text-paper-ink/70">
+                        {formatarData(evento.data_evento)}, {formatarHora(evento.data_evento)}
+                      </p>
+                      <p className="text-xs text-paper-ink/60">{evento.empresa_nome}</p>
+                    </Link>
+                    {(pendencias.get(evento.id)?.length ?? 0) > 0 && (
+                      <div className="px-4 pb-4">
+                        <BotaoResolverPendencias
+                          eventoId={evento.id}
+                          itens={pendencias.get(evento.id) ?? []}
+                          ativosPorFuncao={ativosPorFuncao}
+                          className="rounded-[2px] border border-ember/60 px-3 py-1.5 text-sm text-ember transition hover:bg-ember/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brass"
+                        />
+                      </div>
+                    )}
+                  </div>
                 </li>
               ))}
             </ul>

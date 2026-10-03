@@ -10,8 +10,10 @@ import {
   EMPRESA_SENHOR_CHURRASCO,
   obterDecisoes,
   listarEquipeEvento,
-  pendenciasPorEvento,
+  itensPendenciaPorEvento,
 } from "@/lib/decisoes-operacionais";
+import { ANCORA_DECISOES_OPERACIONAIS, type AtivosPorFuncao } from "@/lib/pendencias-evento";
+import { BotaoResolverPendencias } from "@/components/botao-resolver-pendencias";
 import { formatarData, formatarHora } from "@/lib/formatacao";
 import { atualizarEventoAction } from "@/app/actions/evento";
 import { salvarDecisoesOperacionaisAction } from "@/app/actions/decisoes-operacionais";
@@ -54,8 +56,10 @@ export default async function EventoPage({ params }: PaginaEventoProps) {
   const equipeIds = ehChurrasco ? await listarEquipeEvento(evento.id) : [];
   const colaboradoresAtivos = ehChurrasco ? await listarColaboradoresAtivos() : [];
   const pendencias = ehChurrasco
-    ? ((await pendenciasPorEvento([evento.id])).get(evento.id) ?? [])
+    ? ((await itensPendenciaPorEvento([evento.id])).get(evento.id) ?? [])
     : [];
+  const ativosPorFuncao: AtivosPorFuncao = { copeira: 0, assador: 0, garcom: 0 };
+  for (const c of colaboradoresAtivos) ativosPorFuncao[c.funcao] += 1;
 
   return (
     <main className="venue-glow flex flex-1 flex-col items-center px-6 py-16">
@@ -102,7 +106,7 @@ export default async function EventoPage({ params }: PaginaEventoProps) {
         </div>
 
         {ehChurrasco && (
-          <section className="flex flex-col gap-4 rounded-[2px] bg-ink-soft/60 p-6 shadow-[0_20px_40px_-24px_rgba(0,0,0,0.6)]">
+          <section id={ANCORA_DECISOES_OPERACIONAIS} className="flex scroll-mt-6 flex-col gap-4 rounded-[2px] bg-ink-soft/60 p-6 shadow-[0_20px_40px_-24px_rgba(0,0,0,0.6)]">
             <h2 className="font-display text-2xl italic text-paper">
               Decisões operacionais
             </h2>
@@ -115,11 +119,18 @@ export default async function EventoPage({ params }: PaginaEventoProps) {
               </p>
             )}
             {pendencias.length > 0 && (
-              <ul className="list-disc rounded-[2px] border border-ember/40 p-3 pl-7 text-sm text-ember">
-                {pendencias.map((p) => (
-                  <li key={p}>{p}</li>
-                ))}
-              </ul>
+              <div className="flex flex-col items-start gap-3 rounded-[2px] border border-ember/40 p-3 text-sm text-ember">
+                <ul className="list-disc pl-4">
+                  {pendencias.map((p) => (
+                    <li key={p.texto}>{p.texto}</li>
+                  ))}
+                </ul>
+                <BotaoResolverPendencias
+                  eventoId={evento.id}
+                  itens={pendencias}
+                  ativosPorFuncao={ativosPorFuncao}
+                />
+              </div>
             )}
             <FormularioDecisoesOperacionais
               colaboradoresAtivos={colaboradoresAtivos}
