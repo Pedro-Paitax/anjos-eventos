@@ -34,7 +34,7 @@ export function BotaoResolverPendencias({ eventoId, itens, ativosPorFuncao, clas
         onClick={() => setAberto(true)}
         className={
           className ??
-          "rounded-[2px] border border-ember/60 px-3 py-1.5 text-sm text-ember transition hover:bg-ember/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brass"
+          "rounded-[2px] border border-acao-claro/60 px-3 py-1.5 text-sm text-acao-claro transition hover:bg-acao-claro/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brass"
         }
       >
         Resolver pendências
@@ -56,7 +56,7 @@ export function BotaoResolverPendencias({ eventoId, itens, ativosPorFuncao, clas
                       <Link
                         href={destino.href}
                         onClick={() => setAberto(false)}
-                        className="text-ember underline underline-offset-4 hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brass"
+                        className="text-acao-claro underline underline-offset-4 hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brass"
                       >
                         {destino.texto}
                       </Link>

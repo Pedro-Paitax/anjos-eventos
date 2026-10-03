@@ -124,7 +124,7 @@ export function ComposicaoPreparo({
               type="button"
               onClick={() => removerLinha(linha.chave)}
               aria-label={`Remover insumo ${i + 1}`}
-              className="self-start text-sm text-ember underline decoration-ember/40 underline-offset-4 transition hover:decoration-ember sm:self-center"
+              className="self-start text-sm text-acao-claro underline decoration-acao-claro/40 underline-offset-4 transition hover:decoration-acao-claro sm:self-center"
             >
               Remover
             </button>
@@ -240,13 +240,13 @@ function ModalNovoInsumo({
         </div>
       </div>
 
-      {erro && <p className="text-sm text-ember">{erro}</p>}
+      {erro && <p className="text-sm text-perigo-claro">{erro}</p>}
 
       <button
         type="button"
         onClick={salvar}
         disabled={pendente || !nome.trim() || !preco}
-        className="mt-1 inline-flex items-center justify-center self-start rounded-[2px] bg-ember px-5 py-2 text-sm font-medium text-paper shadow-[0_10px_20px_-10px_rgba(0,0,0,0.6)] transition hover:brightness-110 disabled:opacity-50"
+        className="mt-1 inline-flex items-center justify-center self-start rounded-[2px] bg-acao px-5 py-2 text-sm font-medium text-paper shadow-[0_10px_20px_-10px_rgba(0,0,0,0.6)] transition hover:bg-acao-forte disabled:opacity-50"
       >
         {pendente ? "Salvando…" : "Criar insumo"}
       </button>

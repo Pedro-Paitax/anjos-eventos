@@ -10,6 +10,30 @@
   --color-paper-ink: #2b2013;
   --color-sage: #6e7a5c;
 
+  /* ember/brass/sage = só identidade de empresa. Ação e estados têm tokens próprios. */
+  --color-acao: #a8431d;
+  --color-acao-forte: #9c3c19;
+  --color-acao-claro: #e8825a;
+  --color-perigo-claro: #f08294;
+  --color-perigo-escuro: #a3243a;
+  --color-aviso-claro: #e6b957;
+  --color-aviso-escuro: #7a5410;
+  --color-sucesso-claro: #9fae88;
+  --color-sucesso-escuro: #4f5b3f;
+  --color-info-claro: #8fb3cf;
+  --color-info-escuro: #2f5775;
+  --color-texto-suave-papel: #6b5b46;
+  --color-texto-suave-escuro: #a89c85;
+  --color-borda-campo: #8a7d68;
+
+  --shadow-elev-1: 0 12px 24px -16px rgb(0 0 0 / 0.55);
+  --shadow-elev-2: 0 20px 32px -16px rgb(0 0 0 / 0.7);
+  --shadow-elev-3: 0 30px 60px -20px rgb(0 0 0 / 0.8);
+
+  --container-pagina-estreita: 42rem;
+  --container-pagina-media: 56rem;
+  --container-pagina-documento: 48rem;
+
   --font-display: var(--font-fraunces);
   --font-sans: var(--font-archivo);
 
@@ -20,6 +44,12 @@
 }
 
 :root {
+  /* Camadas */
+  --z-header: 10;
+  --z-barra-acoes: 40;
+  --z-modal: 50;
+  --z-tooltip: 60;
+
   --motion-fast: 150ms; /* cor, foco, pressionar */
   --motion-base: 220ms; /* modal, itens de lista */
   --motion-slow: 300ms; /* entrada de página e cards */

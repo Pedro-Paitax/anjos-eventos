@@ -39,7 +39,7 @@ function CardCardapioModelo({ cardapio }: { cardapio: CardapioModeloResumo }) {
         <span
           className={`shrink-0 rounded-full px-3 py-1 text-xs font-medium ${
             cardapio.precoFixoPorPessoa != null
-              ? "bg-ember/15 text-ember"
+              ? "bg-acao/15 text-acao"
               : "bg-paper-ink/10 text-paper-ink/60"
           }`}
         >
@@ -68,12 +68,12 @@ function CardCardapioModelo({ cardapio }: { cardapio: CardapioModeloResumo }) {
           onClick={() => setConfirmando(true)}
           disabled={pendente}
           aria-label={`Excluir ${cardapio.nome}`}
-          className="-my-2 py-2 text-sm text-ember underline decoration-ember/40 underline-offset-4 transition hover:decoration-ember disabled:opacity-50"
+          className="-my-2 py-2 text-sm text-acao underline decoration-acao/40 underline-offset-4 transition hover:decoration-acao disabled:opacity-50"
         >
           {pendente ? "Excluindo…" : "Excluir"}
         </button>
       </div>
-      {erro && <p className="text-sm text-ember">{erro}</p>}
+      {erro && <p className="text-sm text-perigo-escuro">{erro}</p>}
 
       {confirmando && (
         <Modal onFechar={() => setConfirmando(false)} rotulo="Excluir cardápio" className="max-w-sm bg-ink">
@@ -93,7 +93,7 @@ function CardCardapioModelo({ cardapio }: { cardapio: CardapioModeloResumo }) {
             <button
               type="button"
               onClick={confirmarExclusao}
-              className="inline-flex items-center justify-center rounded-[2px] bg-ember px-4 py-2 text-sm font-medium text-paper shadow-[0_10px_20px_-10px_rgba(0,0,0,0.6)] transition hover:brightness-110"
+              className="inline-flex items-center justify-center rounded-[2px] bg-acao px-4 py-2 text-sm font-medium text-paper shadow-[0_10px_20px_-10px_rgba(0,0,0,0.6)] transition hover:bg-acao-forte"
             >
               Excluir
             </button>

@@ -184,7 +184,7 @@ export function SeletorCardapio({
                         type="button"
                         onClick={() => remover(categoria, nome)}
                         aria-label={`Remover ${nome}`}
-                        className="text-paper-ink/50 transition hover:text-ember"
+                        className="text-paper-ink/50 transition hover:text-perigo-escuro"
                       >
                         ×
                       </button>

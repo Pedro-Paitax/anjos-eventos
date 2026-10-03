@@ -24,7 +24,7 @@ export default function ErroDaPagina({
           <button
             type="button"
             onClick={reset}
-            className="rounded-[2px] bg-ember px-4 py-2 text-sm font-medium text-paper transition hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brass"
+            className="rounded-[2px] bg-acao px-4 py-2 text-sm font-medium text-paper transition hover:bg-acao-forte focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brass"
           >
             Tentar de novo
           </button>

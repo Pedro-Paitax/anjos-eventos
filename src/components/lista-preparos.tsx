@@ -75,13 +75,13 @@ function LinhaPreparo({ preparo }: { preparo: PreparoResumo }) {
             onClick={() => setConfirmando(true)}
             disabled={pendente}
             aria-label={`Excluir ${preparo.nome}`}
-            className="-my-2 py-2 text-sm text-ember underline decoration-ember/40 underline-offset-4 transition hover:decoration-ember disabled:opacity-50"
+            className="-my-2 py-2 text-sm text-acao underline decoration-acao/40 underline-offset-4 transition hover:decoration-acao disabled:opacity-50"
           >
             {pendente ? "Excluindo…" : "Excluir"}
           </button>
         </div>
       </div>
-      {erro && <p className="text-sm text-ember">{erro}</p>}
+      {erro && <p className="text-sm text-perigo-escuro">{erro}</p>}
 
       {confirmando && (
         <Modal onFechar={() => setConfirmando(false)} rotulo="Excluir preparo" className="max-w-sm bg-ink">
@@ -101,7 +101,7 @@ function LinhaPreparo({ preparo }: { preparo: PreparoResumo }) {
             <button
               type="button"
               onClick={confirmarExclusao}
-              className="inline-flex items-center justify-center rounded-[2px] bg-ember px-4 py-2 text-sm font-medium text-paper shadow-[0_10px_20px_-10px_rgba(0,0,0,0.6)] transition hover:brightness-110"
+              className="inline-flex items-center justify-center rounded-[2px] bg-acao px-4 py-2 text-sm font-medium text-paper shadow-[0_10px_20px_-10px_rgba(0,0,0,0.6)] transition hover:bg-acao-forte"
             >
               Excluir
             </button>

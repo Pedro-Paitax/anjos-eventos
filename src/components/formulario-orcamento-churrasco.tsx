@@ -268,7 +268,7 @@ export function FormularioOrcamentoChurrasco({
               Só pré-preenche os itens abaixo — você ainda pode adicionar ou
               remover livremente.
             </p>
-            {erroTemplate && <p className="text-sm text-ember">{erroTemplate}</p>}
+            {erroTemplate && <p className="text-sm text-perigo-claro">{erroTemplate}</p>}
           </div>
         )}
 
@@ -310,9 +310,9 @@ export function FormularioOrcamentoChurrasco({
           (Aprovar e Confirmar Evento) não recalcula preço, só confirma
           logística.
         </p>
-        {precificacaoAtiva && erroPrecificacao && <p className="text-sm text-ember">{erroPrecificacao}</p>}
+        {precificacaoAtiva && erroPrecificacao && <p className="text-sm text-perigo-claro">{erroPrecificacao}</p>}
         {precificacaoAtiva && itensExcluidos.length > 0 && (
-          <div className="rounded-[2px] border border-ember/40 bg-ember/10 p-3 text-sm text-ember">
+          <div className="rounded-[2px] border border-perigo-claro/40 bg-perigo-claro/10 p-3 text-sm text-perigo-claro">
             <p className="font-medium">
               Atenção: {itensExcluidos.length}{" "}
               {itensExcluidos.length === 1 ? "item selecionado não entrou" : "itens selecionados não entraram"}{" "}
@@ -393,7 +393,7 @@ export function FormularioOrcamentoChurrasco({
 
       <button
         type="submit"
-        className="mt-2 inline-flex items-center justify-center self-start rounded-[2px] bg-ember px-6 py-2.5 text-sm font-medium text-paper shadow-[0_10px_20px_-10px_rgba(0,0,0,0.6)] transition hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brass"
+        className="mt-2 inline-flex items-center justify-center self-start rounded-[2px] bg-acao px-6 py-2.5 text-sm font-medium text-paper shadow-[0_10px_20px_-10px_rgba(0,0,0,0.6)] transition hover:bg-acao-forte focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brass"
       >
         Gerar Orçamento
       </button>

@@ -103,7 +103,7 @@ export default async function Home() {
                           eventoId={evento.id}
                           itens={pendencias.get(evento.id) ?? []}
                           ativosPorFuncao={ativosPorFuncao}
-                          className="rounded-[2px] border border-ember/60 px-3 py-1.5 text-sm text-ember transition hover:bg-ember/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brass"
+                          className="rounded-[2px] border border-acao/60 px-3 py-1.5 text-sm text-acao transition hover:bg-acao/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brass"
                         />
                       </div>
                     )}
@@ -125,7 +125,7 @@ export default async function Home() {
               >
                 <span
                   aria-hidden
-                  className="absolute inset-x-0 top-0 h-1.5 bg-ember"
+                  className="absolute inset-x-0 top-0 h-1.5 bg-paper-dim"
                 />
                 <p className="font-display text-lg italic">{item.titulo}</p>
                 <p className="text-sm text-paper-ink/70">{item.descricao}</p>

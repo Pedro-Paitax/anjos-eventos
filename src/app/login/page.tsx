@@ -44,7 +44,7 @@ export default async function LoginPage() {
             >
               <span
                 aria-hidden
-                className="absolute inset-x-4 top-0 h-1.5 rounded-b-[1px] bg-ember"
+                className="absolute inset-x-4 top-0 h-1.5 rounded-b-[1px] bg-paper-dim"
               />
               <span className="font-display text-lg italic leading-tight">
                 {usuario.nome}

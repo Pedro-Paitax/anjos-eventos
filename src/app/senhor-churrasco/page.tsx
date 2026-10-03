@@ -70,7 +70,7 @@ export default async function SenhorChurrascoPage() {
                 >
                   <span
                     aria-hidden
-                    className="absolute inset-x-0 top-0 h-1.5 bg-ember"
+                    className="absolute inset-x-0 top-0 h-1.5 bg-paper-dim"
                   />
                   <p className="font-display text-lg italic">{item.titulo}</p>
                   <p className="text-sm text-paper-ink/70">{item.descricao}</p>

@@ -23,7 +23,7 @@ export default async function ColaboradoresPage() {
           acao={
             <Link
               href="/colaboradores/novo"
-              className="rounded-[2px] bg-ember px-4 py-2 text-sm font-medium text-paper transition hover:brightness-110"
+              className="rounded-[2px] bg-acao px-4 py-2 text-sm font-medium text-paper transition hover:bg-acao-forte"
             >
               Novo colaborador
             </Link>

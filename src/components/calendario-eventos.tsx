@@ -99,7 +99,7 @@ export function CalendarioEventos({
                 <span
                   className={`self-start text-sm ${
                     ehHoje
-                      ? "flex h-6 w-6 items-center justify-center rounded-full bg-ember text-paper"
+                      ? "flex h-6 w-6 items-center justify-center rounded-full bg-acao text-paper"
                       : "text-paper-ink/70"
                   }`}
                 >

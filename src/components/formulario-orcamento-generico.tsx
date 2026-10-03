@@ -85,7 +85,7 @@ export function FormularioOrcamentoGenerico({ empresaId, action }: FormularioOrc
 
       <button
         type="submit"
-        className="mt-2 inline-flex items-center justify-center self-start rounded-[2px] bg-ember px-6 py-2.5 text-sm font-medium text-paper shadow-[0_10px_20px_-10px_rgba(0,0,0,0.6)] transition hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brass"
+        className="mt-2 inline-flex items-center justify-center self-start rounded-[2px] bg-acao px-6 py-2.5 text-sm font-medium text-paper shadow-[0_10px_20px_-10px_rgba(0,0,0,0.6)] transition hover:bg-acao-forte focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brass"
       >
         Gerar Orçamento
       </button>

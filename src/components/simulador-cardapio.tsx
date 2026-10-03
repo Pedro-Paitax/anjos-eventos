@@ -234,7 +234,7 @@ export function SimuladorCardapio({
               Só pré-preenche os itens abaixo — você ainda pode adicionar ou
               remover livremente.
             </p>
-            {erroTemplate && <p className="text-sm text-ember">{erroTemplate}</p>}
+            {erroTemplate && <p className="text-sm text-perigo-claro">{erroTemplate}</p>}
           </div>
         )}
 
@@ -310,9 +310,9 @@ export function SimuladorCardapio({
         {simulacaoAtiva && calculando && (
           <p className="text-sm text-paper-dim">Calculando…</p>
         )}
-        {erro && <p className="text-sm text-ember">{erro}</p>}
+        {erro && <p className="text-sm text-perigo-claro">{erro}</p>}
         {simulacaoAtiva && itensExcluidos.length > 0 && (
-          <div className="rounded-[2px] border border-ember/40 bg-ember/10 p-3 text-sm text-ember">
+          <div className="rounded-[2px] border border-perigo-claro/40 bg-perigo-claro/10 p-3 text-sm text-perigo-claro">
             <p className="font-medium">
               Atenção: {itensExcluidos.length}{" "}
               {itensExcluidos.length === 1 ? "item selecionado não entrou" : "itens selecionados não entraram"}{" "}

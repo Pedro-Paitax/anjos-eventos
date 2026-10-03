@@ -119,7 +119,7 @@ export default async function EventoPage({ params }: PaginaEventoProps) {
               </p>
             )}
             {pendencias.length > 0 && (
-              <div className="flex flex-col items-start gap-3 rounded-[2px] border border-ember/40 p-3 text-sm text-ember">
+              <div className="flex flex-col items-start gap-3 rounded-[2px] border border-aviso-claro/40 p-3 text-sm text-aviso-claro">
                 <ul className="list-disc pl-4">
                   {pendencias.map((p) => (
                     <li key={p.texto}>{p.texto}</li>

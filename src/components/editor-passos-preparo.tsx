@@ -122,7 +122,7 @@ export function EditorPassosPreparo({
               type="button"
               onClick={() => removerLinha(linha.chave)}
               aria-label={`Remover passo ${i + 1}`}
-              className="text-sm text-ember underline decoration-ember/40 underline-offset-4 transition hover:decoration-ember"
+              className="text-sm text-acao-claro underline decoration-acao-claro/40 underline-offset-4 transition hover:decoration-acao-claro"
             >
               Remover
             </button>

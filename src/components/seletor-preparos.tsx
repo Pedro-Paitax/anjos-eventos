@@ -69,7 +69,7 @@ export function SeletorPreparos({
                       type="button"
                       onClick={() => remover(item.id)}
                       aria-label={`Remover ${item.nome}`}
-                      className="text-paper-ink/50 transition hover:text-ember"
+                      className="text-paper-ink/50 transition hover:text-perigo-escuro"
                     >
                       ×
                     </button>
