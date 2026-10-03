@@ -5,7 +5,7 @@ export type TamanhoBotao = "md" | "sm";
 export type SuperficieBotao = "escuro" | "papel";
 
 const base =
-  "inline-flex items-center justify-center rounded-[2px] font-medium transition disabled:cursor-not-allowed disabled:opacity-50";
+  "inline-flex items-center justify-center rounded-[2px] font-medium transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brass disabled:cursor-not-allowed disabled:opacity-50";
 
 const tamanhos: Record<TamanhoBotao, string> = {
   md: "min-h-11 px-5 text-sm md:min-h-10",

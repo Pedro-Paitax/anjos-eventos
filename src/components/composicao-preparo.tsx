@@ -184,21 +184,16 @@ function ModalNovoInsumo({
   }
 
   return (
-    <Modal onFechar={onFechar} rotulo="Novo insumo" className="max-w-md bg-ink">
-      <div className="flex items-center justify-between">
-        <h4 className="font-display text-lg italic text-paper">Novo insumo</h4>
-        <button
-          type="button"
-          onClick={onFechar}
-          className="text-sm text-paper-dim underline decoration-paper-dim/40 underline-offset-4 transition hover:text-paper hover:decoration-paper"
-        >
-          Fechar
-        </button>
-      </div>
-
+    <Modal
+      titulo="Novo insumo"
+      mostrarFechar
+      cliqueForaFecha={!nome.trim() && !preco}
+      onFechar={onFechar}
+      className="max-w-md bg-ink"
+    >
       <div className="flex flex-col gap-1.5">
         <label className={rotuloClasse}>Nome</label>
-        <input aria-label="Nome" value={nome} onChange={(e) => setNome(e.target.value)} className={campoClasse} />
+        <input aria-label="Nome" data-foco-inicial value={nome} onChange={(e) => setNome(e.target.value)} className={campoClasse} />
       </div>
       <div className="flex flex-col gap-1.5">
         <label className={rotuloClasse}>Unidade</label>

@@ -8,7 +8,7 @@ import {
   type AtivosPorFuncao,
   type ItemPendencia,
 } from "@/lib/pendencias-evento";
-import { botaoClasse } from "@/components/botao";
+import { Botao, botaoClasse } from "@/components/botao";
 
 type Props = {
   eventoId: number;
@@ -26,7 +26,6 @@ export function BotaoResolverPendencias({ eventoId, itens, ativosPorFuncao, clas
     { titulo: "Equipe", itens: itens.filter((i) => i.tipo === "equipe") },
     { titulo: "Logística", itens: itens.filter((i) => i.tipo === "logistica") },
   ].filter((g) => g.itens.length > 0);
-  const tituloId = `pendencias-titulo-${eventoId}`;
 
   return (
     <>
@@ -41,10 +40,7 @@ export function BotaoResolverPendencias({ eventoId, itens, ativosPorFuncao, clas
       </button>
 
       {aberto && (
-        <Modal onFechar={() => setAberto(false)} labelledBy={tituloId} className="max-w-md bg-ink-soft text-paper">
-          <h2 id={tituloId} className="font-display text-xl italic">
-            Pendências do evento
-          </h2>
+        <Modal titulo="Pendências do evento" onFechar={() => setAberto(false)} className="max-w-md bg-ink">
           {grupos.map((grupo) => (
             <section key={grupo.titulo} className="flex flex-col gap-2">
               <h3 className="text-xs uppercase tracking-wide text-paper-dim">{grupo.titulo}</h3>
@@ -56,7 +52,7 @@ export function BotaoResolverPendencias({ eventoId, itens, ativosPorFuncao, clas
                       <Link
                         href={destino.href}
                         onClick={() => setAberto(false)}
-                        className="text-acao-claro underline underline-offset-4 hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brass"
+                        className={botaoClasse("link", "sm")}
                       >
                         {destino.texto}
                       </Link>
@@ -66,13 +62,9 @@ export function BotaoResolverPendencias({ eventoId, itens, ativosPorFuncao, clas
               </ul>
             </section>
           ))}
-          <button
-            type="button"
-            onClick={() => setAberto(false)}
-            className="self-end rounded-[2px] border border-paper-dim/30 px-4 py-2 text-sm transition hover:border-paper-dim hover:bg-paper/5"
-          >
+          <Botao variante="secundario" onClick={() => setAberto(false)} className="self-end">
             Fechar
-          </button>
+          </Botao>
         </Modal>
       )}
     </>

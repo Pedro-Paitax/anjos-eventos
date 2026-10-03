@@ -4,7 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import type { CardapioModeloResumo } from "@/lib/cardapios-modelo";
 import { excluirCardapioModeloAction } from "@/app/actions/cardapio-modelo";
-import { Modal } from "@/components/modal";
+import { ModalConfirmacao } from "@/components/modal-confirmacao";
 import { Alerta } from "@/components/alerta";
 import { campoClasse } from "@/components/campo";
 import { botaoClasse } from "@/components/botao";
@@ -79,29 +79,14 @@ function CardCardapioModelo({ cardapio }: { cardapio: CardapioModeloResumo }) {
       {erro && <Alerta tipo="perigo" sobre="papel">{erro}</Alerta>}
 
       {confirmando && (
-        <Modal onFechar={() => setConfirmando(false)} rotulo="Excluir cardápio" className="max-w-sm bg-ink">
-          <h4 className="font-display text-lg italic text-paper">Excluir cardápio</h4>
-          <p className="text-sm text-paper-dim">
-            Excluir o cardápio &quot;{cardapio.nome}&quot;? Essa ação não pode ser
-            desfeita.
-          </p>
-          <div className="flex justify-end gap-3">
-            <button
-              type="button"
-              onClick={() => setConfirmando(false)}
-              className="text-sm text-paper-dim underline decoration-paper-dim/40 underline-offset-4 transition hover:text-paper hover:decoration-paper"
-            >
-              Cancelar
-            </button>
-            <button
-              type="button"
-              onClick={confirmarExclusao}
-              className={botaoClasse("perigo")}
-            >
-              Excluir
-            </button>
-          </div>
-        </Modal>
+        <ModalConfirmacao
+          titulo="Excluir cardápio"
+          rotuloConfirmar="Excluir"
+          onConfirmar={confirmarExclusao}
+          onCancelar={() => setConfirmando(false)}
+        >
+          Excluir o cardápio &quot;{cardapio.nome}&quot;? Essa ação não pode ser desfeita.
+        </ModalConfirmacao>
       )}
     </div>
   );

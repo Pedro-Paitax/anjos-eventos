@@ -198,19 +198,7 @@ export function SeletorCardapio({
       </div>
 
       {modalAberto && (
-        <Modal onFechar={() => setModalAberto(false)} rotulo="Adicionar ao cardápio" className="max-w-lg bg-ink">
-          <div className="flex items-center justify-between">
-            <h4 className="font-display text-lg italic text-paper">
-              Adicionar ao cardápio
-            </h4>
-            <button
-              type="button"
-              onClick={() => setModalAberto(false)}
-              className="text-sm text-paper-dim underline decoration-paper-dim/40 underline-offset-4 transition hover:text-paper hover:decoration-paper"
-            >
-              Fechar
-            </button>
-          </div>
+        <Modal titulo="Adicionar ao cardápio" mostrarFechar onFechar={() => setModalAberto(false)} className="max-w-lg bg-ink">
 
           <div className="flex flex-wrap gap-1 rounded-[2px] bg-ink-soft p-1">
             {CATEGORIAS_CARDAPIO.map((categoria) => (

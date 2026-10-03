@@ -1,17 +1,26 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { Botao } from "@/components/botao";
 
 /**
  * Modal único do app. Renderizado em portal no <body>: um ancestral com
  * transform/translate/filter/overflow (ex.: card com hover) prende
  * `position: fixed` e corta o modal. Montar = abrir (o pai só renderiza
- * quando aberto). Esc e clique fora fecham; foco preso e devolvido a quem
- * abriu.
+ * quando aberto). Esc e clique fora fecham (clique fora pode ser desligado
+ * com `cliqueForaFecha={false}` quando há dados digitados); foco preso e
+ * devolvido a quem abriu. Foco inicial: elemento com `data-foco-inicial`,
+ * senão o primeiro focável. `titulo` vira o <h2> do diálogo.
  */
 type ModalProps = {
   onFechar: () => void;
+  /** Título do diálogo (<h2>, ligado por aria-labelledby). */
+  titulo?: string;
+  /** Mostra "Fechar" ao lado do título. */
+  mostrarFechar?: boolean;
+  /** Clique no fundo fecha? Desligue em modal com formulário preenchido. */
+  cliqueForaFecha?: boolean;
   /** aria-labelledby (id do título dentro do modal) ou aria-label. */
   labelledBy?: string;
   rotulo?: string;
@@ -28,11 +37,15 @@ const FOCAVEIS =
 
 export function Modal({
   onFechar,
+  titulo,
+  mostrarFechar = false,
+  cliqueForaFecha = true,
   labelledBy,
   rotulo,
   className = "max-w-md bg-ink",
   children,
 }: ModalProps) {
+  const tituloId = useId();
   const painelRef = useRef<HTMLDivElement>(null);
   const [saindo, setSaindo] = useState(false);
   // Sempre a versão mais recente, sem reexecutar o efeito a cada render.
@@ -63,7 +76,11 @@ export function Modal({
 
     const painel = painelRef.current;
     if (painel && !painel.contains(document.activeElement)) {
-      (painel.querySelector<HTMLElement>(FOCAVEIS) ?? painel).focus();
+      (
+        painel.querySelector<HTMLElement>("[data-foco-inicial]") ??
+        painel.querySelector<HTMLElement>(FOCAVEIS) ??
+        painel
+      ).focus();
     }
 
     function aoTeclar(e: KeyboardEvent) {
@@ -104,20 +121,32 @@ export function Modal({
 
   return createPortal(
     <div
-      className="modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 print:hidden"
+      className="modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-2 sm:p-4 print:hidden"
       data-saindo={saindo ? "" : undefined}
-      onClick={fecharComSaida}
+      onClick={cliqueForaFecha ? fecharComSaida : undefined}
     >
       <div
         ref={painelRef}
         role="dialog"
         aria-modal="true"
-        aria-labelledby={labelledBy}
-        aria-label={rotulo}
+        aria-labelledby={labelledBy ?? (titulo ? tituloId : undefined)}
+        aria-label={titulo ? undefined : rotulo}
         tabIndex={-1}
-        className={`modal-caixa flex max-h-[calc(100dvh-2rem)] w-full flex-col gap-4 overflow-y-auto rounded-[2px] p-5 shadow-[0_30px_60px_-20px_rgba(0,0,0,0.8)] outline-none ${className}`}
+        className={`modal-caixa flex max-h-[calc(100dvh-2rem)] w-full flex-col gap-4 overflow-y-auto rounded-[2px] border border-paper-dim/15 p-5 text-paper shadow-elev-3 outline-none ${className}`}
         onClick={(e) => e.stopPropagation()}
       >
+        {titulo && (
+          <div className="flex items-start justify-between gap-3">
+            <h2 id={tituloId} className="font-display text-xl italic">
+              {titulo}
+            </h2>
+            {mostrarFechar && (
+              <Botao variante="link" tamanho="sm" onClick={() => fecharRef.current()}>
+                Fechar
+              </Botao>
+            )}
+          </div>
+        )}
         {children}
       </div>
     </div>,

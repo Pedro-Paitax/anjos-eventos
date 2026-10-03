@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Botao } from "@/components/botao";
+import { Modal } from "@/components/modal";
 
 type StatusWhatsapp = {
   status: "connected" | "disconnected" | "connecting";
@@ -64,44 +66,31 @@ export function IndicadorWhatsapp() {
       </button>
 
       {modalVisivel && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-label="Reconectar WhatsApp"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-6 print:hidden"
-          onClick={() => setModalAberto(false)}
-        >
-          <div
-            className="flex w-full max-w-sm flex-col items-center gap-4 rounded-[2px] bg-paper p-6 text-center text-paper-ink"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 className="font-display text-xl italic">Reconectar WhatsApp</h2>
-            {dados.worker_offline ? (
-              <p className="text-sm">
-                O serviço de WhatsApp não está respondendo. O restante do sistema
-                continua funcionando normalmente.
-              </p>
-            ) : dados.qr_code ? (
-              <>
+        <Modal titulo="Reconectar WhatsApp" onFechar={() => setModalAberto(false)} className="max-w-sm bg-ink">
+          {dados.worker_offline ? (
+            <p className="text-sm text-paper-dim">
+              O serviço de WhatsApp não está respondendo. O restante do sistema
+              continua funcionando normalmente.
+            </p>
+          ) : dados.qr_code ? (
+            <>
+              {/* Fundo claro fixo: o QR precisa de margem clara para ser lido. */}
+              <div className="self-center rounded-[2px] bg-paper p-3">
                 {/* eslint-disable-next-line @next/next/no-img-element -- data URL gerada pelo worker */}
                 <img src={dados.qr_code} alt="QR Code do WhatsApp" className="h-64 w-64" />
-                <p className="text-sm">
-                  No celular: WhatsApp → Aparelhos conectados → Conectar um aparelho, e
-                  aponte para este código.
-                </p>
-              </>
-            ) : (
-              <p className="text-sm">Aguardando o QR Code…</p>
-            )}
-            <button
-              type="button"
-              onClick={() => setModalAberto(false)}
-              className="rounded-[2px] border border-paper-ink/30 px-4 py-2 text-sm transition hover:bg-paper-ink/5"
-            >
-              Fechar
-            </button>
-          </div>
-        </div>
+              </div>
+              <p className="text-sm text-paper-dim">
+                No celular: WhatsApp → Aparelhos conectados → Conectar um aparelho, e
+                aponte para este código.
+              </p>
+            </>
+          ) : (
+            <p className="text-sm text-paper-dim" role="status">Aguardando o QR Code…</p>
+          )}
+          <Botao variante="secundario" onClick={() => setModalAberto(false)} className="self-end">
+            Fechar
+          </Botao>
+        </Modal>
       )}
     </>
   );

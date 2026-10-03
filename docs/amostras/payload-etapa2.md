@@ -25,3 +25,15 @@ Exemplo (`/agenda/novo?empresa=2`): `empresaId=2`, `clienteNome`, `qtdAdultos`, 
 
 **Não capturado:** `formulario-confirmar-evento` (Passo 3) — o único orçamento existente (/orcamentos/8) não exibe o
 formulário e não criei dados. A mudança nesse arquivo é só estrutural (Campo no lugar de div+label+input; BotaoEnviar).
+
+## Passo 3 — comparação estática (git diff de e0e1648)
+
+`formulario-confirmar-evento.tsx` antes (`e0e1648~1`) × depois (`e0e1648`), extraindo cada `input/select/textarea` com `name`, `type`
+e os atributos de valor/validação (`defaultValue`, `value`, `required`, `min`, `max`, `step`, `readOnly`, `disabled`, `rows`):
+
+- 17 controles nos dois lados, **mesma ordem e mesmos `name`/`type`**; nenhum atributo de valor/validação mudou.
+- Ordem: `contato`, `telefone`, `enderecoEvento`, `tipoEvento` (text) · `dataEvento` (datetime-local) · `horaChegadaEquipe`, `horaAperitivo`,
+  `horaAlmoco`, `horaEncerramento` (time) · `valor`, `qtdFornecedores`, `qtdGarcons`, `qtdCopeiras` (number) · `prazoPagamento` (date) ·
+  `chavePix` (text) · `observacoes` (textarea) · `caminhoContrato` (text).
+- **Hidden inputs: nenhum**, antes e depois (o id do orçamento vai pelo `action` do `<form>`, que não mudou: `<form action={action}>`).
+- Único botão: `<button type="submit">` → `<BotaoEnviar rotulo="Aprovar e Confirmar Evento" />` (renderiza `<button type="submit">`, sem `name`/`value`).
