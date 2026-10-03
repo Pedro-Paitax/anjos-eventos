@@ -1085,7 +1085,7 @@ o id. Decisão do Pedro: inaceitável.
 | `GET /api/whatsapp/status` | protegida por sessão (já era) |
 | `POST /api/cron/ordem-acao`, `POST /api/cron/lembrete-7-dias` | protegidas por token (`CRON_TOKEN`) |
 | `POST /api/revalidate` | protegida por segredo (`REVALIDATE_SECRET`) |
-| `GET /api/nocodb/preparos` | **aberta sem decisão**: devolve até 1000 registros da base NocoDB de fichas técnicas sem autenticação (e o texto de erro do NocoDB em falhas). Nenhum código do app a chama; NocoDB está sendo descontinuado. **Pendente de decisão do Pedro** (proteger por sessão ou remover). |
+| `GET /api/nocodb/preparos` | **removida** em 2026-10-03 (decisão do Pedro): era aberta sem autenticação e devolvia até 1000 registros do NocoDB; busca em todo o repositório (src, scripts, docs, .claude) confirmou que nada a chamava (nem `scripts/paridade-endpoint.ts`, que já a deixava fora do teste) |
 
 Para o smoke test do deploy: `SMOKE_TOKEN` precisa existir, com o mesmo valor, no ambiente de
 quem roda `scripts/deploy-oracle.sh` e no env do app no Oracle (`ecosystem.config.js`, que o

@@ -88,6 +88,6 @@ Sem senha. `/login` lista usuários cadastrados; o usuário se identifica clican
 
 - **Páginas** (`src/app/`): agenda (`/agenda`), preparos (`/preparos`), cardápios modelo (`/cardapios-modelo`), simulador público (`/simulador-cardapio`), login.
 - **Server Actions** (`src/app/actions/`): `evento.ts`, `preparo.ts`, `cardapio-modelo.ts`, `precificacao.ts`, `usuario.ts`.
-- **API Routes** (`src/app/api/`): custo de preparo, dimensionamento/margem/simulador de orçamento, revalidação de cache (`/api/revalidate`, protegida por `REVALIDATE_SECRET`), proxy de leitura NocoDB (`/api/nocodb/preparos`).
+- **API Routes** (`src/app/api/`): custo de preparo, dimensionamento/margem/simulador de orçamento, revalidação de cache (`/api/revalidate`, protegida por `REVALIDATE_SECRET`) (a antiga rota proxy `/api/nocodb/preparos` foi removida em 2026-10-03).
 
 Ver `docs/REGRAS_NEGOCIO.md` para os contratos e regras de cada motor exposto por essas rotas.
