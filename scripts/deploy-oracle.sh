@@ -145,10 +145,14 @@ SMOKE_TOKEN="${SMOKE_TOKEN:-}"
   cat <<'EOF'
 set -uo pipefail
 sleep 2
+# Orçamento existente usado nas provas das rotas de orçamento. Se ele deixar de
+# existir, a prova autenticada aceita o 404 do app ("Orçamento não encontrado.")
+# como sinal de que passou da autenticação, e o resultado diz isso.
+ORC_ID=8
 FALHAS=0
 falha() { echo "FALHA: $1"; FALHAS=$((FALHAS+1)); }
 
-for api in /api/preparos/2/custo /api/orcamentos/1/margem-projetada /api/orcamentos/1/dimensionamento; do
+for api in /api/preparos/2/custo /api/orcamentos/$ORC_ID/margem-projetada /api/orcamentos/$ORC_ID/dimensionamento; do
   echo "--- $api sem sessão (deve ser 401, sem dado) ---"
   CORPO=$(curl -s -w '\n%{http_code}' "http://localhost:3001$api")
   CODE="${CORPO##*$'\n'}"
@@ -164,6 +168,19 @@ else
   CUSTO=$(curl -s -H "x-smoke-token: $SMOKE_TOKEN" http://localhost:3001/api/preparos/2/custo)
   echo "$CUSTO" | sed -E 's/"custo_[a-z_]+":[0-9.]+/"custo_*":…/g' | cut -c1-80
   echo "$CUSTO" | grep -q '"custo_total_preparo":16.96' || falha "custo do preparo 2 com token diferente de 16.96"
+
+  for api in margem-projetada dimensionamento; do
+    echo "--- /api/orcamentos/$ORC_ID/$api com token de serviço (esperado 200) ---"
+    CORPO=$(curl -s --max-time 90 -H "x-smoke-token: $SMOKE_TOKEN" -w '\n%{http_code}' "http://localhost:3001/api/orcamentos/$ORC_ID/$api")
+    CODE="${CORPO##*$'\n'}"
+    if [ "$CODE" = "200" ]; then
+      echo "HTTP 200"
+    elif [ "$CODE" = "404" ] && echo "$CORPO" | grep -q 'Orçamento não encontrado'; then
+      echo "HTTP 404 do app (orçamento $ORC_ID não existe): passou da autenticação (sem 401)"
+    else
+      falha "/api/orcamentos/$ORC_ID/$api com token devolveu $CODE (esperado 200)"
+    fi
+  done
 fi
 
 echo "--- /login (deve ser 200) ---"
