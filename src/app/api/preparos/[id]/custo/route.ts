@@ -1,10 +1,14 @@
 import { NextResponse } from "next/server";
+import { exigirUsuarioApi } from "@/lib/api-auth";
 import { calcularCustoPreparo } from "@/lib/custo-preparo";
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const negado = await exigirUsuarioApi(request);
+  if (negado) return negado;
+
   const { id } = await params;
   const preparoId = Number(id);
 
