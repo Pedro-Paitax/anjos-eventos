@@ -151,14 +151,14 @@ export function ListaPreparos({ preparos }: { preparos: PreparoResumo[] }) {
 
   return (
     <div>
-      <div className="flex flex-col gap-3 border-b border-paper-ink/10 p-4 sm:flex-row sm:items-center">
+      <div className="flex flex-col gap-3 border-b border-paper-ink/10 p-4 sm:flex-row sm:flex-wrap sm:items-center">
         <input
           type="text"
           value={buscaNome}
           onChange={(e) => setBuscaNome(e.target.value)}
           placeholder="Buscar por nome…"
           aria-label="Buscar preparo por nome"
-          className={`${campoFiltroClasse} sm:flex-1`}
+          className={`${campoFiltroClasse} sm:min-w-48 sm:flex-1`}
         />
         <select
           aria-label="Filtrar por categoria"
