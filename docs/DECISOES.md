@@ -1038,3 +1038,55 @@ descartar (Postgres sem log de statements, sem backup de dados no momento).
    statements parametrizados do app aparecem com os valores (podem conter nome/
    telefone de cliente): tratar o log como dado sensível. Para desfazer:
    `ALTER SYSTEM RESET log_statement; ALTER SYSTEM RESET log_line_prefix;` + reload.
+
+---
+
+# Autenticação das APIs internas
+
+Status: IMPLEMENTADA (2026-10-03, aguardando deploy)
+
+## Lacuna encontrada
+
+Ao auditar o smoke test do deploy de 2026-10-03, `GET /api/orcamentos/{id}/margem-projetada`
+respondeu 200 **sem sessão**, com receita, custo e margem. As rotas internas
+`/api/orcamentos/[id]/margem-projetada`, `/api/orcamentos/[id]/dimensionamento` e
+`/api/preparos/[id]/custo` **nunca tiveram autenticação**. O comentário de
+`margem-projetada` dizia que a autenticação ficaria "a cargo do middleware/camada de auth do
+app", mas esse middleware nunca existiu (não há `middleware.ts` nem `proxy.ts`): só as páginas
+checavam `obterUsuarioAtual`. A exposição era limitada pela rede (acesso só via Tailscale, HTTP
+puro), mas qualquer dispositivo na tailnet lia custo e margem de qualquer orçamento adivinhando
+o id. Decisão do Pedro: inaceitável.
+
+## Correção
+
+- `src/lib/api-auth.ts`: `exigirUsuarioApi(request)`, mesmo critério das páginas
+  (`obterUsuarioAtual`); sem sessão devolve **401 JSON** `{"erro":"Não autenticado."}`, sem
+  redirect e sem dado. Aplicado nas três rotas acima, antes de qualquer validação ou consulta.
+- Exceção para o smoke test e o script de paridade (que não têm cookie): token de serviço em
+  `SMOKE_TOKEN`, enviado em `x-smoke-token`, comparado em tempo constante (`timingSafeEqual`);
+  sem `SMOKE_TOKEN` no servidor (ou com menos de 16 caracteres) esse caminho não autoriza
+  ninguém. O token lê custo e margem: segredo, fora do Git. Motivo da escolha: é o mecanismo
+  mais simples que dispensa login no smoke test sem abrir o endpoint; o script de paridade usa
+  um token descartável gerado a cada execução.
+- Nenhuma rota chama essas APIs a partir da interface (nenhum `fetch` no front): a proteção não
+  afeta o app, só scripts.
+- Testes: `src/lib/api-auth.test.ts` (com/sem usuário, token válido/inválido) e
+  `src/app/api/protecao-rotas.test.ts` (401 sem sessão em cada rota protegida, e o cálculo
+  nem é chamado).
+
+## Situação de todas as rotas em `src/app/api` (2026-10-03)
+
+| Rota | Situação |
+|---|---|
+| `GET /api/orcamentos/[id]/margem-projetada` | **protegida por sessão** (esta decisão) |
+| `GET /api/orcamentos/[id]/dimensionamento` | **protegida por sessão** (esta decisão) |
+| `GET /api/preparos/[id]/custo` | **protegida por sessão** (esta decisão) |
+| `GET /api/orcamentos/[id]/simulador` | **pública por decisão** ("Contrato do Simulador de Orçamento"), só rate limit por IP; payload conferido contra o contrato: nenhum custo, peso, margem ou dado interno |
+| `GET /api/whatsapp/status` | protegida por sessão (já era) |
+| `POST /api/cron/ordem-acao`, `POST /api/cron/lembrete-7-dias` | protegidas por token (`CRON_TOKEN`) |
+| `POST /api/revalidate` | protegida por segredo (`REVALIDATE_SECRET`) |
+| `GET /api/nocodb/preparos` | **aberta sem decisão**: devolve até 1000 registros da base NocoDB de fichas técnicas sem autenticação (e o texto de erro do NocoDB em falhas). Nenhum código do app a chama; NocoDB está sendo descontinuado. **Pendente de decisão do Pedro** (proteger por sessão ou remover). |
+
+Para o smoke test do deploy: `SMOKE_TOKEN` precisa existir, com o mesmo valor, no ambiente de
+quem roda `scripts/deploy-oracle.sh` e no env do app no Oracle (`ecosystem.config.js`, que o
+script nunca toca). Sem ele o smoke test falha por não conseguir provar o acesso autenticado.
