@@ -118,7 +118,13 @@ rm -f ~/anjos-standalone-new.tgz
 EOF
 
 log "4/5 — Reiniciando via PM2"
-ssh "${SSH_OPTS[@]}" "$ORACLE_HOST" "pm2 restart anjos-eventos-app --update-env && pm2 save"
+# NUNCA usar --update-env aqui: ele herda o ambiente da sessão SSH (HOSTNAME da
+# máquina sobrescreveu o HOSTNAME=0.0.0.0 do ecosystem e derrubou o app, 2026-10-03).
+# startOrRestart relê o env do ecosystem.config.js, sem herdar a sessão.
+ssh "${SSH_OPTS[@]}" "$ORACLE_HOST" "cd ~/$ORACLE_APP_DIR && pm2 startOrRestart ecosystem.config.js && pm2 save"
+HOST_FINAL=$(ssh "${SSH_OPTS[@]}" "$ORACLE_HOST" "pm2 env 0 | grep -E '^HOSTNAME:' | tr -d ' '" || true)
+echo "Processo PM2: $HOST_FINAL (esperado HOSTNAME:0.0.0.0)"
+[ "$HOST_FINAL" = "HOSTNAME:0.0.0.0" ] || { echo "ERRO: HOSTNAME do processo não é 0.0.0.0 — app pode estar inacessível pelo IP Tailscale."; SMOKE_PRE_FALHA=1; }
 
 log "5/5 — Smoke test"
 # Smoke test. curl SEM -L (não seguir redirect: o status real é o que importa).
@@ -144,7 +150,16 @@ SMOKE_TOKEN="${SMOKE_TOKEN:-}"
   printf 'SMOKE_TOKEN=%q\n' "$SMOKE_TOKEN"   # vai pelo stdin do ssh (não aparece em ps)
   cat <<'EOF'
 set -uo pipefail
-sleep 2
+# Readiness: espera /login responder 200 (até 60 s) antes de qualquer prova.
+T0=$(date +%s)
+until [ "$(curl -s -o /dev/null --max-time 2 -w '%{http_code}' http://localhost:3001/login)" = "200" ]; do
+  if [ $(( $(date +%s) - T0 )) -ge 60 ]; then
+    echo "ERRO: app não respondeu 200 em http://localhost:3001/login em 60 s (falha de inicialização; ver pm2 logs)."
+    exit 1
+  fi
+  sleep 1
+done
+echo "App pronto em $(( $(date +%s) - T0 )) s (localhost)"
 # Orçamento existente usado nas provas das rotas de orçamento. Se ele deixar de
 # existir, a prova autenticada aceita o 404 do app ("Orçamento não encontrado.")
 # como sinal de que passou da autenticação, e o resultado diz isso.
@@ -188,6 +203,11 @@ CODE=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:3001/login)
 echo "HTTP $CODE"
 [ "$CODE" = "200" ] || falha "/login devolveu $CODE (esperado 200)"
 
+echo "--- /login pelo IP Tailscale 100.121.229.81:3001 (deve ser 200; é por onde o Pedro acessa) ---"
+CODE=$(curl -s -o /dev/null --max-time 10 -w '%{http_code}' http://100.121.229.81:3001/login)
+echo "HTTP $CODE"
+[ "$CODE" = "200" ] || falha "/login pelo IP Tailscale devolveu $CODE (esperado 200)"
+
 for rota in /simulador-cardapio /agenda/novo /orcamentos/1; do
   echo "--- $rota (sem sessão: 307, ou 200 com NEXT_REDIRECT para /login e sem conteúdo) ---"
   CORPO=$(curl -s -w '\n%{http_code}' "http://localhost:3001$rota")
@@ -217,7 +237,7 @@ if [ "$CONTAGEM_ANTES" != "$CONTAGEM_DEPOIS" ]; then
   echo "ATENÇÃO: a contagem mudou durante o deploy. O deploy não escreve no banco; verifique se foi uso normal do app. Dump pré-deploy: $DUMP"
 fi
 
-if [ "${SMOKE_RC:-0}" -ne 0 ]; then
+if [ "${SMOKE_RC:-0}" -ne 0 ] || [ "${SMOKE_PRE_FALHA:-0}" -ne 0 ]; then
   log "DEPLOY APLICADO, MAS O SMOKE TEST FALHOU (commit $COMMIT_SHORT) — ver FALHAs acima"
   echo "Dump do banco pré-deploy: $DUMP"
   echo "Rollback: extrair o backup do bundle (acima) por cima de ~/$ORACLE_APP_DIR e rodar pm2 restart anjos-eventos-app."

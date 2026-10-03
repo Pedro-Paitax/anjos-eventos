@@ -1090,3 +1090,17 @@ o id. Decisão do Pedro: inaceitável.
 Para o smoke test do deploy: `SMOKE_TOKEN` precisa existir, com o mesmo valor, no ambiente de
 quem roda `scripts/deploy-oracle.sh` e no env do app no Oracle (`ecosystem.config.js`, que o
 script nunca toca). Sem ele o smoke test falha por não conseguir provar o acesso autenticado.
+
+Lição: nunca usar `pm2 restart --update-env` a partir de uma sessão
+SSH. O --update-env aplica o ambiente da sessão por cima do
+ecosystem.config.js, e o HOSTNAME da sessão (nome da máquina)
+sobrescreveu o HOSTNAME=0.0.0.0 do arquivo. O Next passou a escutar só
+no hostname interno e a produção ficou inacessível por 100.121.229.81
+e localhost. Para recarregar variáveis novas: `pm2 delete` seguido de
+`pm2 start ecosystem.config.js`, que lê só o arquivo. No script de
+deploy, restart SEM --update-env, com HOSTNAME fixo no ecosystem.
+
+Correção no script (2026-10-03): o passo 4 agora usa `pm2 startOrRestart ecosystem.config.js`
+(sem `--update-env`) e confere que o `HOSTNAME` do processo é `0.0.0.0`; o smoke espera `/login`
+responder 200 por até 60 s e também prova `/login` pelo IP Tailscale `100.121.229.81:3001`
+(o smoke só em `localhost` não pegou esta falha).
