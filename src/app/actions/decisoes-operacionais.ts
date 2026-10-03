@@ -2,7 +2,8 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { salvarDecisoes, definirEquipeEvento } from "@/lib/decisoes-operacionais";
+import { salvarDecisoes, definirEquipeEvento, obterDecisoes } from "@/lib/decisoes-operacionais";
+import { valorValido, ROTULOS_CAMPO, type CampoOpcao } from "@/lib/decisoes-operacionais-opcoes";
 import { obterUsuarioAtual } from "@/lib/usuario-atual";
 
 export type EstadoFormularioDecisoes = { erro?: string; salvo?: boolean };
@@ -25,16 +26,40 @@ export async function salvarDecisoesOperacionaisAction(
     return { erro: "Equipe inválida." };
   }
 
+  const veiculo = textoOuNull(formData, "veiculo");
+  const modeloPrato = textoOuNull(formData, "modeloPrato");
+  const tipoBebidaRecipiente = textoOuNull(formData, "tipoBebidaRecipiente");
+  const tipoTalher = textoOuNull(formData, "tipoTalher");
+
+  // Valor vazio é aceito (pendência). Valor fora da lista só passa se for
+  // exatamente o que já está gravado (legado mantido pelo formulário).
+  const atuais = await obterDecisoes(eventoId);
+  const enviados: Record<CampoOpcao, string | null> = {
+    veiculo, modeloPrato, tipoBebidaRecipiente, tipoTalher,
+  };
+  const gravados: Record<CampoOpcao, string | null | undefined> = {
+    veiculo: atuais?.veiculo,
+    modeloPrato: atuais?.modelo_prato,
+    tipoBebidaRecipiente: atuais?.tipo_bebida_recipiente,
+    tipoTalher: atuais?.tipo_talher,
+  };
+  for (const campo of Object.keys(enviados) as CampoOpcao[]) {
+    const valor = enviados[campo];
+    if (valor && !valorValido(campo, valor) && valor !== gravados[campo]) {
+      return { erro: `Valor inválido para ${ROTULOS_CAMPO[campo]}.` };
+    }
+  }
+
   try {
     await definirEquipeEvento(eventoId, colaboradorIds);
     await salvarDecisoes(eventoId, {
-      veiculo: textoOuNull(formData, "veiculo"),
-      modeloPrato: textoOuNull(formData, "modeloPrato"),
+      veiculo,
+      modeloPrato,
       sousplat: formData.get("sousplat") === "on",
-      tipoBebidaRecipiente: textoOuNull(formData, "tipoBebidaRecipiente"),
+      tipoBebidaRecipiente,
       tacaFurtaCor: formData.get("tacaFurtaCor") === "on",
       tacaChampanhe: formData.get("tacaChampanhe") === "on",
-      tipoTalher: textoOuNull(formData, "tipoTalher"),
+      tipoTalher,
     });
   } catch (erro) {
     return { erro: `Falha ao salvar decisões: ${(erro as Error).message}` };

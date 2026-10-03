@@ -7,6 +7,12 @@ import {
   ROTULOS_FUNCAO,
 } from "@/lib/colaboradores-opcoes";
 import { campoClasse, rotuloClasse, secaoTituloClasse } from "@/components/formulario-evento";
+import {
+  OPCOES_POR_CAMPO,
+  ROTULOS_CAMPO,
+  ehValorLegado,
+  type CampoOpcao,
+} from "@/lib/decisoes-operacionais-opcoes";
 import type { EstadoFormularioDecisoes } from "@/app/actions/decisoes-operacionais";
 
 type ValoresDecisoes = {
@@ -29,21 +35,28 @@ type FormularioDecisoesProps = {
   ) => Promise<EstadoFormularioDecisoes>;
 };
 
-function CampoTexto({
+function CampoSelect({
   nome,
-  rotulo,
   valor,
 }: {
-  nome: string;
-  rotulo: string;
+  nome: CampoOpcao;
   valor: string | null | undefined;
 }) {
+  const legado = ehValorLegado(nome, valor) ? valor : null;
   return (
     <div className="flex flex-col gap-1.5">
       <label htmlFor={nome} className={rotuloClasse}>
-        {rotulo}
+        {ROTULOS_CAMPO[nome]}
       </label>
-      <input id={nome} name={nome} defaultValue={valor ?? ""} className={campoClasse} />
+      <select id={nome} name={nome} defaultValue={valor ?? ""} className={campoClasse}>
+        <option value="">Selecione…</option>
+        {OPCOES_POR_CAMPO[nome].map((opcao) => (
+          <option key={opcao} value={opcao}>
+            {opcao}
+          </option>
+        ))}
+        {legado && <option value={legado}>{legado} (valor antigo)</option>}
+      </select>
     </div>
   );
 }
@@ -86,14 +99,10 @@ export function FormularioDecisoesOperacionais({
 
       <h3 className={secaoTituloClasse}>Logística</h3>
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-        <CampoTexto nome="veiculo" rotulo="Veículo" valor={valoresIniciais?.veiculo} />
-        <CampoTexto nome="modeloPrato" rotulo="Modelo do prato" valor={valoresIniciais?.modelo_prato} />
-        <CampoTexto
-          nome="tipoBebidaRecipiente"
-          rotulo="Copo / taça (bebida)"
-          valor={valoresIniciais?.tipo_bebida_recipiente}
-        />
-        <CampoTexto nome="tipoTalher" rotulo="Talher" valor={valoresIniciais?.tipo_talher} />
+        <CampoSelect nome="veiculo" valor={valoresIniciais?.veiculo} />
+        <CampoSelect nome="modeloPrato" valor={valoresIniciais?.modelo_prato} />
+        <CampoSelect nome="tipoBebidaRecipiente" valor={valoresIniciais?.tipo_bebida_recipiente} />
+        <CampoSelect nome="tipoTalher" valor={valoresIniciais?.tipo_talher} />
       </div>
 
       <div className="flex flex-col gap-2 text-sm">
