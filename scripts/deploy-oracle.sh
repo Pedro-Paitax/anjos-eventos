@@ -121,15 +121,47 @@ log "4/5 — Reiniciando via PM2"
 ssh "${SSH_OPTS[@]}" "$ORACLE_HOST" "pm2 restart anjos-eventos-app --update-env && pm2 save"
 
 log "5/5 — Smoke test"
+# Smoke test. curl SEM -L (não seguir redirect: o status real é o que importa).
+# Páginas protegidas sem sessão aceitam 307 OU 200 com o marcador
+# NEXT_REDIRECT;replace;/login no corpo e sem conteúdo real (nenhum <h1>).
+# Motivo do 200: src/app/loading.tsx cria um limite de Suspense, então o Next
+# já enviou o status 200 (tela "Carregando…") antes de o redirect() da página
+# rodar; o redirecionamento chega no corpo e o navegador troca para /login.
+# 200 SEM o marcador, ou com <h1> (página renderizada), é falha.
 ssh "${SSH_OPTS[@]}" "$ORACLE_HOST" bash -s <<'EOF'
-set -euo pipefail
+set -uo pipefail
 sleep 2
-echo "--- /api/preparos/2/custo (Vinagrete, referência conhecida) ---"
-curl -sf http://localhost:3001/api/preparos/2/custo
-echo
-echo "--- /simulador-cardapio (deve redirecionar pra /login sem sessão) ---"
-curl -s -o /dev/null -w 'HTTP %{http_code}\n' http://localhost:3001/simulador-cardapio
+FALHAS=0
+falha() { echo "FALHA: $1"; FALHAS=$((FALHAS+1)); }
+
+echo "--- /api/preparos/2/custo (Vinagrete, referência conhecida: 16.96) ---"
+CUSTO=$(curl -s http://localhost:3001/api/preparos/2/custo)
+echo "$CUSTO"
+echo "$CUSTO" | grep -q '"custo_total_preparo":16.96' || falha "custo do preparo 2 diferente de 16.96"
+
+echo "--- /login (deve ser 200) ---"
+CODE=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:3001/login)
+echo "HTTP $CODE"
+[ "$CODE" = "200" ] || falha "/login devolveu $CODE (esperado 200)"
+
+for rota in /simulador-cardapio /agenda/novo /orcamentos/1; do
+  echo "--- $rota (sem sessão: 307, ou 200 com NEXT_REDIRECT para /login e sem conteúdo) ---"
+  CORPO=$(curl -s -w '\n%{http_code}' "http://localhost:3001$rota")
+  CODE="${CORPO##*$'\n'}"
+  echo "HTTP $CODE"
+  if [ "$CODE" = "307" ]; then
+    :
+  elif [ "$CODE" = "200" ]; then
+    echo "$CORPO" | grep -q 'NEXT_REDIRECT;replace;/login' || falha "$rota: 200 sem marcador NEXT_REDIRECT (página protegida acessível sem sessão?)"
+    echo "$CORPO" | grep -q '<h1' && falha "$rota: 200 com <h1> (conteúdo renderizado sem sessão)"
+  else
+    falha "$rota devolveu $CODE (esperado 307, ou 200 com marcador)"
+  fi
+done
+
 pm2 list
+if [ "$FALHAS" -ne 0 ]; then echo "SMOKE TEST: $FALHAS falha(s)"; exit 1; fi
+echo "SMOKE TEST: ok"
 EOF
 
 log "Contagem DEPOIS (somente leitura)"
