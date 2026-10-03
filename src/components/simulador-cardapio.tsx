@@ -309,7 +309,7 @@ export function SimuladorCardapio({
           </p>
         )}
         {simulacaoAtiva && calculando && (
-          <p className="text-sm text-paper-dim">Calculando…</p>
+          <p role="status" aria-live="polite" className="text-sm text-paper-dim">Calculando…</p>
         )}
         {erro && <Alerta tipo="perigo">{erro}</Alerta>}
         {simulacaoAtiva && itensExcluidos.length > 0 && (
@@ -402,7 +402,7 @@ function PainelCalculos({
   carregando: boolean;
 }) {
   if (carregando) {
-    return <p className="text-sm text-paper-dim">Calculando o passo a passo…</p>;
+    return <p role="status" aria-live="polite" className="text-sm text-paper-dim">Calculando o passo a passo…</p>;
   }
   if (!resultado) return null;
   if ("erro" in resultado) {
@@ -424,7 +424,7 @@ function PainelCalculos({
       <div className="overflow-x-auto rounded-[2px] bg-paper text-paper-ink shadow-[0_20px_40px_-20px_rgba(0,0,0,0.6)]">
         <table className="w-full min-w-[1100px] border-collapse text-sm">
           <thead>
-            <tr className="border-b border-paper-ink/15 text-left text-paper-ink/60">
+            <tr className="border-b border-paper-ink/15 text-left text-texto-suave-papel">
               <th className="px-3 py-2 font-normal">Preparo</th>
               <th className="px-3 py-2 font-normal">Macro (unidade)</th>
               <th className="px-3 py-2 font-normal">Unid. rendimento preparo</th>
@@ -458,13 +458,13 @@ function PainelCalculos({
                   )}
                 </td>
                 <td className="px-3 py-2">
-                  {linha.peso} <span className="text-paper-ink/60">({linha.origemPeso})</span>
+                  {linha.peso} <span className="text-texto-suave-papel">({linha.origemPeso})</span>
                 </td>
                 <td className="px-3 py-2">{linha.somaPesosGrupo}</td>
                 <td className="px-3 py-2">
                   {linha.porcaoCalculada} → {linha.porcaoFinal}
                   {linha.limitadaPorHardCap && (
-                    <span className="ml-1 text-paper-ink/60">
+                    <span className="ml-1 text-texto-suave-papel">
                       (Hard Cap {linha.porcaoMaximaIndividual})
                     </span>
                   )}
@@ -472,7 +472,7 @@ function PainelCalculos({
                 <td className="px-3 py-2">
                   {linha.volumeNecessarioTotal} {linha.unidadeMacro}
                   {linha.quantidadeParaCusto !== linha.volumeNecessarioTotal && (
-                    <span className="text-paper-ink/60">
+                    <span className="text-texto-suave-papel">
                       {" "}
                       → {linha.quantidadeParaCusto} un (convertido)
                     </span>

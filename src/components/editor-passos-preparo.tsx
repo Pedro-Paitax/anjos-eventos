@@ -2,6 +2,7 @@
 
 import type { PassosPreparo } from "@/lib/passos-preparo";
 import { campoClasse, rotuloClasse, secaoTituloClasse } from "@/components/formulario-evento";
+import { botaoClasse } from "@/components/botao";
 
 export type LinhaPasso = {
   chave: string; // key estável pro React — não é o Id/ordem
@@ -106,7 +107,8 @@ export function EditorPassosPreparo({
               type="button"
               onClick={() => moverLinha(linha.chave, -1)}
               disabled={i === 0}
-              className="text-sm text-paper-dim underline decoration-paper-dim/40 underline-offset-4 transition hover:text-paper hover:decoration-paper disabled:opacity-30"
+              aria-label={`Mover passo ${i + 1} para cima`}
+              className={`${botaoClasse("secundario", "sm")} min-w-11 px-0`}
             >
               ↑
             </button>
@@ -114,7 +116,8 @@ export function EditorPassosPreparo({
               type="button"
               onClick={() => moverLinha(linha.chave, 1)}
               disabled={i === linhas.length - 1}
-              className="text-sm text-paper-dim underline decoration-paper-dim/40 underline-offset-4 transition hover:text-paper hover:decoration-paper disabled:opacity-30"
+              aria-label={`Mover passo ${i + 1} para baixo`}
+              className={`${botaoClasse("secundario", "sm")} min-w-11 px-0`}
             >
               ↓
             </button>

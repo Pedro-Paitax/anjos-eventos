@@ -2436,8 +2436,8 @@ Registrados, sem corrigir (decisão do Pedro):
 `npm run build` (build isolado de `git archive HEAD` no ender): compilou, `BUILD_EXIT=0`, standalone gerado.
 
 ### 6. Screenshots
-`docs/amostras/home-cards.jpg`, `modal-pendencias.jpg`, `lista-preparos.jpg`,
-`formulario-decisoes.jpg` (tema escuro, desktop; o último mostra "(valor antigo)").
+`docs/amostras/lista-preparos.jpg` e `formulario-decisoes.jpg` (tema escuro, desktop; o último mostra "(valor antigo)").
+(`home-cards.jpg` e `modal-pendencias.jpg` foram removidas de `docs/amostras/` por mostrarem nome de cliente.)
 
 ### 7. Depende do Pedro
 - Autorizar o deploy (`scripts/deploy-oracle.sh`) depois de revisar.
@@ -2445,3 +2445,18 @@ Registrados, sem corrigir (decisão do Pedro):
 - Manter CSS puro ou migrar para `motion`.
 - Confirmar `log_statement='mod'` no Oracle (`SHOW log_statement;` via `sudo -u postgres psql`).
 - O evento real `cliente1` (id 14) continua com pendências de equipe e decisões; não alterei.
+
+## Build no `ender`: falha intermitente ao baixar fontes (registrado em 2026-10-03, redesign-ui)
+
+**Sintoma:** `npm run build` no `ender` (a partir de `git archive HEAD`) falha de vez em quando com
+`Failed to fetch Archivo/Fraunces from Google Fonts` / `There was an issue establishing a connection while requesting
+https://fonts.googleapis.com/css2?...` (host que não respondeu durante o build: `fonts.googleapis.com`).
+Nas mesmas horas `curl` e `fetch` do Node no `ender` alcançam o host (200). Passou em 3 builds seguidos
+(e0e1648, 704c8b9, 02e2b74) e falhou em 2 tentativas seguidas depois (build do smoke da Etapa 5); a 3ª tentativa passou.
+
+**Alternativa (NÃO implementada, depende do Pedro):** trocar `next/font/google` por `next/font/local` em
+`src/app/layout.tsx`, com os arquivos das duas fontes (Archivo variável e Fraunces variável, normal + itálico,
+subset latin) versionados no repositório (ex.: `src/app/fonts/`). Efeitos: build sem rede, mesma aparência;
+custo: ~centenas de KB de binário no Git e atualização manual das fontes. Antes de implementar: conferir a licença
+(ambas OFL) e que os arquivos `.woff2` baixados são os mesmos da versão do Google Fonts.
+

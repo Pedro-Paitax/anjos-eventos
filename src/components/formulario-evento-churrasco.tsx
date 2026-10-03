@@ -434,7 +434,7 @@ export function FormularioEventoChurrasco({
 
         {cardapioConfirmado && cardapioConfirmado.length > 0 ? (
           <div className="flex flex-col gap-2 rounded-[2px] border border-paper-dim/20 bg-ink-soft p-3">
-            <p className="text-xs font-medium uppercase tracking-wide text-paper-dim/70">
+            <p className="text-xs font-medium uppercase tracking-wide text-texto-suave-escuro">
               Cardápio confirmado via Orçamento — somente leitura
             </p>
             <p className="text-xs text-paper-dim">
@@ -512,7 +512,7 @@ export function FormularioEventoChurrasco({
       {/* Valores */}
       <section className="flex flex-col gap-5">
         <h3 className={secaoTituloClasse}>Valores</h3>
-        <p className="text-sm text-paper-dim">
+        <p aria-live="polite" className="text-sm text-paper-dim">
           {calculandoPrecificacao
             ? "Calculando valor sugerido a partir do cardápio…"
             : precoFixoSelecionado != null

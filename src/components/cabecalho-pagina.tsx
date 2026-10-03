@@ -19,7 +19,7 @@ export function CabecalhoPagina({
         {voltarPara && (
           <Link
             href={voltarPara.href}
-            className="text-sm text-paper-dim underline decoration-paper-dim/40 underline-offset-4 transition hover:text-paper hover:decoration-paper"
+            className="inline-flex min-h-11 items-center self-start text-sm text-paper-dim underline decoration-paper-dim/40 underline-offset-4 transition hover:text-paper hover:decoration-paper"
           >
             {voltarPara.rotulo}
           </Link>

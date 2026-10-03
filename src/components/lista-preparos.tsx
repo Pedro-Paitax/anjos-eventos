@@ -9,6 +9,7 @@ import { ModalConfirmacao } from "@/components/modal-confirmacao";
 import { Alerta } from "@/components/alerta";
 import { campoClassePapel } from "@/components/campo";
 import { botaoClasse } from "@/components/botao";
+import { Vazio } from "@/components/vazio";
 
 const campoFiltroClasse = campoClassePapel;
 
@@ -60,7 +61,7 @@ function LinhaPreparo({ preparo }: { preparo: PreparoResumo }) {
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
         <div>
           <p className="font-display text-lg italic">{preparo.nome}</p>
-          <p className="text-sm text-paper-ink/70">
+          <p className="text-sm text-texto-suave-papel">
             {preparo.categoria ?? "Sem categoria"} · {rotuloRendimento(preparo)}
           </p>
         </div>
@@ -129,10 +130,16 @@ export function ListaPreparos({ preparos }: { preparos: PreparoResumo[] }) {
 
   if (preparos.length === 0) {
     return (
-      <p className="px-6 py-10 text-center text-sm text-paper-ink/70">
+      <Vazio
+        acao={
+          <Link href="/preparos/novo" className={botaoClasse()}>
+            Novo Preparo
+          </Link>
+        }
+      >
         Nenhum preparo cadastrado ainda. Cadastre o primeiro pra começar a
         montar as fichas técnicas.
-      </p>
+      </Vazio>
     );
   }
 
@@ -182,14 +189,14 @@ export function ListaPreparos({ preparos }: { preparos: PreparoResumo[] }) {
       </div>
 
       {preparosFiltrados.length === 0 ? (
-        <p className="px-6 py-10 text-center text-sm text-paper-ink/70">
+        <p className="px-6 py-10 text-center text-sm text-texto-suave-papel">
           Nenhum preparo encontrado com esse filtro.
         </p>
       ) : grupos ? (
         <div className="divide-y divide-paper-ink/10">
           {grupos.map(([categoria, itens]) => (
             <div key={categoria}>
-              <p className="bg-paper-ink/5 px-6 py-2 text-xs font-medium uppercase tracking-wide text-paper-ink/60">
+              <p className="bg-paper-ink/5 px-6 py-2 text-xs font-medium uppercase tracking-wide text-texto-suave-papel">
                 {categoria}
               </p>
               <ul className="lista-enter divide-y divide-paper-ink/10">

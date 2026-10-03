@@ -74,11 +74,11 @@ type AlertaProps = {
   children: ReactNode;
 };
 
-/** Erro e aviso urgente = role="alert"; sucesso e informação = role="status". */
+/** Erro = role="alert" (urgente); aviso, sucesso e informação = role="status" (anunciados sem interromper). */
 export function Alerta({ tipo, sobre = "escuro", titulo, className, children }: AlertaProps) {
   return (
     <div
-      role={tipo === "perigo" || tipo === "aviso" ? "alert" : "status"}
+      role={tipo === "perigo" ? "alert" : "status"}
       className={`flex gap-2 rounded-[2px] border p-3 text-sm ${cores[tipo][sobre]}${className ? ` ${className}` : ""}`}
     >
       <Icone tipo={tipo} />

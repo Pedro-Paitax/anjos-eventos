@@ -43,7 +43,7 @@ function CardCardapioModelo({ cardapio }: { cardapio: CardapioModeloResumo }) {
           className={`shrink-0 rounded-full px-3 py-1 text-xs font-medium ${
             cardapio.precoFixoPorPessoa != null
               ? "bg-acao/15 text-acao"
-              : "bg-paper-ink/10 text-paper-ink/60"
+              : "bg-paper-ink/10 text-texto-suave-papel"
           }`}
         >
           {formatarPreco(cardapio.precoFixoPorPessoa)}
@@ -51,10 +51,10 @@ function CardCardapioModelo({ cardapio }: { cardapio: CardapioModeloResumo }) {
       </div>
 
       {cardapio.descricao && (
-        <p className="line-clamp-2 text-sm text-paper-ink/70">{cardapio.descricao}</p>
+        <p className="line-clamp-2 text-sm text-texto-suave-papel">{cardapio.descricao}</p>
       )}
 
-      <p className="text-sm text-paper-ink/60">
+      <p className="text-sm text-texto-suave-papel">
         {cardapio.quantidadeItens} {cardapio.quantidadeItens === 1 ? "item" : "itens"}
       </p>
 
@@ -105,10 +105,15 @@ export function ListaCardapiosModelo({ cardapios }: { cardapios: CardapioModeloR
 
   if (cardapios.length === 0) {
     return (
-      <p className="px-6 py-10 text-center text-sm text-paper-dim">
-        Nenhum cardápio pré-montado ainda. Cadastre o primeiro pra agilizar o
-        Criar Evento.
-      </p>
+      <div className="flex flex-col items-center gap-4 px-6 py-10 text-center">
+        <p className="max-w-prose text-sm text-paper-dim">
+          Nenhum cardápio pré-montado ainda. Cadastre o primeiro pra agilizar o
+          Criar Evento.
+        </p>
+        <Link href="/cardapios-modelo/novo" className={botaoClasse()}>
+          Novo cardápio
+        </Link>
+      </div>
     );
   }
 

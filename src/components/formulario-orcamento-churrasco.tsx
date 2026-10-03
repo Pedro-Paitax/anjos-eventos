@@ -291,7 +291,7 @@ export function FormularioOrcamentoChurrasco({
 
       <section className="flex flex-col gap-5">
         <h3 className={secaoTituloClasse}>Valores</h3>
-        <p className="text-sm text-paper-dim">
+        <p aria-live="polite" className="text-sm text-paper-dim">
           {calculandoPrecificacao
             ? "Calculando valor sugerido a partir do cardápio…"
             : precoFixoSelecionado != null

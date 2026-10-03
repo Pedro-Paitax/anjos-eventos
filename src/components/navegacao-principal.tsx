@@ -46,9 +46,23 @@ export function NavegacaoPrincipal({ nomeUsuario }: { nomeUsuario?: string }) {
             Anjos Eventos
           </Link>
 
+          <div className="ml-auto flex items-center gap-2 sm:ml-0">
+            {nomeUsuario && (
+              <span className="max-w-[4.5rem] truncate text-sm text-paper lg:max-w-[10rem]" title={nomeUsuario}>
+                {nomeUsuario}
+              </span>
+            )}
+            <form action={trocarUsuario}>
+              <Botao type="submit" variante="link" tamanho="sm">
+                Trocar<span className="sr-only lg:not-sr-only">&nbsp;usuário</span>
+              </Botao>
+            </form>
+            <IndicadorWhatsapp />
+          </div>
+
           <nav
             aria-label="Navegação principal"
-            className="-mx-2 order-3 flex w-full overflow-x-auto sm:order-2 sm:mx-0 sm:w-auto sm:flex-1 sm:justify-center"
+            className="-mx-2 flex w-full overflow-x-auto sm:mx-0 sm:ml-auto sm:w-auto"
           >
             {links.map((link) => {
               const ativo = estaAtivo(pathname, link);
@@ -68,20 +82,6 @@ export function NavegacaoPrincipal({ nomeUsuario }: { nomeUsuario?: string }) {
               );
             })}
           </nav>
-
-          <div className="order-2 flex items-center gap-2 sm:order-3">
-            {nomeUsuario && (
-              <span className="max-w-[4.5rem] truncate text-sm text-paper sm:max-w-[6rem] lg:max-w-[10rem]" title={nomeUsuario}>
-                {nomeUsuario}
-              </span>
-            )}
-            <form action={trocarUsuario}>
-              <Botao type="submit" variante="link" tamanho="sm">
-                Trocar<span className="sr-only sm:not-sr-only">&nbsp;usuário</span>
-              </Botao>
-            </form>
-            <IndicadorWhatsapp />
-          </div>
         </div>
       </header>
       {/* Destino do skip link: o foco cai aqui e o próximo Tab segue para o conteúdo. */}

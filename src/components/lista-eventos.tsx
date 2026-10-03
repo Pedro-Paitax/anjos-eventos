@@ -7,14 +7,15 @@ import {
   formatarValor,
   rotuloStatus,
 } from "@/lib/formatacao";
+import { Vazio } from "@/components/vazio";
 
 export function ListaEventos({ eventos }: { eventos: Evento[] }) {
   if (eventos.length === 0) {
     return (
-      <p className="px-6 py-10 text-center text-sm text-paper-ink/70">
+      <Vazio>
         Nenhum evento ainda. Cadastre o primeiro pra começar a montar a
         agenda.
-      </p>
+      </Vazio>
     );
   }
 
@@ -37,7 +38,7 @@ export function ListaEventos({ eventos }: { eventos: Evento[] }) {
                 <p className="font-display text-lg italic">
                   {evento.cliente}
                 </p>
-                <p className="text-sm text-paper-ink/70">
+                <p className="text-sm text-texto-suave-papel">
                   {evento.empresa_nome}
                   {evento.tipo_evento ? `, ${evento.tipo_evento}` : ""}
                 </p>
@@ -48,7 +49,7 @@ export function ListaEventos({ eventos }: { eventos: Evento[] }) {
                 {formatarData(evento.data_evento)},{" "}
                 {formatarHora(evento.data_evento)}
               </p>
-              <div className="flex items-center gap-3 text-sm text-paper-ink/70">
+              <div className="flex items-center gap-3 text-sm text-texto-suave-papel">
                 <span>{rotuloStatus(evento.status)}</span>
                 {evento.valor && <span>{formatarValor(evento.valor)}</span>}
               </div>

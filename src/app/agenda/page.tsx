@@ -47,7 +47,7 @@ export default async function AgendaPage({ searchParams }: AgendaPageProps) {
         <div className="inline-flex w-fit gap-1 rounded-[2px] bg-ink-soft p-1">
           <Link
             href={`/agenda?visao=agenda&mes=${mesAtual}`}
-            className={`rounded-[2px] px-4 py-1.5 text-sm transition ${
+            className={`inline-flex min-h-11 items-center rounded-[2px] px-4 text-sm transition ${
               visaoAtual === "agenda"
                 ? "bg-paper text-paper-ink"
                 : "text-paper-dim hover:text-paper"
@@ -57,7 +57,7 @@ export default async function AgendaPage({ searchParams }: AgendaPageProps) {
           </Link>
           <Link
             href="/agenda?visao=sequencia"
-            className={`rounded-[2px] px-4 py-1.5 text-sm transition ${
+            className={`inline-flex min-h-11 items-center rounded-[2px] px-4 text-sm transition ${
               visaoAtual === "sequencia"
                 ? "bg-paper text-paper-ink"
                 : "text-paper-dim hover:text-paper"

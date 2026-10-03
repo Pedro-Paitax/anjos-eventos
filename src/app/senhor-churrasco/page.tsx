@@ -76,7 +76,7 @@ export default async function SenhorChurrascoPage() {
                     className="absolute inset-x-0 top-0 h-1.5 bg-paper-dim"
                   />
                   <p className="font-display text-lg italic">{item.titulo}</p>
-                  <p className="text-sm text-paper-ink/70">{item.descricao}</p>
+                  <p className="text-sm text-texto-suave-papel">{item.descricao}</p>
                 </Link>
               ))}
               {bloco.titulo === "Cadastros" && (
@@ -84,7 +84,7 @@ export default async function SenhorChurrascoPage() {
                   <p className="font-display text-lg italic text-paper-dim">
                     Espaço / Localização
                   </p>
-                  <p className="text-sm text-paper-dim/60">Em breve.</p>
+                  <p className="text-sm text-texto-suave-escuro">Em breve.</p>
                 </div>
               )}
             </div>

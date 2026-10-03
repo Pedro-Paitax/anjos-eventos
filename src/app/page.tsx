@@ -9,6 +9,7 @@ import type { AtivosPorFuncao } from "@/lib/pendencias-evento";
 import { BotaoResolverPendencias } from "@/components/botao-resolver-pendencias";
 import { corEmpresa, formatarData, formatarHora } from "@/lib/formatacao";
 import { botaoClasse } from "@/components/botao";
+import { Alerta } from "@/components/alerta";
 
 const DIAS_PROXIMOS_EVENTOS = 15;
 
@@ -60,9 +61,14 @@ export default async function Home() {
             Próximos {DIAS_PROXIMOS_EVENTOS} dias
           </h2>
           {eventosProximos.length === 0 ? (
-            <p className="text-sm text-paper-dim">
-              Nenhum evento nos próximos {DIAS_PROXIMOS_EVENTOS} dias.
-            </p>
+            <div className="flex flex-col items-start gap-1">
+              <p className="text-sm text-paper-dim">
+                Nenhum evento nos próximos {DIAS_PROXIMOS_EVENTOS} dias.
+              </p>
+              <Link href="/agenda" className={botaoClasse("link", "sm")}>
+                Ver agenda completa
+              </Link>
+            </div>
           ) : (
             <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               {eventosProximos.map((evento, i) => (
@@ -82,24 +88,21 @@ export default async function Home() {
                     >
                       <p className="font-display text-lg italic">
                         {evento.cliente}
-                        {(pendencias.get(evento.id)?.length ?? 0) > 0 && (
-                          <span
-                            role="img"
-                            aria-label="Item pendente"
-                            title={pendencias.get(evento.id)?.map((i) => i.texto).join("; ")}
-                            className="ml-2 not-italic"
-                          >
-                            ⚠️
-                          </span>
-                        )}
                       </p>
-                      <p className="text-sm text-paper-ink/70">
+                      <p className="text-sm text-texto-suave-papel">
                         {formatarData(evento.data_evento)}, {formatarHora(evento.data_evento)}
                       </p>
-                      <p className="text-xs text-paper-ink/60">{evento.empresa_nome}</p>
+                      <p className="text-xs text-texto-suave-papel">{evento.empresa_nome}</p>
                     </Link>
                     {(pendencias.get(evento.id)?.length ?? 0) > 0 && (
-                      <div className="px-4 pb-4">
+                      <div className="flex flex-col items-start gap-3 px-4 pb-4">
+                        <Alerta tipo="aviso" sobre="papel" titulo="Pendências do evento" className="w-full">
+                          <ul className="list-disc pl-4">
+                            {(pendencias.get(evento.id) ?? []).map((item) => (
+                              <li key={item.texto}>{item.texto}</li>
+                            ))}
+                          </ul>
+                        </Alerta>
                         <BotaoResolverPendencias
                           eventoId={evento.id}
                           itens={pendencias.get(evento.id) ?? []}
@@ -129,7 +132,7 @@ export default async function Home() {
                   className="absolute inset-x-0 top-0 h-1.5 bg-paper-dim"
                 />
                 <p className="font-display text-lg italic">{item.titulo}</p>
-                <p className="text-sm text-paper-ink/70">{item.descricao}</p>
+                <p className="text-sm text-texto-suave-papel">{item.descricao}</p>
               </Link>
             ) : (
               <div
@@ -139,7 +142,7 @@ export default async function Home() {
                 <p className="font-display text-lg italic text-paper-dim">
                   {item.titulo}
                 </p>
-                <p className="text-sm text-paper-dim/60">{item.descricao}</p>
+                <p className="text-sm text-texto-suave-escuro">{item.descricao}</p>
               </div>
             )
           )}

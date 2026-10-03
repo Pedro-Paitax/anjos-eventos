@@ -5,6 +5,8 @@ import Link from "next/link";
 import type { InsumoResumo } from "@/lib/insumos";
 import { UNIDADES_INSUMO } from "@/lib/preparos-opcoes";
 import { campoClassePapel } from "@/components/campo";
+import { Vazio } from "@/components/vazio";
+import { botaoClasse } from "@/components/botao";
 
 // Preço corrigido já vem calculado do servidor (calcularPrecoCorrigido em
 // src/lib/custo-preparo.ts, que depende de "server-only" — não pode ser
@@ -36,7 +38,7 @@ function LinhaInsumo({ insumo }: { insumo: InsumoComPrecoCorrigido }) {
     <li className="flex flex-col gap-2 px-6 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
       <div>
         <p className="font-display text-lg italic">{insumo.nome}</p>
-        <p className="text-sm text-paper-ink/70">
+        <p className="text-sm text-texto-suave-papel">
           {insumo.udm} · {formatarReais(insumo.preco)} · fator{" "}
           {insumo.fatorCorrecao ?? "—"} · corrigido {formatarReais(insumo.precoCorrigido)}
         </p>
@@ -44,7 +46,7 @@ function LinhaInsumo({ insumo }: { insumo: InsumoComPrecoCorrigido }) {
       <Link
         href={`/insumos/${insumo.id}`}
         aria-label={`Editar ${insumo.nome}`}
-        className="-my-2 self-start py-2 text-sm underline decoration-paper-ink/30 underline-offset-4 transition hover:decoration-paper-ink sm:self-center"
+        className={`${botaoClasse("link", "sm", "papel")} self-start sm:self-center`}
       >
         Editar
       </Link>
@@ -69,10 +71,16 @@ export function ListaInsumos({ insumos }: { insumos: InsumoComPrecoCorrigido[] }
 
   if (insumos.length === 0) {
     return (
-      <p className="px-6 py-10 text-center text-sm text-paper-ink/70">
+      <Vazio
+        acao={
+          <Link href="/preparos" className={botaoClasse("secundario")}>
+            Ir para Preparos
+          </Link>
+        }
+      >
         Nenhum insumo cadastrado ainda. Insumos são criados a partir da
         Composição de um Preparo.
-      </p>
+      </Vazio>
     );
   }
 
@@ -113,7 +121,7 @@ export function ListaInsumos({ insumos }: { insumos: InsumoComPrecoCorrigido[] }
       </div>
 
       {insumosFiltrados.length === 0 ? (
-        <p className="px-6 py-10 text-center text-sm text-paper-ink/70">
+        <p className="px-6 py-10 text-center text-sm text-texto-suave-papel">
           Nenhum insumo encontrado com esse filtro.
         </p>
       ) : (

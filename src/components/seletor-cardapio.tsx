@@ -171,7 +171,7 @@ export function SeletorCardapio({
           (categoria) =>
             selecao[categoria].length > 0 && (
               <div key={categoria} className="flex flex-col gap-1.5">
-                <p className="text-xs font-medium uppercase tracking-wide text-paper-dim/70">
+                <p className="text-xs font-medium uppercase tracking-wide text-texto-suave-escuro">
                   {categoria}
                 </p>
                 <div className="flex flex-wrap gap-2">
@@ -185,7 +185,7 @@ export function SeletorCardapio({
                         type="button"
                         onClick={() => remover(categoria, nome)}
                         aria-label={`Remover ${nome}`}
-                        className="text-paper-ink/50 transition hover:text-perigo-escuro"
+                        className="text-texto-suave-papel transition hover:text-perigo-escuro"
                       >
                         ×
                       </button>
@@ -234,7 +234,7 @@ export function SeletorCardapio({
                   onClick={() => adicionar(categoriaAtiva, item.nome)}
                   className={`flex items-center justify-between rounded-[2px] px-3 py-2 text-left text-sm transition ${
                     jaSelecionado
-                      ? "cursor-not-allowed bg-ink-soft/60 text-paper-dim/50"
+                      ? "cursor-not-allowed bg-ink-soft/60 text-texto-suave-escuro"
                       : "text-paper hover:bg-ink-soft"
                   }`}
                 >

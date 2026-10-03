@@ -89,7 +89,7 @@ export default async function OrcamentoPage({ params }: PaginaOrcamentoProps) {
           <Painel>
             {orcamento.itens.length > 0 && (
               <div className="mb-6 flex flex-col gap-2 rounded-[2px] border border-paper-dim/20 bg-ink-soft p-3">
-                <p className="text-xs font-medium uppercase tracking-wide text-paper-dim/70">
+                <p className="text-xs font-medium uppercase tracking-wide text-texto-suave-escuro">
                   Cardápio do Orçamento (fixado — trocar item exige um novo Orçamento)
                 </p>
                 <ul className="list-disc pl-5 text-sm text-paper">
