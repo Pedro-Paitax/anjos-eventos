@@ -33,7 +33,7 @@ export function FormularioInsumo({
         <input
           id="nome"
           name="nome"
-          defaultValue={valoresIniciais.nome}
+          defaultValue={estado.valores?.nome ?? valoresIniciais.nome}
           required
           className={campoClasse}
         />
@@ -47,7 +47,7 @@ export function FormularioInsumo({
           <select
             id="udm"
             name="udm"
-            defaultValue={valoresIniciais.udm}
+            defaultValue={estado.valores?.udm ?? valoresIniciais.udm}
             className={campoClasse}
           >
             {UNIDADES_INSUMO.map((u) => (
@@ -68,7 +68,7 @@ export function FormularioInsumo({
             step="0.01"
             min="0"
             required
-            defaultValue={valoresIniciais.preco ?? ""}
+            defaultValue={estado.valores?.preco ?? valoresIniciais.preco ?? ""}
             className={campoClasse}
           />
         </div>
@@ -83,7 +83,7 @@ export function FormularioInsumo({
             step="0.01"
             min="0"
             required
-            defaultValue={valoresIniciais.fatorCorrecao ?? ""}
+            defaultValue={estado.valores?.fatorCorrecao ?? valoresIniciais.fatorCorrecao ?? ""}
             className={campoClasse}
           />
         </div>

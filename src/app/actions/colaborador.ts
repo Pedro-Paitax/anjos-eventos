@@ -13,8 +13,9 @@ import {
   type FuncaoColaborador,
 } from "@/lib/colaboradores-opcoes";
 import { obterUsuarioAtual } from "@/lib/usuario-atual";
+import { valoresEnviados, type ValoresFormulario } from "@/lib/formulario-valores";
 
-export type EstadoFormularioColaborador = { erro?: string };
+export type EstadoFormularioColaborador = { erro?: string; valores?: ValoresFormulario };
 
 function extrairDados(formData: FormData): DadosColaborador | { erro: string } {
   const nome = String(formData.get("nome") ?? "").trim();
@@ -48,12 +49,15 @@ export async function criarColaboradorAction(
   if (!usuarioAtual) redirect("/login");
 
   const dados = extrairDados(formData);
-  if ("erro" in dados) return dados;
+  if ("erro" in dados) return { ...dados, valores: valoresEnviados(formData) };
 
   try {
     await criarColaborador(dados);
   } catch (erro) {
-    return { erro: `Falha ao salvar colaborador: ${(erro as Error).message}` };
+    return {
+      erro: `Falha ao salvar colaborador: ${(erro as Error).message}`,
+      valores: valoresEnviados(formData),
+    };
   }
 
   revalidatePath("/colaboradores");
@@ -69,12 +73,15 @@ export async function atualizarColaboradorAction(
   if (!usuarioAtual) redirect("/login");
 
   const dados = extrairDados(formData);
-  if ("erro" in dados) return dados;
+  if ("erro" in dados) return { ...dados, valores: valoresEnviados(formData) };
 
   try {
     await atualizarColaborador(id, dados);
   } catch (erro) {
-    return { erro: `Falha ao salvar colaborador: ${(erro as Error).message}` };
+    return {
+      erro: `Falha ao salvar colaborador: ${(erro as Error).message}`,
+      valores: valoresEnviados(formData),
+    };
   }
 
   revalidatePath("/colaboradores");

@@ -4,9 +4,10 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { atualizarInsumo, type DadosInsumo } from "@/lib/insumos";
 import { obterUsuarioAtual } from "@/lib/usuario-atual";
+import { valoresEnviados, type ValoresFormulario } from "@/lib/formulario-valores";
 import { UNIDADES_INSUMO, type UnidadeInsumo } from "@/lib/preparos-opcoes";
 
-export type EstadoFormularioInsumo = { erro?: string };
+export type EstadoFormularioInsumo = { erro?: string; valores?: ValoresFormulario };
 
 function extrairDadosInsumo(formData: FormData): DadosInsumo | { erro: string } {
   const nome = String(formData.get("nome") ?? "").trim();
@@ -37,12 +38,15 @@ export async function atualizarInsumoAction(
   if (!usuarioAtual) redirect("/login");
 
   const dados = extrairDadosInsumo(formData);
-  if ("erro" in dados) return dados;
+  if ("erro" in dados) return { ...dados, valores: valoresEnviados(formData) };
 
   try {
     await atualizarInsumo(id, dados);
   } catch (erro) {
-    return { erro: `Falha ao salvar insumo: ${(erro as Error).message}` };
+    return {
+      erro: `Falha ao salvar insumo: ${(erro as Error).message}`,
+      valores: valoresEnviados(formData),
+    };
   }
 
   revalidatePath("/insumos");

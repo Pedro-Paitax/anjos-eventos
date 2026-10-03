@@ -33,7 +33,7 @@ export function FormularioColaborador({
         <input
           id="nome"
           name="nome"
-          defaultValue={valoresIniciais?.nome}
+          defaultValue={estado.valores?.nome ?? valoresIniciais?.nome}
           required
           className={campoClasse}
         />
@@ -47,7 +47,7 @@ export function FormularioColaborador({
           <select
             id="funcao"
             name="funcao"
-            defaultValue={valoresIniciais?.funcao ?? "copeira"}
+            defaultValue={estado.valores?.funcao ?? valoresIniciais?.funcao ?? "copeira"}
             className={campoClasse}
           >
             {FUNCOES_COLABORADOR.map((f) => (
@@ -66,7 +66,7 @@ export function FormularioColaborador({
             name="telefoneWhatsapp"
             type="tel"
             placeholder="5541999999999"
-            defaultValue={valoresIniciais?.telefone_whatsapp ?? ""}
+            defaultValue={estado.valores?.telefoneWhatsapp ?? valoresIniciais?.telefone_whatsapp ?? ""}
             className={campoClasse}
           />
         </div>
@@ -76,7 +76,7 @@ export function FormularioColaborador({
         <input
           type="checkbox"
           name="ativo"
-          defaultChecked={valoresIniciais?.ativo ?? true}
+          defaultChecked={estado.valores ? estado.valores.ativo === "on" : (valoresIniciais?.ativo ?? true)}
         />
         Ativo
       </label>

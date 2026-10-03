@@ -38,10 +38,14 @@ type FormularioDecisoesProps = {
 function CampoSelect({
   nome,
   valor,
+  enviado,
 }: {
   nome: CampoOpcao;
   valor: string | null | undefined;
+  /** Valor enviado antes de um erro; tem prioridade sobre o salvo. */
+  enviado?: string;
 }) {
+  valor = enviado ?? valor;
   const legado = ehValorLegado(nome, valor) ? valor : null;
   return (
     <div className="flex flex-col gap-1.5">
@@ -87,7 +91,7 @@ export function FormularioDecisoesOperacionais({
                     type="checkbox"
                     name="colaboradorIds"
                     value={c.id}
-                    defaultChecked={equipeIds.includes(c.id)}
+                    defaultChecked={(estado.equipeIds ?? equipeIds).includes(c.id)}
                   />
                   {c.nome}
                 </label>
@@ -99,23 +103,23 @@ export function FormularioDecisoesOperacionais({
 
       <h3 className={secaoTituloClasse}>Logística</h3>
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-        <CampoSelect nome="veiculo" valor={valoresIniciais?.veiculo} />
-        <CampoSelect nome="modeloPrato" valor={valoresIniciais?.modelo_prato} />
-        <CampoSelect nome="tipoBebidaRecipiente" valor={valoresIniciais?.tipo_bebida_recipiente} />
-        <CampoSelect nome="tipoTalher" valor={valoresIniciais?.tipo_talher} />
+        <CampoSelect nome="veiculo" valor={valoresIniciais?.veiculo} enviado={estado.valores?.veiculo} />
+        <CampoSelect nome="modeloPrato" valor={valoresIniciais?.modelo_prato} enviado={estado.valores?.modeloPrato} />
+        <CampoSelect nome="tipoBebidaRecipiente" valor={valoresIniciais?.tipo_bebida_recipiente} enviado={estado.valores?.tipoBebidaRecipiente} />
+        <CampoSelect nome="tipoTalher" valor={valoresIniciais?.tipo_talher} enviado={estado.valores?.tipoTalher} />
       </div>
 
       <div className="flex flex-col gap-2 text-sm">
         <label className="flex items-center gap-2">
-          <input type="checkbox" name="sousplat" defaultChecked={valoresIniciais?.sousplat ?? false} />
+          <input type="checkbox" name="sousplat" defaultChecked={estado.valores ? "sousplat" in estado.valores : (valoresIniciais?.sousplat ?? false)} />
           Sousplat
         </label>
         <label className="flex items-center gap-2">
-          <input type="checkbox" name="tacaFurtaCor" defaultChecked={valoresIniciais?.taca_furta_cor ?? false} />
+          <input type="checkbox" name="tacaFurtaCor" defaultChecked={estado.valores ? "tacaFurtaCor" in estado.valores : (valoresIniciais?.taca_furta_cor ?? false)} />
           Taça furta-cor
         </label>
         <label className="flex items-center gap-2">
-          <input type="checkbox" name="tacaChampanhe" defaultChecked={valoresIniciais?.taca_champanhe ?? false} />
+          <input type="checkbox" name="tacaChampanhe" defaultChecked={estado.valores ? "tacaChampanhe" in estado.valores : (valoresIniciais?.taca_champanhe ?? false)} />
           Taça de champanhe
         </label>
       </div>

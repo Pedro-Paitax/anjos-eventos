@@ -3,10 +3,17 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { salvarDecisoes, definirEquipeEvento, obterDecisoes } from "@/lib/decisoes-operacionais";
+import { valoresEnviados, type ValoresFormulario } from "@/lib/formulario-valores";
 import { valorValido, ROTULOS_CAMPO, type CampoOpcao } from "@/lib/decisoes-operacionais-opcoes";
 import { obterUsuarioAtual } from "@/lib/usuario-atual";
 
-export type EstadoFormularioDecisoes = { erro?: string; salvo?: boolean };
+export type EstadoFormularioDecisoes = {
+  erro?: string;
+  salvo?: boolean;
+  /** Valores enviados, devolvidos em erro para o formulário não zerar. */
+  valores?: ValoresFormulario;
+  equipeIds?: number[];
+};
 
 function textoOuNull(formData: FormData, campo: string): string | null {
   const valor = String(formData.get(campo) ?? "").trim();
@@ -22,8 +29,13 @@ export async function salvarDecisoesOperacionaisAction(
   if (!usuarioAtual) redirect("/login");
 
   const colaboradorIds = formData.getAll("colaboradorIds").map(Number);
+  const devolver = (erro: string): EstadoFormularioDecisoes => ({
+    erro,
+    valores: valoresEnviados(formData),
+    equipeIds: colaboradorIds.filter((id) => Number.isInteger(id) && id > 0),
+  });
   if (!colaboradorIds.every((id) => Number.isInteger(id) && id > 0)) {
-    return { erro: "Equipe inválida." };
+    return devolver("Equipe inválida.");
   }
 
   const veiculo = textoOuNull(formData, "veiculo");
@@ -46,7 +58,7 @@ export async function salvarDecisoesOperacionaisAction(
   for (const campo of Object.keys(enviados) as CampoOpcao[]) {
     const valor = enviados[campo];
     if (valor && !valorValido(campo, valor) && valor !== gravados[campo]) {
-      return { erro: `Valor inválido para ${ROTULOS_CAMPO[campo]}.` };
+      return devolver(`Valor inválido para ${ROTULOS_CAMPO[campo]}.`);
     }
   }
 
@@ -62,7 +74,7 @@ export async function salvarDecisoesOperacionaisAction(
       tipoTalher,
     });
   } catch (erro) {
-    return { erro: `Falha ao salvar decisões: ${(erro as Error).message}` };
+    return devolver(`Falha ao salvar decisões: ${(erro as Error).message}`);
   }
 
   revalidatePath(`/agenda/${eventoId}`);
