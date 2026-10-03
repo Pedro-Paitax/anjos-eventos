@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 
 /**
@@ -20,6 +20,9 @@ type ModalProps = {
   children: ReactNode;
 };
 
+/** Igual a --motion-fast em globals.css. */
+const SAIDA_MS = 150;
+
 const FOCAVEIS =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
@@ -31,10 +34,26 @@ export function Modal({
   children,
 }: ModalProps) {
   const painelRef = useRef<HTMLDivElement>(null);
+  const [saindo, setSaindo] = useState(false);
   // Sempre a versão mais recente, sem reexecutar o efeito a cada render.
   const fecharRef = useRef(onFechar);
   useEffect(() => {
     fecharRef.current = onFechar;
+  });
+
+  // Esc e clique fora fecham com animação de saída (sem ela, com
+  // prefers-reduced-motion). Botões dentro do conteúdo fecham direto.
+  const fecharComSaida = useCallback(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      fecharRef.current();
+      return;
+    }
+    setSaindo(true);
+    setTimeout(() => fecharRef.current(), SAIDA_MS);
+  }, []);
+  const saidaRef = useRef(fecharComSaida);
+  useEffect(() => {
+    saidaRef.current = fecharComSaida;
   });
 
   useEffect(() => {
@@ -50,7 +69,7 @@ export function Modal({
     function aoTeclar(e: KeyboardEvent) {
       if (e.key === "Escape") {
         e.stopPropagation();
-        fecharRef.current();
+        saidaRef.current();
         return;
       }
       if (e.key !== "Tab" || !painelRef.current) return;
@@ -85,8 +104,9 @@ export function Modal({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 print:hidden"
-      onClick={onFechar}
+      className="modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 print:hidden"
+      data-saindo={saindo ? "" : undefined}
+      onClick={fecharComSaida}
     >
       <div
         ref={painelRef}
@@ -95,7 +115,7 @@ export function Modal({
         aria-labelledby={labelledBy}
         aria-label={rotulo}
         tabIndex={-1}
-        className={`flex max-h-[calc(100dvh-2rem)] w-full flex-col gap-4 overflow-y-auto rounded-[2px] p-5 shadow-[0_30px_60px_-20px_rgba(0,0,0,0.8)] outline-none ${className}`}
+        className={`modal-caixa flex max-h-[calc(100dvh-2rem)] w-full flex-col gap-4 overflow-y-auto rounded-[2px] p-5 shadow-[0_30px_60px_-20px_rgba(0,0,0,0.8)] outline-none ${className}`}
         onClick={(e) => e.stopPropagation()}
       >
         {children}
