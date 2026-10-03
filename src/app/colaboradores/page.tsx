@@ -5,6 +5,9 @@ import { listarColaboradores } from "@/lib/colaboradores";
 import { ROTULOS_FUNCAO } from "@/lib/colaboradores-opcoes";
 import { CabecalhoPagina } from "@/components/cabecalho-pagina";
 import { botaoClasse } from "@/components/botao";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = { title: "Colaboradores" };
 
 export default async function ColaboradoresPage() {
   const usuarioAtual = await obterUsuarioAtual();

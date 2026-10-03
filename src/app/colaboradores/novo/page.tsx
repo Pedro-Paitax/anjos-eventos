@@ -4,6 +4,9 @@ import { criarColaboradorAction } from "@/app/actions/colaborador";
 import { CabecalhoPagina } from "@/components/cabecalho-pagina";
 import { FormularioColaborador } from "@/components/formulario-colaborador";
 import { Painel } from "@/components/painel";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = { title: "Novo colaborador" };
 
 export default async function NovoColaboradorPage() {
   const usuarioAtual = await obterUsuarioAtual();

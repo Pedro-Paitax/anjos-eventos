@@ -4,6 +4,9 @@ import { listarInsumosDetalhado } from "@/lib/insumos";
 import { calcularPrecoCorrigido, arredondarCentavos } from "@/lib/custo-preparo";
 import { CabecalhoPagina } from "@/components/cabecalho-pagina";
 import { ListaInsumos } from "@/components/lista-insumos";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = { title: "Insumos" };
 
 export default async function InsumosPage() {
   const usuarioAtual = await obterUsuarioAtual();

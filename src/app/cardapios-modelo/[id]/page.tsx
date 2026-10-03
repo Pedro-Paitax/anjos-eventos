@@ -6,6 +6,9 @@ import { atualizarCardapioModeloAction } from "@/app/actions/cardapio-modelo";
 import { CabecalhoPagina } from "@/components/cabecalho-pagina";
 import { FormularioCardapioModelo } from "@/components/formulario-cardapio-modelo";
 import { Painel } from "@/components/painel";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = { title: "Editar cardápio" };
 
 type PaginaCardapioModeloProps = {
   params: Promise<{ id: string }>;

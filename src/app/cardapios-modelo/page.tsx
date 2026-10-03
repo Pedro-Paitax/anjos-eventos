@@ -5,6 +5,9 @@ import { listarCardapiosModelo } from "@/lib/cardapios-modelo";
 import { CabecalhoPagina } from "@/components/cabecalho-pagina";
 import { ListaCardapiosModelo } from "@/components/lista-cardapios-modelo";
 import { botaoClasse } from "@/components/botao";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = { title: "Cardápios Feitos" };
 
 export default async function CardapiosModeloPage() {
   const usuarioAtual = await obterUsuarioAtual();
@@ -20,7 +23,7 @@ export default async function CardapiosModeloPage() {
         <CabecalhoPagina
           titulo="Cardápios Feitos"
           subtitulo="Cardápios pré-montados pra agilizar o Criar Evento (Senhor Churrasco)."
-          voltarPara={{ href: "/", rotulo: "← Início" }}
+          voltarPara={{ href: "/senhor-churrasco", rotulo: "← Senhor Churrasco" }}
           acao={
             <Link
               href="/cardapios-modelo/novo"

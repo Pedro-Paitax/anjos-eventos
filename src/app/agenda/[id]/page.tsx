@@ -24,6 +24,9 @@ import { FormularioEventoGenerico } from "@/components/formulario-evento-generic
 import { BotaoExcluirEvento } from "@/components/botao-excluir-evento";
 import { Painel } from "@/components/painel";
 import { Alerta } from "@/components/alerta";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = { title: "Evento" };
 
 type PaginaEventoProps = {
   params: Promise<{ id: string }>;

@@ -5,6 +5,9 @@ import { listarCardapiosModelo } from "@/lib/cardapios-modelo";
 import { CabecalhoPagina } from "@/components/cabecalho-pagina";
 import { SimuladorCardapio } from "@/components/simulador-cardapio";
 import { Painel } from "@/components/painel";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = { title: "Simulador de Cardápio" };
 
 export default async function SimuladorCardapioPage() {
   const usuarioAtual = await obterUsuarioAtual();
@@ -21,7 +24,7 @@ export default async function SimuladorCardapioPage() {
         <CabecalhoPagina
           titulo="Simulador de Cardápio"
           subtitulo="Monte um cardápio e veja o valor sugerido, sem criar um evento."
-          voltarPara={{ href: "/", rotulo: "← Início" }}
+          voltarPara={{ href: "/senhor-churrasco", rotulo: "← Senhor Churrasco" }}
         />
 
         <Painel>

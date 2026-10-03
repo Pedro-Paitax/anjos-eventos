@@ -6,6 +6,9 @@ import { calcularPrecificacaoParaEvento } from "@/lib/precificacao-cardapio";
 import { CabecalhoPagina } from "@/components/cabecalho-pagina";
 import { FormularioConfirmarEvento } from "@/components/formulario-confirmar-evento";
 import { Painel } from "@/components/painel";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = { title: "Orçamento" };
 
 type PaginaOrcamentoProps = {
   params: Promise<{ id: string }>;

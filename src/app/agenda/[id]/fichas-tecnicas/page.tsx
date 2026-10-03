@@ -4,6 +4,9 @@ import { obterEvento } from "@/lib/eventos";
 import { obterFichasTecnicasEvento } from "@/lib/ficha-tecnica-evento";
 import { formatarData } from "@/lib/formatacao";
 import { BotaoImprimir } from "@/components/botao-imprimir";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = { title: "Fichas técnicas" };
 
 type PaginaFichasTecnicasProps = {
   params: Promise<{ id: string }>;

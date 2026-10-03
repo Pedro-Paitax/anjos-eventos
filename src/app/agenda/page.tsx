@@ -7,6 +7,9 @@ import { CabecalhoPagina } from "@/components/cabecalho-pagina";
 import { ListaEventos } from "@/components/lista-eventos";
 import { CalendarioEventos } from "@/components/calendario-eventos";
 import { botaoClasse } from "@/components/botao";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = { title: "Agenda" };
 
 type AgendaPageProps = {
   searchParams: Promise<{ visao?: string; mes?: string }>;

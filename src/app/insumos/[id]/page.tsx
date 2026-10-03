@@ -5,6 +5,9 @@ import { atualizarInsumoAction } from "@/app/actions/insumo";
 import { CabecalhoPagina } from "@/components/cabecalho-pagina";
 import { FormularioInsumo } from "@/components/formulario-insumo";
 import { Painel } from "@/components/painel";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = { title: "Editar insumo" };
 
 type PaginaInsumoProps = {
   params: Promise<{ id: string }>;

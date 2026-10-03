@@ -2,6 +2,9 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { obterUsuarioAtual } from "@/lib/usuario-atual";
 import { CabecalhoPagina } from "@/components/cabecalho-pagina";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = { title: "Senhor Churrasco" };
 
 type ItemHub = { titulo: string; descricao: string; href: string };
 

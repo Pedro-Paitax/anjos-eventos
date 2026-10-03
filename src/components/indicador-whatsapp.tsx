@@ -58,7 +58,7 @@ export function IndicadorWhatsapp() {
         onClick={() => dados.status !== "connected" && setModalAberto(true)}
         title={texto}
         aria-label={texto}
-        className="text-base leading-none"
+        className="inline-flex min-h-11 min-w-11 items-center justify-center text-base leading-none"
       >
         <span key={dados.status} className="troca-suave inline-block">
           {icone}

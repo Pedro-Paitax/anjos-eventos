@@ -9,6 +9,9 @@ import { CabecalhoPagina } from "@/components/cabecalho-pagina";
 import { FormularioOrcamentoChurrasco } from "@/components/formulario-orcamento-churrasco";
 import { FormularioOrcamentoGenerico } from "@/components/formulario-orcamento-generico";
 import { Painel } from "@/components/painel";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = { title: "Novo orçamento" };
 
 type NovoEventoPageProps = {
   searchParams: Promise<{ empresa?: string }>;

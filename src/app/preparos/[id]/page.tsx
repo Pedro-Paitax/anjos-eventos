@@ -6,6 +6,9 @@ import { atualizarPreparoAction } from "@/app/actions/preparo";
 import { CabecalhoPagina } from "@/components/cabecalho-pagina";
 import { FormularioPreparo } from "@/components/formulario-preparo";
 import { Painel } from "@/components/painel";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = { title: "Editar preparo" };
 
 type PaginaPreparoProps = {
   params: Promise<{ id: string }>;

@@ -5,6 +5,9 @@ import { listarPreparos } from "@/lib/preparos";
 import { CabecalhoPagina } from "@/components/cabecalho-pagina";
 import { ListaPreparos } from "@/components/lista-preparos";
 import { botaoClasse } from "@/components/botao";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = { title: "Preparos" };
 
 export default async function PreparosPage() {
   const usuarioAtual = await obterUsuarioAtual();
@@ -20,7 +23,7 @@ export default async function PreparosPage() {
         <CabecalhoPagina
           titulo="Preparos"
           subtitulo="Fichas técnicas: preparos, composição e insumos."
-          voltarPara={{ href: "/", rotulo: "← Início" }}
+          voltarPara={{ href: "/senhor-churrasco", rotulo: "← Senhor Churrasco" }}
           acao={
             <Link
               href="/preparos/novo"

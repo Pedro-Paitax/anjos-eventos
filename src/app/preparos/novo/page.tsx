@@ -5,6 +5,9 @@ import { criarPreparoAction } from "@/app/actions/preparo";
 import { CabecalhoPagina } from "@/components/cabecalho-pagina";
 import { FormularioPreparo } from "@/components/formulario-preparo";
 import { Painel } from "@/components/painel";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = { title: "Novo preparo" };
 
 export default async function NovoPreparoPage() {
   const usuarioAtual = await obterUsuarioAtual();
