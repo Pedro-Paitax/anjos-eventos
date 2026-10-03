@@ -58,7 +58,9 @@ export function IndicadorWhatsapp() {
         aria-label={texto}
         className="text-base leading-none"
       >
-        {icone}
+        <span key={dados.status} className="troca-suave inline-block">
+          {icone}
+        </span>
       </button>
 
       {modalVisivel && (

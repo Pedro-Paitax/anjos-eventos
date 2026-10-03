@@ -61,11 +61,12 @@ export default async function SenhorChurrascoPage() {
               {bloco.titulo}
             </h2>
             <div className="grid w-full grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {bloco.itens.map((item) => (
+              {bloco.itens.map((item, i) => (
                 <Link
                   key={item.titulo}
                   href={item.href}
-                  className="group relative flex flex-col gap-2 overflow-hidden rounded-[2px] bg-paper p-5 text-paper-ink shadow-[0_18px_28px_-16px_rgba(0,0,0,0.6)] transition hover:-translate-y-1 focus-visible:-translate-y-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brass"
+                  style={{ ["--enter-order" as string]: i }}
+                  className="card-enter group relative flex flex-col gap-2 overflow-hidden rounded-[2px] bg-paper p-5 text-paper-ink shadow-[0_18px_28px_-16px_rgba(0,0,0,0.6)] transition hover:-translate-y-1 focus-visible:-translate-y-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brass"
                 >
                   <span
                     aria-hidden

@@ -64,9 +64,13 @@ export default async function Home() {
             </p>
           ) : (
             <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              {eventosProximos.map((evento) => (
-                <li key={evento.id}>
-                  <div className="relative flex h-full flex-col overflow-hidden rounded-[2px] bg-paper text-paper-ink shadow-[0_18px_28px_-16px_rgba(0,0,0,0.6)] transition hover:-translate-y-1 focus-within:-translate-y-1">
+              {eventosProximos.map((evento, i) => (
+                <li
+                  key={evento.id}
+                  className="card-enter"
+                  style={{ ["--enter-order" as string]: i }}
+                >
+                  <div className="relative flex h-full flex-col overflow-hidden rounded-[2px] bg-paper text-paper-ink border border-transparent shadow-[0_18px_28px_-16px_rgba(0,0,0,0.6)] transition hover:-translate-y-1 hover:border-brass/60 hover:shadow-[0_24px_34px_-16px_rgba(0,0,0,0.75)] focus-within:-translate-y-1 focus-within:border-brass/60">
                     <span
                       aria-hidden
                       className={`absolute inset-x-0 top-0 h-1.5 ${corEmpresa(evento.empresa_nome)}`}
@@ -111,12 +115,13 @@ export default async function Home() {
         </section>
 
         <div className="grid w-full grid-cols-1 gap-4 sm:grid-cols-2">
-          {funcionalidades.map((item) =>
+          {funcionalidades.map((item, i) =>
             item.href ? (
               <Link
                 key={item.titulo}
                 href={item.href}
-                className="group relative flex flex-col gap-2 overflow-hidden rounded-[2px] bg-paper p-5 text-paper-ink shadow-[0_18px_28px_-16px_rgba(0,0,0,0.6)] transition hover:-translate-y-1 focus-visible:-translate-y-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brass"
+                style={{ ["--enter-order" as string]: i }}
+                className="card-enter group relative flex flex-col gap-2 overflow-hidden rounded-[2px] border border-transparent bg-paper p-5 text-paper-ink shadow-[0_18px_28px_-16px_rgba(0,0,0,0.6)] transition hover:-translate-y-1 hover:border-brass/60 hover:shadow-[0_24px_34px_-16px_rgba(0,0,0,0.75)] focus-visible:-translate-y-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brass"
               >
                 <span
                   aria-hidden

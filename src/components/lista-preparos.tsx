@@ -199,7 +199,7 @@ export function ListaPreparos({ preparos }: { preparos: PreparoResumo[] }) {
               <p className="bg-paper-ink/5 px-6 py-2 text-xs font-medium uppercase tracking-wide text-paper-ink/60">
                 {categoria}
               </p>
-              <ul className="divide-y divide-paper-ink/10">
+              <ul className="lista-enter divide-y divide-paper-ink/10">
                 {itens.map((preparo) => (
                   <LinhaPreparo key={preparo.id} preparo={preparo} />
                 ))}
@@ -208,7 +208,7 @@ export function ListaPreparos({ preparos }: { preparos: PreparoResumo[] }) {
           ))}
         </div>
       ) : (
-        <ul className="divide-y divide-paper-ink/10">
+        <ul className="lista-enter divide-y divide-paper-ink/10">
           {preparosFiltrados.map((preparo) => (
             <LinhaPreparo key={preparo.id} preparo={preparo} />
           ))}

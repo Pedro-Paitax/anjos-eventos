@@ -48,7 +48,7 @@ export function BotaoResolverPendencias({ eventoId, itens, ativosPorFuncao, clas
           {grupos.map((grupo) => (
             <section key={grupo.titulo} className="flex flex-col gap-2">
               <h3 className="text-xs uppercase tracking-wide text-paper-dim">{grupo.titulo}</h3>
-              <ul className="flex flex-col gap-1.5 text-sm">
+              <ul className="lista-enter flex flex-col gap-1.5 text-sm">
                 {grupo.itens.map((item) => {
                   const destino = destinoItemPendencia(item, eventoId, ativosPorFuncao);
                   return (

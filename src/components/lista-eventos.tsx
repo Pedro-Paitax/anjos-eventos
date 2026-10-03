@@ -19,7 +19,7 @@ export function ListaEventos({ eventos }: { eventos: Evento[] }) {
   }
 
   return (
-    <ul className="divide-y divide-paper-ink/10">
+    <ul className="lista-enter divide-y divide-paper-ink/10">
       {eventos.map((evento) => (
         <li key={evento.id}>
           <Link

@@ -13,7 +13,7 @@ export default async function LoginPage() {
   const usuarios = await listarUsuarios();
 
   return (
-    <main className="venue-glow flex flex-1 flex-col items-center justify-center gap-12 px-6 py-16">
+    <main className="sem-enter venue-glow flex flex-1 flex-col items-center justify-center gap-12 px-6 py-16">
       <div className="flex flex-col items-center gap-3 text-center">
         <p className="font-display text-sm italic text-brass">
           Anjos Eventos

@@ -113,7 +113,7 @@ export function ListaInsumos({ insumos }: { insumos: InsumoComPrecoCorrigido[] }
           Nenhum insumo encontrado com esse filtro.
         </p>
       ) : (
-        <ul className="divide-y divide-paper-ink/10">
+        <ul className="lista-enter divide-y divide-paper-ink/10">
           {insumosFiltrados.map((insumo) => (
             <LinhaInsumo key={insumo.id} insumo={insumo} />
           ))}

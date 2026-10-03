@@ -41,7 +41,7 @@ export default async function PaginaFichasTecnicas({ params }: PaginaFichasTecni
     (evento.qtd_adultos ?? 0) + (evento.qtd_criancas_ate_5 ?? 0) + (evento.qtd_criancas_5_a_10 ?? 0);
 
   return (
-    <main className="min-h-full bg-white px-6 py-10 text-black print:px-0 print:py-0">
+    <main className="sem-animacao min-h-full bg-white px-6 py-10 text-black print:px-0 print:py-0">
       <div className="mx-auto flex w-full max-w-3xl flex-col print:max-w-none">
         <div className="mb-8 flex items-center justify-between gap-4 print:hidden">
           <a

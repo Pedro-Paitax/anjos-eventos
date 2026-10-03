@@ -36,7 +36,7 @@ export default async function ColaboradoresPage() {
               Nenhum colaborador cadastrado.
             </p>
           ) : (
-            <ul className="divide-y divide-paper-ink/10">
+            <ul className="lista-enter divide-y divide-paper-ink/10">
               {colaboradores.map((c) => (
                 <li
                   key={c.id}
