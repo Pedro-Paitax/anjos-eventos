@@ -181,8 +181,9 @@ if [ -z "$SMOKE_TOKEN" ]; then
   falha "SMOKE_TOKEN não definido: acesso autenticado não provado"
 else
   CUSTO=$(curl -s -H "x-smoke-token: $SMOKE_TOKEN" http://localhost:3001/api/preparos/2/custo)
-  echo "$CUSTO" | sed -E 's/"custo_[a-z_]+":[0-9.]+/"custo_*":…/g' | cut -c1-80
-  echo "$CUSTO" | grep -q '"custo_total_preparo":16.96' || falha "custo do preparo 2 com token diferente de 16.96"
+  CUSTO_TOTAL=$(echo "$CUSTO" | grep -oE '"custo_total_preparo":[0-9.]+' | head -1 | cut -d: -f2)
+  echo "custo_total_preparo=${CUSTO_TOTAL:-<ausente>} (esperado 16.96)"
+  [ "$CUSTO_TOTAL" = "16.96" ] || falha "custo_total_preparo do preparo 2 com token é '${CUSTO_TOTAL:-ausente}' (esperado 16.96)"
 
   for api in margem-projetada dimensionamento; do
     echo "--- /api/orcamentos/$ORC_ID/$api com token de serviço (esperado 200) ---"
