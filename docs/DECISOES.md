@@ -977,3 +977,40 @@ projetada também não o inclui).
 Copeira − Assador − Custos Operacionais do Evento, formalizada com o Gemini —
 **nunca foi implementada**. Pendência separada, a formalizar em sessão própria
 (opera sobre Evento, não Orçamento). Não confundir com a Margem Projetada acima.
+
+## Margem Projetada: dois bugs corrigidos (2026-10-02)
+
+Achados ao consultar `/api/orcamentos/4/margem-projetada` (fixture de teste em
+produção: 100 convidados, 14 itens, `preco_pessoa` congelado R$85):
+`receita 5.857,00`, `custo 10.698,32`, `margem −5.921,32`. Ambos os bugs são
+**anteriores** ao rateio operacional (existiam desde a implementação da margem).
+
+**Bug 1 — mistura de unidades no custo (`margem-orcamento.ts`)**: o custo usava
+`custo_por_unidade × volume_necessario_total`. Para preparos com
+`Unidade_Rendimento = Unidade` (Linguiça Toscana, Pão de Alho) o volume está em
+gramas, não em unidades. É o mesmo bug de "Mistura de Unidades" corrigido na
+precificação em setembro, que nunca foi migrado para a margem. Correção: usar
+`quantidade_para_custo`, o mesmo campo da `precificacao-cardapio.ts`.
+
+**Bug 2 — receita recalculada dinamicamente**: a receita usava o preço sugerido
+dinâmico de hoje (R$58,57/pessoa), ignorando o preço congelado no Orçamento
+(R$85). **Decisão**: a margem deve refletir o contrato real assinado com o
+cliente, não um preço hipotético que ele nunca vai pagar. Receita =
+`preco_pessoa` congelado × `Num_Convidados` (+ adicionais − desconto). Sem
+`preco_pessoa` → erro 422. Novo bloco informativo `auditoria_tabela_atual`
+(preço congelado vs. sugerido hoje, `defasagem_por_pessoa`) ajuda a achar
+contratos antigos defasados em relação à tabela atual; nunca entra na receita.
+
+**Resultado na fixture #4 (antes → depois)**:
+
+| Campo | Antes | Depois |
+|---|---|---|
+| receita_projetada | 5.857,00 | 8.500,00 |
+| custo_projetado | 10.698,32 | 3.102,72 |
+| custo_operacional_total | 1.080,00 | 1.080,00 |
+| margem_projetada | −5.921,32 | +4.317,28 |
+| defasagem_por_pessoa | — | −26,43 (contrato R$85 vs. tabela R$58,57) |
+
+Limitações conhecidas (não corrigidas): a margem continua excluindo garçom e
+deslocamento (ver item (a) acima) e `preco_pessoa × Num_Convidados` não aplica a
+meia-entrada de criança. Margem Real segue pendente (item (b)).

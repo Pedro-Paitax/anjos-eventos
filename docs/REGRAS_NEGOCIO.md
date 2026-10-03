@@ -30,16 +30,18 @@ Um orçamento representa uma proposta para um cliente.
 
 ```text
 Receita Projetada =
-(Valor_Sugerido_Por_Pessoa × Num_Convidados)
+(Preco_Pessoa CONGELADO no Orçamento × Num_Convidados)
 + Σ Itens Adicionais
 − Desconto_Aplicado
 ```
+
+**Preço congelado, nunca o dinâmico (correção de 2026-10-02)**: a receita da Margem Projetada usa `orcamentos.preco_pessoa` (o valor realmente contratado, congelado no Passo 2). Orçamento sem `preco_pessoa` retorna erro 422 — não há receita contratada para calcular. O preço dinâmico de hoje só aparece no bloco informativo `auditoria_tabela_atual` (`defasagem_por_pessoa = sugerido_hoje − congelado`; positivo = contrato abaixo da tabela atual). Limitação conhecida: `preco_pessoa × Num_Convidados` não aplica a meia-entrada de criança. Ver `docs/DECISOES.md`, "Margem Projetada: dois bugs corrigidos".
 
 `Desconto_Aplicado` incide sobre o total **já somado com os itens adicionais** (Valor_Sugerido_Por_Pessoa × Num_Convidados + Σ Itens Adicionais) — decisão fechada, ver `docs/DECISOES.md`, "Incidência de desconto sobre o orçamento".
 
 **Caminho legado (`DATA_SOURCE=nocodb`, em descontinuação)**: `src/lib/margem-orcamento.ts` (`calcularReceitaNocodb`) ainda usa o campo `Valor_Base_Por_Pessoa` (cadastrado manualmente, não calculado) e aplica o desconto **antes** de somar os itens adicionais — divergência conhecida em relação à regra vigente acima, não corrigida (o caminho legado está sendo descontinuado junto com o NocoDB, ver `docs/ARQUITETURA.MD`).
 
-O custo projetado é calculado em tempo real a partir dos itens do orçamento.
+O custo projetado é calculado em tempo real a partir dos itens do orçamento. Para preparos com `Unidade_Rendimento = Unidade` o custo usa `quantidade_para_custo` (unidades), não `volume_necessario_total` (gramas) — mesma conversão da precificação.
 
 A margem projetada é:
 
