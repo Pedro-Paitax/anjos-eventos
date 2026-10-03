@@ -2340,3 +2340,108 @@ PM2/resposta do curl.
 Antes de ativar: `CRON_TOKEN`, `FAMILIA_WHATSAPP_NUMEROS`, `WHATSAPP_WORKER_TOKEN`
 no `ecosystem.config.js` do Oracle; worker no PM2 + QR; crontab; deploy com smoke
 test. Teste real só após o Pedro reconectar o WhatsApp e confirmar destinos.
+
+---
+
+## 2026-10-03 — Sessão autônoma: modal de pendências, animações e caça a bugs
+
+Branch `snapshot-2026-09-22`, **sem deploy**, sem migração, WhatsApp/crons desligados.
+
+### 1. Bug do modal "Resolver pendências"
+- **Causa raiz (comprovada no navegador):** o card da Home tem `hover:-translate-y-1` /
+  `focus-within:-translate-y-1` (propriedade `translate`) e `overflow-hidden`. Com `translate`
+  ativo (o clique no botão dá foco ao card), o card vira o bloco de contenção de
+  `position: fixed`: o `div` do modal media exatamente o card (330×154) e era cortado por ele.
+- **Correção:** novo `src/components/modal.tsx` (portal em `document.body`, overlay tela cheia,
+  caixa centralizada, `max-height` com rolagem interna, foco preso/devolvido, Esc e clique fora,
+  `role=dialog`, `aria-modal`, trava a rolagem do body). Os outros 5 modais do app
+  (insumo novo, excluir preparo/cardápio, seletores de preparos/cardápio) migraram para o mesmo
+  componente. Commits `28c25f2` e `03eda00`.
+- **Verificado na tela:** Home e cenários com/sem colaborador ativo (itens de equipe →
+  `/colaboradores`; resto → `#decisoes-operacionais`); lista completa; clique fora; Esc (Home);
+  viewport de 386 px (via iframe) sem rolagem horizontal; viewport baixo (296 px) com rolagem
+  interna; portal confirmado (`parent === body`).
+
+### 2. Animações
+- **Escolha: CSS puro, sem biblioteca.** Motivo: tudo o que o escopo pede (entrada, stagger,
+  hover, foco, modal com saída, listas) sai com CSS + 1 estado no `Modal`; zero dependência nova
+  (CLAUDE.md: "poucas dependências"), nenhum risco para o build standalone e nenhum conteúdo
+  escondido no SSR dependente de JS. Não houve incompatibilidade comprovada com `motion`; foi
+  decisão de custo/benefício. Se o Pedro preferir `motion`, os tokens e classes já isolam a troca.
+  Custo de bundle: 0 KB de JS; ~110 linhas de CSS.
+- **Tokens:** `src/app/globals.css` (`--motion-fast/base/slow/ease/stagger` + `@theme` com
+  `--default-transition-*`, que também governa os utilitários `transition` do Tailwind).
+- **Regras:** só `@media screen` e só sem `prefers-reduced-motion`; `fill-mode: backwards`
+  (não deixa transform residual); `@media print` e `.sem-animacao` (Ficha Técnica) zeram
+  `animation`/`transition`; lista com stagger limitado (itens 1–12). Saída do modal por
+  Esc/clique fora (150 ms); botões "Fechar" internos fecham direto, sem saída animada.
+- **Verificado:** neste Chrome `prefers-reduced-motion: reduce` já estava ativo → confirmado que
+  tudo fica desligado. Para ver as animações, injetei cópia das regras sem a media query:
+  keyframes ligados nos elementos certos (página, cards com stagger 0/0/0,04 s, modal, itens,
+  saída do modal). Ficha Técnica (483 elementos) com as regras injetadas: **0 elementos** com
+  animação ou transição; bloco `@media print` contém `animation:none !important` e
+  `transition:none !important`.
+- **Armadilha do `animation` com `var()`:** o atalho `animation: nome var(--x) ...` falhou
+  em `.card-enter` neste Chrome (nome computado `none`); trocado por longhands em todas as regras.
+
+### 3. Bugs encontrados
+Corrigidos:
+- Campos zeravam após erro de validação (Colaborador, Insumo; também Decisões Operacionais).
+  `f9954d3`, com teste (`formulario-valores.test.ts`). Verificado na tela.
+- Barra de filtros de Preparos cortava o 4º filtro no desktop. `c17bef6`. Verificado por medição.
+- Controles sem nome acessível (filtros de Preparos/Insumos, linhas de composição e passos,
+  modal de insumo) e botões repetidos "Editar/Excluir/Remover" sem contexto; alvos de toque <28 px
+  (112 na tela de Preparos → 4). `6b24f85`.
+- Sem páginas 404/erro/carregamento próprias (404 era a padrão do Next, sem tema).
+  `34abd35` (404 verificado; **`error.tsx` não verificado visualmente**: não provoquei erro real).
+
+Registrados, sem corrigir (decisão do Pedro):
+- **Contraste do `ember` (#c1552c) como texto pequeno:** 3,86:1 sobre `ink`, 3,46:1 sobre
+  `ink-soft`, 3,99:1 sobre `paper` (AA pede 4,5:1). Afeta erros, links do modal, "Excluir".
+  Exige escolher um tom mais claro para texto (decisão de identidade visual).
+- `sage` (#6e7a5c) sobre `ink`: 3,85:1 (mensagem "Decisões salvas").
+- **Aviso do PM2 "Missing origin header from a forwarded Server Actions request":** Server Action
+  funciona pelo navegador em `http://oracle:3001` (selecionar usuário redireciona e entra),
+  porque Origin = Host. O aviso só ocorre em POST sem cabeçalho `Origin` (curl, scanner, smoke
+  test). **Sem mudança de config; `serverActions.allowedOrigins` não é necessário.**
+- Fast Refresh/HMR recarrega a página inteira a cada compilação de rota nova no dev
+  (atrapalha automação; não afeta produção).
+
+### 4. Não verificado
+- Esc com tecla real fora da Home: as teclas da automação não chegaram à página em `/preparos`
+  (listener de diagnóstico vazio); validado com evento sintético. Limitação da ferramenta.
+- Saída animada do modal só exercitada com `matchMedia` simulado (o Chrome estava em reduce).
+- Emulação de `prefers-reduced-motion`/print via DevTools: não disponível; verificado por
+  inspeção das regras CSS e computado. `window.print()` não foi usado.
+- Mobile real (390 px): feito por iframe de 386 px, não por dispositivo.
+- Telas de `/agenda/novo` (3 empresas) e `/orcamentos/[id]`: só auditoria de layout/rótulos,
+  sem preencher nem enviar formulários.
+- Ordens de Ação (PDF)/WhatsApp: não exercitados (travas); cobertos só pelos testes unitários.
+- `error.tsx`: ver acima.
+
+### 5. Dump e contagens (produção Oracle)
+- Dump antes dos testes: `~/backups-anjos-eventos/pre-teste/pre-teste-noturno-20261003_082028.dump`
+  no `ender` (81 890 bytes, `pg_restore --list` com 22 tabelas com dados).
+- Contagens **antes**: eventos 1, orçamentos 1, colaboradores 3, decisões 0, equipe 0.
+- Dados de teste: 1 evento `TESTE - apagar` (id 15; `INSERT` direto por SQL, status
+  `confirmado`), 1 linha de decisões e 3 de equipe (criadas pela tela). Nenhum colaborador de teste.
+- Limpeza por id, em transação com checagem de identidade: removidos 3 + 1 + 1.
+  Contagens **depois**: eventos 1, orçamentos 1, colaboradores 3, decisões 0, equipe 0
+  (**iguais às de antes**); evento 14 (`cliente1`, real) intacto.
+- Alterações feitas por mim só no evento 15. Os colaboradores existentes (Copeira, Assador,
+  Garcom) e o evento 14 foram tratados como reais e não foram alterados.
+
+### Validação final
+`tsc` e `eslint src` limpos; `vitest run`: 101 passaram, 12 pulados (18 arquivos passaram, 3 pulados);
+`npm run build` (build isolado de `git archive HEAD` no ender): compilou, `BUILD_EXIT=0`, standalone gerado.
+
+### 6. Screenshots
+`docs/amostras/home-cards.jpg`, `modal-pendencias.jpg`, `lista-preparos.jpg`,
+`formulario-decisoes.jpg` (tema escuro, desktop; o último mostra "(valor antigo)").
+
+### 7. Depende do Pedro
+- Autorizar o deploy (`scripts/deploy-oracle.sh`) depois de revisar.
+- Escolher o tom de `ember`/`sage` para texto (contraste) ou aceitar o atual.
+- Manter CSS puro ou migrar para `motion`.
+- Confirmar `log_statement='mod'` no Oracle (`SHOW log_statement;` via `sudo -u postgres psql`).
+- O evento real `cliente1` (id 14) continua com pendências de equipe e decisões; não alterei.
