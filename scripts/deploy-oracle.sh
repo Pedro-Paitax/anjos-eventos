@@ -13,6 +13,12 @@
 #      aqui — tem segredos), `pm2 restart` + `pm2 save`;
 #   5. smoke test básico (endpoint de custo + página protegida).
 #
+# Proteção de dados (antes de QUALQUER mudança): pg_dump -Fc validado do banco
+# do Oracle (segunda camada, além do backup diário via cron) + contagem
+# SOMENTE LEITURA de eventos/orçamentos antes e depois, impressa no log. Se o
+# dump falhar, o deploy aborta. A contagem nunca bloqueia, só deixa rastro.
+# SOMENTE_PROTECAO=1 roda só essa etapa (dump + contagens) e sai, sem deploy.
+#
 # Uso: scripts/deploy-oracle.sh
 #
 # Não sobe segredos novos, não muda DATA_SOURCE/DATABASE_URL/NOCODB_API_TOKEN
@@ -29,6 +35,15 @@ SSH_OPTS=(-o ConnectTimeout=10 -o BatchMode=yes)
 
 log() { printf '\n\033[1;36m==> %s\033[0m\n' "$1"; }
 
+IP_ORACLE_DB="100.121.229.81"
+DIR_BACKUP_DEPLOY="${BACKUP_DIR_LOCAL:-$HOME/backups-anjos-eventos}/pre-deploy"
+DATABASE_URL="$(grep -E '^DATABASE_URL=' .env 2>/dev/null | head -1 | cut -d= -f2- | tr -d "\"'\r")"
+
+# Contagem somente leitura (nenhum INSERT/UPDATE/DELETE). Uma linha por chamada.
+contagem_banco() {
+  psql "$DATABASE_URL" -Atq -c "SELECT 'eventos=' || (SELECT count(*) FROM eventos) || ' orcamentos=' || (SELECT count(*) FROM orcamentos) || ' itens_evento_confirmados=' || (SELECT count(*) FROM itens_evento_confirmados)"
+}
+
 log "Verificando estado do repositório (fonte do deploy é sempre HEAD, nunca working tree)"
 COMMIT=$(git rev-parse HEAD)
 COMMIT_SHORT=$(git rev-parse --short HEAD)
@@ -38,6 +53,31 @@ if [ -n "$DIRTY" ]; then
   echo "AVISO: há mudanças não commitadas em src/ (não entram neste deploy):"
   echo "$DIRTY"
   echo "Se essas mudanças deveriam ir junto, faça o commit antes de rodar este script de novo."
+fi
+
+log "0/5 — Proteção de dados: pg_dump + contagem ANTES (somente leitura)"
+[ -n "$DATABASE_URL" ] || { echo "ERRO: DATABASE_URL ausente em .env — deploy abortado."; exit 1; }
+case "$DATABASE_URL" in
+  *"$IP_ORACLE_DB"*) ;;
+  *) echo "ERRO: DATABASE_URL não aponta para o Oracle ($IP_ORACLE_DB) — deploy abortado."; exit 1 ;;
+esac
+CONTAGEM_ANTES=$(contagem_banco) || { echo "ERRO: não foi possível contar eventos/orçamentos — deploy abortado."; exit 1; }
+echo "ANTES : $CONTAGEM_ANTES   ($(date -Is))"
+mkdir -p "$DIR_BACKUP_DEPLOY"
+DUMP="$DIR_BACKUP_DEPLOY/pre-deploy-${COMMIT_SHORT}-$(date +%Y%m%d-%H%M%S).dump"
+pg_dump -Fc --dbname="$DATABASE_URL" --file="$DUMP.parcial" \
+  || { rm -f "$DUMP.parcial"; echo "ERRO: pg_dump falhou — deploy abortado."; exit 1; }
+mv "$DUMP.parcial" "$DUMP"
+TAM_DUMP=$(stat -c %s "$DUMP")
+[ "$TAM_DUMP" -gt 1024 ] || { echo "ERRO: dump suspeito ($TAM_DUMP bytes) — deploy abortado."; exit 1; }
+N_TABELAS=$(pg_restore --list "$DUMP" | grep -c ' TABLE DATA ' || true)
+[ "$N_TABELAS" -gt 0 ] || { echo "ERRO: dump sem nenhuma entrada TABLE DATA — deploy abortado."; exit 1; }
+echo "Dump pré-deploy válido: $DUMP ($TAM_DUMP bytes, $N_TABELAS tabelas com dados)"
+
+if [ "${SOMENTE_PROTECAO:-0}" = "1" ]; then
+  echo "DEPOIS: $(contagem_banco)   ($(date -Is))"
+  echo "SOMENTE_PROTECAO=1: etapa de proteção concluída, deploy NÃO executado."
+  exit 0
 fi
 
 log "1/5 — Build isolado no $ENDER_HOST (git archive HEAD, npm ci, npm run build)"
@@ -92,5 +132,14 @@ curl -s -o /dev/null -w 'HTTP %{http_code}\n' http://localhost:3001/simulador-ca
 pm2 list
 EOF
 
+log "Contagem DEPOIS (somente leitura)"
+CONTAGEM_DEPOIS=$(contagem_banco) || CONTAGEM_DEPOIS="(falha ao contar)"
+echo "ANTES : $CONTAGEM_ANTES"
+echo "DEPOIS: $CONTAGEM_DEPOIS   ($(date -Is))"
+if [ "$CONTAGEM_ANTES" != "$CONTAGEM_DEPOIS" ]; then
+  echo "ATENÇÃO: a contagem mudou durante o deploy. O deploy não escreve no banco; verifique se foi uso normal do app. Dump pré-deploy: $DUMP"
+fi
+
 log "Deploy concluído: commit $COMMIT_SHORT rodando em http://oracle:3001"
+echo "Dump do banco pré-deploy (restauração de dados): $DUMP"
 echo "Rollback, se necessário: no Oracle, extrair o backup listado acima por cima de ~/$ORACLE_APP_DIR e rodar 'pm2 restart anjos-eventos-app'."

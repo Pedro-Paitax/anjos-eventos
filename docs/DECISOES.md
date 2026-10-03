@@ -1014,3 +1014,27 @@ contratos antigos defasados em relação à tabela atual; nunca entra na receita
 Limitações conhecidas (não corrigidas): a margem continua excluindo garçom e
 deslocamento (ver item (a) acima) e `preco_pessoa × Num_Convidados` não aplica a
 meia-entrada de criança. Margem Real segue pendente (item (b)).
+
+## Proteções de dados no deploy (2026-10-03)
+
+Motivação: relato de evento "sumido no deploy" sem evidência para provar ou
+descartar (Postgres sem log de statements, sem backup de dados no momento).
+`scripts/deploy-oracle.sh` nunca escreveu no banco (só build, `tar`, `scp`,
+`pm2`); as proteções abaixo existem para deixar rastro, não por defeito do script.
+
+1. **pg_dump obrigatório no deploy** (etapa 0/5, antes de qualquer mudança):
+   `pg_dump -Fc` do banco do Oracle, validado (`pg_restore --list`, tamanho,
+   tabelas com dados), em `~/backups-anjos-eventos/pre-deploy/`. Falhou → o
+   deploy aborta. Segunda camada, além do backup diário (`backup-pg-oracle.sh`).
+   Nada é apagado automaticamente (sem retenção) — limpar à mão quando fizer sentido.
+2. **Contagem somente leitura** de eventos/orçamentos/itens confirmados
+   ANTES e DEPOIS, impressa no log; só avisa se mudou, nunca bloqueia.
+   `SOMENTE_PROTECAO=1 scripts/deploy-oracle.sh` roda só 1 e 2, sem deploy.
+3. **Logging do Postgres no Oracle**: `log_statement='mod'` (INSERT/UPDATE/
+   DELETE/TRUNCATE/DDL) e `log_line_prefix='%m [%p] %u@%d %a '`, via
+   `ALTER SYSTEM` + `pg_reload_conf()` (sem reinício). Logs em
+   `/var/lib/pgsql/data/log/postgresql-<dia>.log`, legíveis só com `sudo`;
+   **rotacionam por dia da semana com truncate → retenção de ~7 dias**. Os
+   statements parametrizados do app aparecem com os valores (podem conter nome/
+   telefone de cliente): tratar o log como dado sensível. Para desfazer:
+   `ALTER SYSTEM RESET log_statement; ALTER SYSTEM RESET log_line_prefix;` + reload.
