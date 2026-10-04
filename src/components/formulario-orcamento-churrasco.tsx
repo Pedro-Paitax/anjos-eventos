@@ -405,10 +405,10 @@ export function FormularioOrcamentoChurrasco({
 
       {/* Barra de salvar: fixa no rodapé do formulário; só Cancelar e o envio, sem total ao vivo. */}
       <div className="barra-salvar sticky bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-20 flex justify-end gap-3 rounded-cartao border border-borda-forte bg-elevada p-3 shadow-barra rail:bottom-4">
-        <Link href="/agenda" className={`${botaoClasse("secundario")} flex-1 rail:flex-none`}>
+        <Link href="/agenda" className={`${botaoClasse("secundario")} shrink-0`}>
           Cancelar
         </Link>
-        <BotaoEnviar rotulo="Gerar Orçamento" className="flex-1 rail:flex-none" />
+        <BotaoEnviar rotulo="Gerar Orçamento" className="flex-1 whitespace-nowrap rail:flex-none" />
       </div>
     </form>
     </div>
