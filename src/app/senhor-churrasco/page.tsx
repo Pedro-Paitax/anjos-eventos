@@ -50,47 +50,40 @@ export default async function SenhorChurrascoPage() {
   }
 
   return (
-    <main className="venue-glow flex flex-1 flex-col items-center px-6 py-16">
-      <div className="flex w-full max-w-4xl flex-col gap-8">
-        <CabecalhoPagina
-          titulo="Senhor Churrasco"
-          subtitulo="Fichas técnicas, cardápios pré-montados e simulador de precificação."
-          voltarPara={{ href: "/", rotulo: "← Início" }}
-        />
+    <main className="mx-auto flex w-full max-w-pagina flex-col gap-8">
+      <CabecalhoPagina
+        titulo="Senhor Churrasco"
+        subtitulo="Fichas técnicas, cardápios pré-montados e simulador de precificação."
+        voltarPara={{ href: "/", rotulo: "← Início" }}
+      />
 
-        {blocos.map((bloco) => (
-          <section key={bloco.titulo} className="flex flex-col gap-3">
-            <h2 className="font-display text-xl italic text-paper">
-              {bloco.titulo}
-            </h2>
-            <div className="grid w-full grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {bloco.itens.map((item, i) => (
-                <Link
-                  key={item.titulo}
-                  href={item.href}
-                  style={{ ["--enter-order" as string]: i }}
-                  className="card-enter group relative flex flex-col gap-2 overflow-hidden rounded-[2px] bg-paper p-5 text-paper-ink shadow-[0_18px_28px_-16px_rgba(0,0,0,0.6)] transition hover:-translate-y-1 focus-visible:-translate-y-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brass"
-                >
-                  <span
-                    aria-hidden
-                    className="absolute inset-x-0 top-0 h-1.5 bg-paper-dim"
-                  />
-                  <p className="font-display text-lg italic">{item.titulo}</p>
-                  <p className="text-sm text-texto-suave-papel">{item.descricao}</p>
-                </Link>
-              ))}
-              {bloco.titulo === "Cadastros" && (
-                <div className="flex flex-col gap-2 rounded-[2px] border border-dashed border-paper-dim/25 p-5">
-                  <p className="font-display text-lg italic text-paper-dim">
-                    Espaço / Localização
-                  </p>
-                  <p className="text-sm text-texto-suave-escuro">Em breve.</p>
-                </div>
-              )}
-            </div>
-          </section>
-        ))}
-      </div>
+      {blocos.map((bloco) => (
+        <section key={bloco.titulo} className="flex flex-col gap-3.5">
+          <h2 className="font-titulo text-[22px] font-semibold leading-[1.2] tracking-[-0.01em]">
+            {bloco.titulo}
+          </h2>
+          <div className="grid w-full grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
+            {bloco.itens.map((item) => (
+              <Link
+                key={item.titulo}
+                href={item.href}
+                className="flex flex-col gap-0.5 rounded-cartao border border-borda bg-superficie p-[18px] shadow-realce transition-[background-color,border-color] hover:border-borda-forte hover:bg-elevada focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foco"
+              >
+                <p className="text-[17px] font-semibold">{item.titulo}</p>
+                <p className="text-sm text-texto-suave">{item.descricao}</p>
+              </Link>
+            ))}
+            {bloco.titulo === "Cadastros" && (
+              <div className="flex flex-col gap-0.5 rounded-cartao border border-dashed border-borda-forte p-[18px]">
+                <p className="text-[17px] font-semibold text-texto-suave">
+                  Espaço / Localização
+                </p>
+                <p className="text-sm text-texto-suave">Em breve.</p>
+              </div>
+            )}
+          </div>
+        </section>
+      ))}
     </main>
   );
 }

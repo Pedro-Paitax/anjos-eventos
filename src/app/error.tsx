@@ -13,11 +13,11 @@ export default function ErroDaPagina({
   reset: () => void;
 }) {
   return (
-    <main className="venue-glow flex flex-1 flex-col items-center justify-center px-6 py-16 text-center">
+    <main className="mx-auto flex w-full flex-1 flex-col items-center justify-center text-center">
       <div role="alert" className="flex flex-col items-center gap-4">
-        <p className="font-display text-sm italic text-brass">Anjos Eventos</p>
-        <h1 className="font-display text-4xl italic text-paper">Algo deu errado</h1>
-        <p className="max-w-sm text-sm text-paper-dim">
+        <p className="text-sm text-texto-suave">Anjos Eventos</p>
+        <h1 className="font-titulo text-[clamp(30px,4vw,42px)] font-bold leading-[1.05] tracking-[-0.025em]">Algo deu errado</h1>
+        <p className="max-w-sm text-texto-suave">
           Não foi possível carregar esta página. Tente de novo; se continuar, avise o responsável
           {error.digest ? ` (código ${error.digest})` : ""}.
         </p>

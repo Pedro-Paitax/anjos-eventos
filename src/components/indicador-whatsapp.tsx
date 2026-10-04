@@ -83,24 +83,24 @@ export function IndicadorWhatsapp({ comTexto = false }: { comTexto?: boolean }) 
       {modalVisivel && (
         <Modal titulo="Reconectar WhatsApp" onFechar={() => setModalAberto(false)} className="max-w-sm">
           {dados.worker_offline ? (
-            <p className="text-sm text-paper-dim">
+            <p className="text-sm text-texto-suave">
               O serviço de WhatsApp não está respondendo. O restante do sistema
               continua funcionando normalmente.
             </p>
           ) : dados.qr_code ? (
             <>
               {/* Fundo claro fixo: o QR precisa de margem clara para ser lido. */}
-              <div className="self-center rounded-[2px] bg-paper p-3">
+              <div className="self-center rounded-controle bg-white p-3">
                 {/* eslint-disable-next-line @next/next/no-img-element -- data URL gerada pelo worker */}
                 <img src={dados.qr_code} alt="QR Code do WhatsApp" className="h-64 w-64" />
               </div>
-              <p className="text-sm text-paper-dim">
+              <p className="text-sm text-texto-suave">
                 No celular: WhatsApp → Aparelhos conectados → Conectar um aparelho, e
                 aponte para este código.
               </p>
             </>
           ) : (
-            <p className="text-sm text-paper-dim" role="status">Aguardando o QR Code…</p>
+            <p className="text-sm text-texto-suave" role="status">Aguardando o QR Code…</p>
           )}
           <Botao variante="secundario" onClick={() => setModalAberto(false)} className="self-end">
             Fechar

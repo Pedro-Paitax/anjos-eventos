@@ -36,14 +36,14 @@ function CardCardapioModelo({ cardapio }: { cardapio: CardapioModeloResumo }) {
   if (excluido) return null;
 
   return (
-    <div className="flex flex-col gap-3 rounded-[2px] border border-paper-ink/15 bg-paper p-5 text-paper-ink shadow-[0_12px_24px_-16px_rgba(0,0,0,0.4)]">
+    <div className="flex flex-col gap-3 rounded-controle border border-borda bg-superficie p-5 text-texto">
       <div className="flex items-start justify-between gap-3">
-        <p className="font-display text-lg italic">{cardapio.nome}</p>
+        <p className="text-[17px] font-semibold">{cardapio.nome}</p>
         <span
           className={`shrink-0 rounded-full px-3 py-1 text-xs font-medium ${
             cardapio.precoFixoPorPessoa != null
-              ? "bg-acao/15 text-acao"
-              : "bg-paper-ink/10 text-texto-suave-papel"
+              ? "bg-brasa/15 text-link"
+              : "bg-white/[0.03] text-texto-suave"
           }`}
         >
           {formatarPreco(cardapio.precoFixoPorPessoa)}
@@ -51,10 +51,10 @@ function CardCardapioModelo({ cardapio }: { cardapio: CardapioModeloResumo }) {
       </div>
 
       {cardapio.descricao && (
-        <p className="line-clamp-2 text-sm text-texto-suave-papel">{cardapio.descricao}</p>
+        <p className="line-clamp-2 text-sm text-texto-suave">{cardapio.descricao}</p>
       )}
 
-      <p className="text-sm text-texto-suave-papel">
+      <p className="text-sm text-texto-suave">
         {cardapio.quantidadeItens} {cardapio.quantidadeItens === 1 ? "item" : "itens"}
       </p>
 
@@ -62,7 +62,7 @@ function CardCardapioModelo({ cardapio }: { cardapio: CardapioModeloResumo }) {
         <Link
           href={`/cardapios-modelo/${cardapio.id}`}
           aria-label={`Editar ${cardapio.nome}`}
-          className={botaoClasse("link", "sm", "papel")}
+          className={botaoClasse("link", "sm")}
         >
           Editar
         </Link>
@@ -71,12 +71,12 @@ function CardCardapioModelo({ cardapio }: { cardapio: CardapioModeloResumo }) {
           onClick={() => setConfirmando(true)}
           disabled={pendente}
           aria-label={`Excluir ${cardapio.nome}`}
-          className={botaoClasse("link", "sm", "papel")}
+          className={botaoClasse("link", "sm")}
         >
           {pendente ? "Excluindo…" : "Excluir"}
         </button>
       </div>
-      {erro && <Alerta tipo="perigo" sobre="papel">{erro}</Alerta>}
+      {erro && <Alerta tipo="perigo">{erro}</Alerta>}
 
       {confirmando && (
         <ModalConfirmacao
@@ -106,7 +106,7 @@ export function ListaCardapiosModelo({ cardapios }: { cardapios: CardapioModeloR
   if (cardapios.length === 0) {
     return (
       <div className="flex flex-col items-center gap-4 px-6 py-10 text-center">
-        <p className="max-w-prose text-sm text-paper-dim">
+        <p className="max-w-prose text-sm text-texto-suave">
           Nenhum cardápio pré-montado ainda. Cadastre o primeiro pra agilizar o
           Criar Evento.
         </p>
@@ -120,7 +120,7 @@ export function ListaCardapiosModelo({ cardapios }: { cardapios: CardapioModeloR
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center gap-3">
-        <label htmlFor="filtroPreco" className="text-sm text-paper-dim">
+        <label htmlFor="filtroPreco" className="text-sm text-texto-suave">
           Filtrar:
         </label>
         <select
@@ -136,7 +136,7 @@ export function ListaCardapiosModelo({ cardapios }: { cardapios: CardapioModeloR
       </div>
 
       {cardapiosFiltrados.length === 0 ? (
-        <p className="px-6 py-10 text-center text-sm text-paper-dim">
+        <p className="px-6 py-10 text-center text-sm text-texto-suave">
           Nenhum cardápio encontrado com esse filtro.
         </p>
       ) : (

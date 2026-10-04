@@ -110,19 +110,19 @@ export function FormularioConfirmarEvento({ orcamento, action, precificacaoChurr
       {ehChurrasco && precificacaoChurrasco && (
         <section className="flex flex-col gap-3">
           <h3 className={secaoTituloClasse}>Valores (definidos no Orçamento — não editáveis aqui)</h3>
-          <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm text-paper sm:grid-cols-4">
-            <p className="text-paper-dim">Preço por pessoa</p>
+          <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm text-texto sm:grid-cols-4">
+            <p className="text-texto-suave">Preço por pessoa</p>
             <p>{formatarMoeda(precificacaoChurrasco.precoPessoa)}</p>
-            <p className="text-paper-dim">Preço criança (meia)</p>
+            <p className="text-texto-suave">Preço criança (meia)</p>
             <p>{formatarMoeda(precificacaoChurrasco.precoCrianca)}</p>
-            <p className="text-paper-dim">Garçons</p>
+            <p className="text-texto-suave">Garçons</p>
             <p>
               {precificacaoChurrasco.qtdGarcons} x {formatarMoeda(precificacaoChurrasco.valorGarcom)}
             </p>
-            <p className="text-paper-dim">Taxa de deslocamento</p>
+            <p className="text-texto-suave">Taxa de deslocamento</p>
             <p>{formatarMoeda(precificacaoChurrasco.taxaDeslocamento)}</p>
           </div>
-          <p className="text-base font-medium text-paper">
+          <p className="text-base font-medium text-texto">
             Valor Total: {formatarMoeda(precificacaoChurrasco.valorTotal)}
           </p>
         </section>
@@ -131,7 +131,7 @@ export function FormularioConfirmarEvento({ orcamento, action, precificacaoChurr
       {!ehChurrasco && (
         <section className="flex flex-col gap-5">
           <h3 className={secaoTituloClasse}>Valor</h3>
-          <p className="text-sm text-paper-dim">
+          <p className="text-sm text-texto-suave">
             Valor negociado no Orçamento:{" "}
             {formatarMoeda(orcamento.valorNegociado ?? 0)}
           </p>
@@ -171,7 +171,7 @@ export function FormularioConfirmarEvento({ orcamento, action, precificacaoChurr
           </Campo>
         </div>
         {ehChurrasco && (
-          <p className="text-xs text-paper-dim">
+          <p className="text-xs text-texto-suave">
             Quantidade de assadores calculada automaticamente:{" "}
             {orcamento.numConvidados > 0 ? sugerirQuantidadeAssador(orcamento.numConvidados) : 0} (uso interno,
             registrado para a futura Margem Real, ainda não calculada).

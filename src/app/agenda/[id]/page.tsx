@@ -22,6 +22,7 @@ import { CabecalhoPagina } from "@/components/cabecalho-pagina";
 import { FormularioEventoChurrasco } from "@/components/formulario-evento-churrasco";
 import { FormularioEventoGenerico } from "@/components/formulario-evento-generico";
 import { BotaoExcluirEvento } from "@/components/botao-excluir-evento";
+import { botaoClasse } from "@/components/botao";
 import { Painel } from "@/components/painel";
 import { Alerta } from "@/components/alerta";
 import type { Metadata } from "next";
@@ -67,85 +68,83 @@ export default async function EventoPage({ params }: PaginaEventoProps) {
   for (const c of colaboradoresAtivos) ativosPorFuncao[c.funcao] += 1;
 
   return (
-    <main className="venue-glow flex flex-1 flex-col items-center px-6 py-16">
-      <div className="flex w-full max-w-2xl flex-col gap-8">
-        <CabecalhoPagina
-          titulo={evento.cliente}
-          subtitulo={evento.empresa_nome}
-          voltarPara={{ href: "/agenda", rotulo: "← Agenda" }}
-          acao={
-            <div className="flex items-center gap-3">
-              {temCardapioConfirmado && (
-                <Link
-                  href={`/agenda/${evento.id}/fichas-tecnicas`}
-                  target="_blank"
-                  className="rounded-[2px] border border-paper-dim/30 px-4 py-2 text-sm text-paper transition hover:border-paper-dim hover:bg-paper/5"
-                >
-                  Exportar Fichas Técnicas
-                </Link>
-              )}
-              <BotaoExcluirEvento eventoId={evento.id} clienteNome={evento.cliente} />
-            </div>
-          }
-        />
-
-        <Painel>
-          {ehChurrasco ? (
-            <FormularioEventoChurrasco
-              empresaId={evento.empresa_id}
-              valoresIniciais={evento}
-              preparosPorCategoria={await listarPreparosPorCategoria()}
-              cardapiosModelo={await listarCardapiosModelo()}
-              cardapioConfirmado={cardapioConfirmado}
-              action={atualizarComId}
-              rotuloEnvio="Salvar alterações"
-            />
-          ) : (
-            <FormularioEventoGenerico
-              empresaId={evento.empresa_id}
-              valoresIniciais={evento}
-              action={atualizarComId}
-              rotuloEnvio="Salvar alterações"
-            />
-          )}
-        </Painel>
-
-        {ehChurrasco && (
-          <Painel como="section" id={ANCORA_DECISOES_OPERACIONAIS} className="flex scroll-mt-6 flex-col gap-4">
-            <h2 className="font-display text-2xl italic text-paper">
-              Decisões operacionais
-            </h2>
-            {decisoes?.ordens_disparadas_em && (
-              <p className="text-sm text-paper-dim">
-                Ordens de Ação enviadas em{" "}
-                {formatarData(decisoes.ordens_disparadas_em)},{" "}
-                {formatarHora(decisoes.ordens_disparadas_em)}. Mudanças feitas depois
-                não atualizam mensagens já enviadas.
-              </p>
+    <main className="mx-auto flex w-full max-w-pagina-documento flex-col gap-8">
+      <CabecalhoPagina
+        titulo={evento.cliente}
+        subtitulo={evento.empresa_nome}
+        voltarPara={{ href: "/agenda", rotulo: "← Agenda" }}
+        acao={
+          <div className="flex items-center gap-3">
+            {temCardapioConfirmado && (
+              <Link
+                href={`/agenda/${evento.id}/fichas-tecnicas`}
+                target="_blank"
+                className={botaoClasse("secundario")}
+              >
+                Exportar Fichas Técnicas
+              </Link>
             )}
-            {pendencias.length > 0 && (
-              <Alerta tipo="aviso">
-                <ul className="list-disc pl-4">
-                  {pendencias.map((p) => (
-                    <li key={p.texto}>{p.texto}</li>
-                  ))}
-                </ul>
-                <BotaoResolverPendencias
-                  eventoId={evento.id}
-                  itens={pendencias}
-                  ativosPorFuncao={ativosPorFuncao}
-                />
-              </Alerta>
-            )}
-            <FormularioDecisoesOperacionais
-              colaboradoresAtivos={colaboradoresAtivos}
-              equipeIds={equipeIds}
-              valoresIniciais={decisoes}
-              action={salvarDecisoesOperacionaisAction.bind(null, evento.id)}
-            />
-          </Painel>
+            <BotaoExcluirEvento eventoId={evento.id} clienteNome={evento.cliente} />
+          </div>
+        }
+      />
+
+      <Painel>
+        {ehChurrasco ? (
+          <FormularioEventoChurrasco
+            empresaId={evento.empresa_id}
+            valoresIniciais={evento}
+            preparosPorCategoria={await listarPreparosPorCategoria()}
+            cardapiosModelo={await listarCardapiosModelo()}
+            cardapioConfirmado={cardapioConfirmado}
+            action={atualizarComId}
+            rotuloEnvio="Salvar alterações"
+          />
+        ) : (
+          <FormularioEventoGenerico
+            empresaId={evento.empresa_id}
+            valoresIniciais={evento}
+            action={atualizarComId}
+            rotuloEnvio="Salvar alterações"
+          />
         )}
-      </div>
+      </Painel>
+
+      {ehChurrasco && (
+        <Painel como="section" id={ANCORA_DECISOES_OPERACIONAIS} className="flex scroll-mt-6 flex-col gap-4">
+          <h2 className="font-titulo text-xl font-semibold leading-[1.2] tracking-[-0.01em]">
+            Decisões operacionais
+          </h2>
+          {decisoes?.ordens_disparadas_em && (
+            <p className="text-sm text-texto-suave">
+              Ordens de Ação enviadas em{" "}
+              {formatarData(decisoes.ordens_disparadas_em)},{" "}
+              {formatarHora(decisoes.ordens_disparadas_em)}. Mudanças feitas depois
+              não atualizam mensagens já enviadas.
+            </p>
+          )}
+          {pendencias.length > 0 && (
+            <Alerta tipo="aviso">
+              <ul className="list-disc pl-4">
+                {pendencias.map((p) => (
+                  <li key={p.texto}>{p.texto}</li>
+                ))}
+              </ul>
+              <BotaoResolverPendencias
+                eventoId={evento.id}
+                itens={pendencias}
+                ativosPorFuncao={ativosPorFuncao}
+              />
+            </Alerta>
+          )}
+          <FormularioDecisoesOperacionais
+            colaboradoresAtivos={colaboradoresAtivos}
+            equipeIds={equipeIds}
+            valoresIniciais={decisoes}
+            action={salvarDecisoesOperacionaisAction.bind(null, evento.id)}
+          />
+        </Painel>
+      )}
     </main>
   );
 }

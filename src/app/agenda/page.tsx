@@ -28,53 +28,56 @@ export default async function AgendaPage({ searchParams }: AgendaPageProps) {
   const eventos = await listarEventos();
 
   return (
-    <main className="venue-glow flex flex-1 flex-col items-center px-6 py-16">
-      <div className="flex w-full max-w-2xl flex-col gap-8">
-        <CabecalhoPagina
-          titulo="Agenda"
-          subtitulo="Os eventos das três empresas."
-          voltarPara={{ href: "/", rotulo: "← Início" }}
-          acao={
-            <Link
-              href="/agenda/novo"
-              className={botaoClasse()}
-            >
-              Novo evento
-            </Link>
-          }
-        />
+    <main className="mx-auto flex w-full max-w-pagina flex-col gap-8">
+      <CabecalhoPagina
+        titulo="Agenda"
+        subtitulo="Os eventos das três empresas."
+        voltarPara={{ href: "/", rotulo: "← Início" }}
+        acao={
+          <Link
+            href="/agenda/novo"
+            className={botaoClasse()}
+          >
+            Novo evento
+          </Link>
+        }
+      />
 
-        <div className="inline-flex w-fit gap-1 rounded-[2px] bg-ink-soft p-1">
-          <Link
-            href={`/agenda?visao=agenda&mes=${mesAtual}`}
-            className={`inline-flex min-h-11 items-center rounded-[2px] px-4 text-sm transition ${
-              visaoAtual === "agenda"
-                ? "bg-paper text-paper-ink"
-                : "text-paper-dim hover:text-paper"
-            }`}
-          >
-            Agenda
-          </Link>
-          <Link
-            href="/agenda?visao=sequencia"
-            className={`inline-flex min-h-11 items-center rounded-[2px] px-4 text-sm transition ${
-              visaoAtual === "sequencia"
-                ? "bg-paper text-paper-ink"
-                : "text-paper-dim hover:text-paper"
-            }`}
-          >
-            Em sequência
-          </Link>
+      <nav
+        aria-label="Visão da agenda"
+        className="inline-flex w-fit gap-1 rounded-tile border border-borda bg-superficie p-1"
+      >
+        <Link
+          href={`/agenda?visao=agenda&mes=${mesAtual}`}
+          aria-current={visaoAtual === "agenda" ? "page" : undefined}
+          className={`inline-flex min-h-11 items-center rounded-[10px] px-[18px] font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foco ${
+            visaoAtual === "agenda"
+              ? "bg-elevada text-texto shadow-realce"
+              : "text-texto-suave hover:text-texto"
+          }`}
+        >
+          Agenda
+        </Link>
+        <Link
+          href="/agenda?visao=sequencia"
+          aria-current={visaoAtual === "sequencia" ? "page" : undefined}
+          className={`inline-flex min-h-11 items-center rounded-[10px] px-[18px] font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foco ${
+            visaoAtual === "sequencia"
+              ? "bg-elevada text-texto shadow-realce"
+              : "text-texto-suave hover:text-texto"
+          }`}
+        >
+          Em sequência
+        </Link>
+      </nav>
+
+      {visaoAtual === "agenda" ? (
+        <CalendarioEventos eventos={eventos} mesParam={mesAtual} />
+      ) : (
+        <div className="overflow-hidden rounded-cartao border border-borda bg-superficie shadow-realce">
+          <ListaEventos eventos={eventos} />
         </div>
-
-        {visaoAtual === "agenda" ? (
-          <CalendarioEventos eventos={eventos} mesParam={mesAtual} />
-        ) : (
-          <div className="rounded-[2px] bg-paper text-paper-ink shadow-[0_20px_40px_-20px_rgba(0,0,0,0.6)]">
-            <ListaEventos eventos={eventos} />
-          </div>
-        )}
-      </div>
+      )}
     </main>
   );
 }

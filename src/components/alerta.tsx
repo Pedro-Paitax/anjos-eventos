@@ -1,26 +1,13 @@
 import type { ReactNode } from "react";
 
 export type TipoAlerta = "perigo" | "aviso" | "sucesso" | "info";
-export type SuperficieAlerta = "escuro" | "papel";
 
 // Classes literais (o Tailwind só gera o que aparece escrito por inteiro).
-const cores: Record<TipoAlerta, Record<SuperficieAlerta, string>> = {
-  perigo: {
-    escuro: "border-perigo/50 bg-perigo/10 text-perigo",
-    papel: "border-perigo-escuro/50 bg-perigo-escuro/10 text-perigo-escuro",
-  },
-  aviso: {
-    escuro: "border-aviso/50 bg-aviso/10 text-aviso",
-    papel: "border-aviso-escuro/50 bg-aviso-escuro/10 text-aviso-escuro",
-  },
-  sucesso: {
-    escuro: "border-sucesso/50 bg-sucesso/10 text-sucesso",
-    papel: "border-sucesso-escuro/50 bg-sucesso-escuro/10 text-sucesso-escuro",
-  },
-  info: {
-    escuro: "border-info/50 bg-info/10 text-info",
-    papel: "border-info-escuro/50 bg-info-escuro/10 text-info-escuro",
-  },
+const cores: Record<TipoAlerta, string> = {
+  perigo: "border-perigo/50 bg-perigo/10 text-perigo",
+  aviso: "border-aviso/50 bg-aviso/10 text-aviso",
+  sucesso: "border-sucesso/50 bg-sucesso/10 text-sucesso",
+  info: "border-info/50 bg-info/10 text-info",
 };
 
 // A forma do ícone muda por tipo: o estado nunca depende só da cor.
@@ -68,18 +55,17 @@ function Icone({ tipo }: { tipo: TipoAlerta }) {
 
 type AlertaProps = {
   tipo: TipoAlerta;
-  sobre?: SuperficieAlerta;
   titulo?: string;
   className?: string;
   children: ReactNode;
 };
 
 /** Erro = role="alert" (urgente); aviso, sucesso e informação = role="status" (anunciados sem interromper). */
-export function Alerta({ tipo, sobre = "escuro", titulo, className, children }: AlertaProps) {
+export function Alerta({ tipo, titulo, className, children }: AlertaProps) {
   return (
     <div
       role={tipo === "perigo" ? "alert" : "status"}
-      className={`flex gap-2 rounded-linha border p-3.5 text-sm ${cores[tipo][sobre]}${className ? ` ${className}` : ""}`}
+      className={`flex gap-2 rounded-linha border p-3.5 text-sm ${cores[tipo]}${className ? ` ${className}` : ""}`}
     >
       <Icone tipo={tipo} />
       <div className="flex min-w-0 flex-1 flex-col gap-1.5">

@@ -85,7 +85,7 @@ export function FormularioDecisoesOperacionais({
             <fieldset key={funcao} className="flex flex-col gap-2">
               <legend className={rotuloClasse}>{ROTULOS_FUNCAO[funcao]}</legend>
               {doGrupo.length === 0 && (
-                <p className="text-xs text-paper-dim">Nenhum ativo cadastrado.</p>
+                <p className="text-xs text-texto-suave">Nenhum ativo cadastrado.</p>
               )}
               {doGrupo.map((c) => (
                 <label key={c.id} className="flex items-center gap-2 text-sm">
@@ -127,7 +127,7 @@ export function FormularioDecisoesOperacionais({
       </div>
 
       {estado.erro && <Alerta tipo="perigo">{estado.erro}</Alerta>}
-      {estado.salvo && <p className="text-sm text-sage">Decisões salvas.</p>}
+      {estado.salvo && <p className="text-sm text-sucesso">Decisões salvas.</p>}
 
       <BotaoEnviar rotulo={"Salvar decisões operacionais"} className="w-full sm:w-auto sm:self-start" />
     </form>

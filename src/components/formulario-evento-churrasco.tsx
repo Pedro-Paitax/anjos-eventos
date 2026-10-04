@@ -433,15 +433,15 @@ export function FormularioEventoChurrasco({
         <h3 className={secaoTituloClasse}>Cardápio</h3>
 
         {cardapioConfirmado && cardapioConfirmado.length > 0 ? (
-          <div className="flex flex-col gap-2 rounded-[2px] border border-paper-dim/20 bg-ink-soft p-3">
-            <p className="text-xs font-medium uppercase tracking-wide text-texto-suave-escuro">
+          <div className="flex flex-col gap-2 rounded-controle border border-borda-forte bg-elevada p-3">
+            <p className="text-[13px] font-medium text-texto-suave">
               Cardápio confirmado via Orçamento — somente leitura
             </p>
-            <p className="text-xs text-paper-dim">
+            <p className="text-xs text-texto-suave">
               Trocar item exige um novo Orçamento (Máquina de Estados
               Orçamento → Evento Confirmado).
             </p>
-            <ul className="list-disc pl-5 text-sm text-paper">
+            <ul className="list-disc pl-5 text-sm text-texto">
               {cardapioConfirmado.map((item) => (
                 <li key={item.preparoId}>{item.preparoNome}</li>
               ))}
@@ -449,7 +449,7 @@ export function FormularioEventoChurrasco({
           </div>
         ) : (
           <>
-            <p className="text-sm text-paper-dim">
+            <p className="text-sm text-texto-suave">
               Puxando da base de fichas técnicas.
             </p>
 
@@ -472,7 +472,7 @@ export function FormularioEventoChurrasco({
                     </option>
                   ))}
                 </select>
-                <p className="text-xs text-paper-dim">
+                <p className="text-xs text-texto-suave">
                   Só pré-preenche os itens abaixo — você ainda pode adicionar ou
                   remover livremente.
                 </p>
@@ -494,7 +494,7 @@ export function FormularioEventoChurrasco({
       <section className="flex flex-col gap-5">
         <h3 className={secaoTituloClasse}>Deslocamento</h3>
 
-        <label className="flex items-center gap-2 text-sm text-paper">
+        <label className="flex items-center gap-2 text-sm text-texto">
           <input
             type="checkbox"
             checked={regiaoMetropolitana}
@@ -503,7 +503,7 @@ export function FormularioEventoChurrasco({
           Região Metropolitana de Curitiba?
         </label>
         <input type="hidden" name="regiaoMetropolitanaCuritiba" value={String(regiaoMetropolitana)} />
-        <p className="text-sm text-paper-dim">
+        <p className="text-sm text-texto-suave">
           Taxa de deslocamento:{" "}
           {taxaDeslocamento.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
         </p>
@@ -512,7 +512,7 @@ export function FormularioEventoChurrasco({
       {/* Valores */}
       <section className="flex flex-col gap-5">
         <h3 className={secaoTituloClasse}>Valores</h3>
-        <p aria-live="polite" className="text-sm text-paper-dim">
+        <p aria-live="polite" className="text-sm text-texto-suave">
           {calculandoPrecificacao
             ? "Calculando valor sugerido a partir do cardápio…"
             : precoFixoSelecionado != null
@@ -592,7 +592,7 @@ export function FormularioEventoChurrasco({
               disabled
               value={valorSugeridoTotalFormatado}
               title="Calculado pelo servidor: adultos pagam o preço cheio por pessoa, crianças pagam meia-entrada, mais garçom e taxa de deslocamento. Apenas referência."
-              className={`${campoClasse} cursor-not-allowed text-paper-dim`}
+              className={`${campoClasse} cursor-not-allowed text-texto-suave`}
             />
           </div>
 
@@ -642,7 +642,7 @@ export function FormularioEventoChurrasco({
                   : "—"
               }
               title="Calculado automaticamente (1 a cada 100 convidados) — registrado para a futura Margem Real (ainda não calculada), não editável."
-              className={`${campoClasse} cursor-not-allowed text-paper-dim`}
+              className={`${campoClasse} cursor-not-allowed text-texto-suave`}
             />
           </div>
           <Campo rotulo="Quantidade de copeiras">
@@ -725,7 +725,7 @@ export function FormularioEventoChurrasco({
       {/* Contrato */}
       <section className="flex flex-col gap-3">
         <h3 className={secaoTituloClasse}>Contrato</h3>
-        <p className="text-sm text-paper-dim">
+        <p className="text-sm text-texto-suave">
           Cadastro manual — a extração automática de contrato (upload de PDF)
           vem numa etapa futura.
         </p>

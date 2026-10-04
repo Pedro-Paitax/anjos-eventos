@@ -39,7 +39,6 @@ export default async function NovoEventoPage({
       className={`mx-auto flex w-full flex-col gap-8 ${churrasco ? "max-w-pagina" : "max-w-pagina-documento"}`}
     >
       <CabecalhoPagina
-        brasa
         titulo="Novo orçamento"
         subtitulo="Passo 2 da Máquina de Estados: Orçamento → Aprovar → Evento. Cadastro manual — a extração automática de contrato vem numa etapa futura."
         voltarPara={

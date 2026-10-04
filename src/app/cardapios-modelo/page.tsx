@@ -18,24 +18,22 @@ export default async function CardapiosModeloPage() {
   const cardapios = await listarCardapiosModelo();
 
   return (
-    <main className="venue-glow flex flex-1 flex-col items-center px-6 py-16">
-      <div className="flex w-full max-w-4xl flex-col gap-8">
-        <CabecalhoPagina
-          titulo="Cardápios Feitos"
-          subtitulo="Cardápios pré-montados pra agilizar o Criar Evento (Senhor Churrasco)."
-          voltarPara={{ href: "/senhor-churrasco", rotulo: "← Senhor Churrasco" }}
-          acao={
-            <Link
-              href="/cardapios-modelo/novo"
-              className={botaoClasse()}
-            >
-              Novo Cardápio
-            </Link>
-          }
-        />
+    <main className="mx-auto flex w-full max-w-pagina flex-col gap-8">
+      <CabecalhoPagina
+        titulo="Cardápios Feitos"
+        subtitulo="Cardápios pré-montados pra agilizar o Criar Evento (Senhor Churrasco)."
+        voltarPara={{ href: "/senhor-churrasco", rotulo: "← Senhor Churrasco" }}
+        acao={
+          <Link
+            href="/cardapios-modelo/novo"
+            className={botaoClasse()}
+          >
+            Novo Cardápio
+          </Link>
+        }
+      />
 
-        <ListaCardapiosModelo cardapios={cardapios} />
-      </div>
+      <ListaCardapiosModelo cardapios={cardapios} />
     </main>
   );
 }

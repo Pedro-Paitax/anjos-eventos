@@ -208,7 +208,7 @@ export function SimuladorCardapio({
       {/* Cardápio */}
       <section className="flex flex-col gap-5">
         <h3 className={secaoTituloClasse}>Cardápio</h3>
-        <p className="text-sm text-paper-dim">
+        <p className="text-sm text-texto-suave">
           Puxando da base de fichas técnicas.
         </p>
 
@@ -231,7 +231,7 @@ export function SimuladorCardapio({
                 </option>
               ))}
             </select>
-            <p className="text-xs text-paper-dim">
+            <p className="text-xs text-texto-suave">
               Só pré-preenche os itens abaixo — você ainda pode adicionar ou
               remover livremente.
             </p>
@@ -250,7 +250,7 @@ export function SimuladorCardapio({
       {/* Deslocamento */}
       <section className="flex flex-col gap-5">
         <h3 className={secaoTituloClasse}>Deslocamento</h3>
-        <label className="flex items-center gap-2 text-sm text-paper">
+        <label className="flex items-center gap-2 text-sm text-texto">
           <input
             type="checkbox"
             checked={regiaoMetropolitana}
@@ -258,7 +258,7 @@ export function SimuladorCardapio({
           />
           Região Metropolitana de Curitiba?
         </label>
-        <p className="text-sm text-paper-dim">
+        <p className="text-sm text-texto-suave">
           Taxa de deslocamento: {formatarMoeda(taxaDeslocamento)}
         </p>
       </section>
@@ -303,13 +303,13 @@ export function SimuladorCardapio({
         <h3 className={secaoTituloClasse}>Valor Sugerido</h3>
 
         {!simulacaoAtiva && (
-          <p className="text-sm text-paper-dim">
+          <p className="text-sm text-texto-suave">
             Informe o número de convidados e selecione ao menos um item do
             cardápio pra calcular.
           </p>
         )}
         {simulacaoAtiva && calculando && (
-          <p role="status" aria-live="polite" className="text-sm text-paper-dim">Calculando…</p>
+          <p role="status" aria-live="polite" className="text-sm text-texto-suave">Calculando…</p>
         )}
         {erro && <Alerta tipo="perigo">{erro}</Alerta>}
         {simulacaoAtiva && itensExcluidos.length > 0 && (
@@ -330,7 +330,7 @@ export function SimuladorCardapio({
         )}
 
         {simulacaoAtiva && resultado && (
-          <p className="text-sm text-paper-dim">
+          <p className="text-sm text-texto-suave">
             {precoFixoSelecionado != null
               ? "Preço por pessoa pré-preenchido com o preço fixo do Cardápio Pré-Montado selecionado — editável."
               : "Preço por pessoa vem do custo real do cardápio selecionado (+ 40%) — pré-preenchido, mas editável."}
@@ -341,7 +341,7 @@ export function SimuladorCardapio({
           <div className="grid grid-cols-2 gap-5 sm:grid-cols-4">
             <div className="flex flex-col gap-1.5">
               <p className={rotuloClasse}>Custo por Pessoa</p>
-              <p className="font-display text-2xl italic text-paper-dim">
+              <p className="font-titulo text-2xl font-semibold text-texto-suave">
                 {formatarMoeda(resultado.custo_cardapio_por_pessoa)}
               </p>
             </div>
@@ -361,13 +361,13 @@ export function SimuladorCardapio({
             </div>
             <div className="flex flex-col gap-1.5">
               <p className={rotuloClasse}>Criança (meia)</p>
-              <p className="font-display text-2xl italic text-paper">
+              <p className="font-titulo text-2xl font-semibold text-texto">
                 {formatarMoeda(resultado.valor_sugerido_crianca)}
               </p>
             </div>
             <div className="flex flex-col gap-1.5">
               <p className={rotuloClasse}>Total do evento</p>
-              <p className="font-display text-2xl italic text-paper">
+              <p className="font-titulo text-2xl font-semibold text-texto">
                 {formatarMoeda(resultado.valor_sugerido_total_evento)}
               </p>
             </div>
@@ -379,7 +379,7 @@ export function SimuladorCardapio({
             <button
               type="button"
               onClick={alternarCalculos}
-              className="self-start rounded-[2px] border border-paper-dim/30 px-4 py-2 text-sm text-paper-dim transition hover:border-paper-dim hover:text-paper"
+              className="self-start rounded-controle border border-borda-forte px-4 py-2 text-sm text-texto-suave transition hover:border-borda-forte hover:text-texto"
             >
               {mostrarCalculos ? "Ocultar cálculos" : "Ver cálculos"}
             </button>
@@ -402,12 +402,12 @@ function PainelCalculos({
   carregando: boolean;
 }) {
   if (carregando) {
-    return <p role="status" aria-live="polite" className="text-sm text-paper-dim">Calculando o passo a passo…</p>;
+    return <p role="status" aria-live="polite" className="text-sm text-texto-suave">Calculando o passo a passo…</p>;
   }
   if (!resultado) return null;
   if ("erro" in resultado) {
     return (
-      <p className="rounded-[2px] border border-red-500/50 bg-red-950/30 px-4 py-3 text-sm text-red-200">
+      <p className="rounded-controle border border-red-500/50 bg-red-950/30 px-4 py-3 text-sm text-red-200">
         Erro ({resultado.status}): {resultado.erro}
       </p>
     );
@@ -415,16 +415,16 @@ function PainelCalculos({
 
   return (
     <div className="flex flex-col gap-4">
-      <p className="text-sm text-paper-dim">
-        Passo a passo do que <code className="text-paper">distribuirPorcoes</code> e{" "}
-        <code className="text-paper">calcularPrecificacaoCardapio</code> calculam pra cada item
+      <p className="text-sm text-texto-suave">
+        Passo a passo do que <code className="text-texto">distribuirPorcoes</code> e{" "}
+        <code className="text-texto">calcularPrecificacaoCardapio</code> calculam pra cada item
         selecionado acima — nenhuma fórmula diferente da usada no valor sugerido.
       </p>
 
-      <div className="overflow-x-auto rounded-[2px] bg-paper text-paper-ink shadow-[0_20px_40px_-20px_rgba(0,0,0,0.6)]">
+      <div className="overflow-x-auto rounded-controle bg-superficie text-texto">
         <table className="w-full min-w-[1100px] border-collapse text-sm">
           <thead>
-            <tr className="border-b border-paper-ink/15 text-left text-texto-suave-papel">
+            <tr className="border-b border-borda text-left text-texto-suave">
               <th className="px-3 py-2 font-normal">Preparo</th>
               <th className="px-3 py-2 font-normal">Macro (unidade)</th>
               <th className="px-3 py-2 font-normal">Unid. rendimento preparo</th>
@@ -443,8 +443,8 @@ function PainelCalculos({
                 key={linha.preparoId}
                 className={
                   linha.unidadeDivergente
-                    ? "border-b border-paper-ink/10 bg-red-600/15 text-red-900"
-                    : "border-b border-paper-ink/10"
+                    ? "border-b border-borda bg-red-600/15 text-red-900"
+                    : "border-b border-borda"
                 }
               >
                 <td className="px-3 py-2 font-medium">{linha.preparoNome}</td>
@@ -458,13 +458,13 @@ function PainelCalculos({
                   )}
                 </td>
                 <td className="px-3 py-2">
-                  {linha.peso} <span className="text-texto-suave-papel">({linha.origemPeso})</span>
+                  {linha.peso} <span className="text-texto-suave">({linha.origemPeso})</span>
                 </td>
                 <td className="px-3 py-2">{linha.somaPesosGrupo}</td>
                 <td className="px-3 py-2">
                   {linha.porcaoCalculada} → {linha.porcaoFinal}
                   {linha.limitadaPorHardCap && (
-                    <span className="ml-1 text-texto-suave-papel">
+                    <span className="ml-1 text-texto-suave">
                       (Hard Cap {linha.porcaoMaximaIndividual})
                     </span>
                   )}
@@ -472,7 +472,7 @@ function PainelCalculos({
                 <td className="px-3 py-2">
                   {linha.volumeNecessarioTotal} {linha.unidadeMacro}
                   {linha.quantidadeParaCusto !== linha.volumeNecessarioTotal && (
-                    <span className="text-texto-suave-papel">
+                    <span className="text-texto-suave">
                       {" "}
                       → {linha.quantidadeParaCusto} un (convertido)
                     </span>
@@ -488,9 +488,9 @@ function PainelCalculos({
       </div>
 
       {resultado.itensExcluidos.length > 0 && (
-        <div className="rounded-[2px] border border-paper-dim/20 bg-ink-soft/60 p-4">
-          <p className="mb-2 text-sm text-paper-dim">Itens excluídos do cálculo</p>
-          <ul className="flex flex-col gap-1 text-sm text-paper">
+        <div className="rounded-controle border border-borda-forte bg-elevada p-4">
+          <p className="mb-2 text-sm text-texto-suave">Itens excluídos do cálculo</p>
+          <ul className="flex flex-col gap-1 text-sm text-texto">
             {resultado.itensExcluidos.map((item) => (
               <li key={item.preparo}>
                 <span className="font-medium">{item.preparo}</span> — {item.motivo}

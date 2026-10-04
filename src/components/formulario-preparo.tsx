@@ -148,7 +148,7 @@ export function FormularioPreparo({
               defaultValue={valoresIniciais?.pesoMedioUnidadeG ?? ""}
               className={campoClasse}
             />
-            <p className="text-sm text-paper-dim">
+            <p className="text-sm text-texto-suave">
               Obrigatório pra preparo vendido por Unidade — sem isso o motor
               de custo não sabe converter a porção calculada (em g/ml) em
               contagem de unidades (docs/DECISOES.md).
@@ -177,7 +177,7 @@ export function FormularioPreparo({
           <p className={rotuloClasse}>Tags (restrições)</p>
           <div className="flex flex-wrap gap-4">
             {RESTRICOES_PREPARO.map((r) => (
-              <label key={r} className="flex items-center gap-2 text-sm text-paper">
+              <label key={r} className="flex items-center gap-2 text-sm text-texto">
                 <input
                   type="checkbox"
                   name="restricoes"
@@ -226,7 +226,7 @@ export function FormularioPreparo({
               className={campoClasse}
               aria-describedby="porcaoMaximaIndividualAjuda"
             />
-            <p id="porcaoMaximaIndividualAjuda" className="text-xs text-paper-dim">
+            <p id="porcaoMaximaIndividualAjuda" className="text-xs text-texto-suave">
               Sempre em gramas (ou ml) por pessoa, na mesma unidade da macro
               — nunca em número de unidades. Ex.: 2 fatias de 10 g = 20.
             </p>

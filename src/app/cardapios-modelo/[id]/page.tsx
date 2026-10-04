@@ -38,22 +38,20 @@ export default async function CardapioModeloPage({ params }: PaginaCardapioModel
   const atualizarComId = atualizarCardapioModeloAction.bind(null, cardapio.id);
 
   return (
-    <main className="venue-glow flex flex-1 flex-col items-center px-6 py-16">
-      <div className="flex w-full max-w-2xl flex-col gap-8">
-        <CabecalhoPagina
-          titulo={cardapio.nome}
-          voltarPara={{ href: "/cardapios-modelo", rotulo: "← Cardápios Feitos" }}
-        />
+    <main className="mx-auto flex w-full max-w-pagina-documento flex-col gap-8">
+      <CabecalhoPagina
+        titulo={cardapio.nome}
+        voltarPara={{ href: "/cardapios-modelo", rotulo: "← Cardápios Feitos" }}
+      />
 
-        <Painel>
-          <FormularioCardapioModelo
-            valoresIniciais={cardapio}
-            preparosPorCategoria={preparosPorCategoria}
-            action={atualizarComId}
-            rotuloEnvio="Salvar alterações"
-          />
-        </Painel>
-      </div>
+      <Painel>
+        <FormularioCardapioModelo
+          valoresIniciais={cardapio}
+          preparosPorCategoria={preparosPorCategoria}
+          action={atualizarComId}
+          rotuloEnvio="Salvar alterações"
+        />
+      </Painel>
     </main>
   );
 }

@@ -1,12 +1,8 @@
 import Link from "next/link";
 import type { Evento } from "@/lib/eventos";
-import {
-  corEmpresa,
-  formatarData,
-  formatarHora,
-  formatarValor,
-  rotuloStatus,
-} from "@/lib/formatacao";
+import { formatarHora, formatarValor, partesDataEvento } from "@/lib/formatacao";
+import { ChipEmpresa, ChipStatus } from "@/components/chip-empresa";
+import { TileData } from "@/components/tile-data";
 import { Vazio } from "@/components/vazio";
 
 export function ListaEventos({ eventos }: { eventos: Evento[] }) {
@@ -20,43 +16,39 @@ export function ListaEventos({ eventos }: { eventos: Evento[] }) {
   }
 
   return (
-    <ul className="lista-enter divide-y divide-paper-ink/10">
-      {eventos.map((evento) => (
-        <li key={evento.id}>
-          <Link
-            href={`/agenda/${evento.id}`}
-            className="flex flex-col gap-2 px-6 py-4 transition hover:bg-paper-dim/60 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
-          >
-            <div className="flex items-start gap-3">
-              <span
-                aria-hidden
-                className={`mt-2 h-2.5 w-2.5 shrink-0 rounded-full ${corEmpresa(
-                  evento.empresa_nome
-                )}`}
+    <ul className="divide-y divide-borda">
+      {eventos.map((evento) => {
+        const data = partesDataEvento(evento.data_evento);
+        return (
+          <li key={evento.id}>
+            <Link
+              href={`/agenda/${evento.id}`}
+              className="grid grid-cols-[60px_minmax(0,1fr)] items-center gap-3 px-3 py-3 transition-colors hover:bg-elevada focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-foco rail:grid-cols-[68px_minmax(0,1fr)_auto] rail:gap-4 rail:px-4"
+            >
+              <TileData
+                empresaNome={evento.empresa_nome}
+                semana={data.semana}
+                dia={data.dia}
+                mes={data.mes}
               />
-              <div>
-                <p className="font-display text-lg italic">
-                  {evento.cliente}
-                </p>
-                <p className="text-sm text-texto-suave-papel">
-                  {evento.empresa_nome}
-                  {evento.tipo_evento ? `, ${evento.tipo_evento}` : ""}
-                </p>
-              </div>
-            </div>
-            <div className="flex flex-col items-start gap-1 pl-6 sm:items-end sm:pl-0">
-              <p className="text-sm">
-                {formatarData(evento.data_evento)},{" "}
-                {formatarHora(evento.data_evento)}
-              </p>
-              <div className="flex items-center gap-3 text-sm text-texto-suave-papel">
-                <span>{rotuloStatus(evento.status)}</span>
-                {evento.valor && <span>{formatarValor(evento.valor)}</span>}
-              </div>
-            </div>
-          </Link>
-        </li>
-      ))}
+              <span className="min-w-0">
+                <span className="block truncate text-[17px] font-semibold">{evento.cliente}</span>
+                <span className="block text-sm text-texto-suave">
+                  {evento.tipo_evento ? `${evento.tipo_evento} · ` : ""}
+                  {formatarHora(evento.data_evento)}
+                </span>
+              </span>
+              <span className="col-span-2 flex flex-wrap items-center gap-3 rail:col-span-1 rail:justify-end">
+                <ChipEmpresa nome={evento.empresa_nome} />
+                <ChipStatus status={evento.status} />
+                {evento.valor && (
+                  <span className="font-semibold tabular-nums">{formatarValor(evento.valor)}</span>
+                )}
+              </span>
+            </Link>
+          </li>
+        );
+      })}
     </ul>
   );
 }

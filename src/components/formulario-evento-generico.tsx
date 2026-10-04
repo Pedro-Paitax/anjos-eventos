@@ -21,7 +21,7 @@ export function FormularioEventoGenerico({
     <form action={action} className="flex flex-col gap-8">
       <input type="hidden" name="empresaId" value={empresaId} />
 
-      <p className="text-sm text-paper-dim">
+      <p className="text-sm text-texto-suave">
         Modelo de contrato ainda não definido para esta empresa — formulário
         provisório, será refinado depois.
       </p>
@@ -151,7 +151,7 @@ export function FormularioEventoGenerico({
       {/* Contrato */}
       <section className="flex flex-col gap-3">
         <h3 className={secaoTituloClasse}>Contrato</h3>
-        <p className="text-sm text-paper-dim">
+        <p className="text-sm text-texto-suave">
           Cadastro manual — a extração automática de contrato (upload de PDF)
           vem numa etapa futura.
         </p>

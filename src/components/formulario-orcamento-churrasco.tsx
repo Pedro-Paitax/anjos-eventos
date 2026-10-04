@@ -305,7 +305,6 @@ export function FormularioOrcamentoChurrasco({
         <label className="flex min-h-11 items-center gap-3 text-texto">
           <input
             type="checkbox"
-            className="h-6 w-6 accent-brasa"
             checked={regiaoMetropolitana}
             onChange={(e) => setRegiaoMetropolitana(e.target.checked)}
           />

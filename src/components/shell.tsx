@@ -37,10 +37,10 @@ const links = [
   },
 ];
 
-// Telas já no Brasa: o shell dá o espaçamento e o fundo do conteúdo (o <main> da página não tem px/py).
-// As demais telas (Etapa 5) seguem com o espaçamento próprio; a Ficha Técnica nunca entra aqui.
+// O shell dá o espaçamento e o fundo do conteúdo (o <main> da página não tem px/py).
+// Única exceção: a Ficha Técnica, que é uma folha branca com o próprio espaçamento e impressão.
 function telaComMiolo(pathname: string) {
-  return pathname === "/" || pathname === "/agenda/novo";
+  return !pathname.endsWith("/fichas-tecnicas");
 }
 
 function estaAtivo(pathname: string, link: (typeof links)[number]) {

@@ -64,21 +64,21 @@ export function EditorPassosPreparo({
   return (
     <div className="flex flex-col gap-3">
       <p className={secaoTituloClasse}>Passos estruturados</p>
-      <p className="text-sm text-paper-dim">
+      <p className="text-sm text-texto-suave">
         Opcional por enquanto — o Modo de Preparo acima continua sendo a
         fonte oficial até todos os preparos serem revisados nesse formato.
       </p>
 
       {linhas.length === 0 && (
-        <p className="text-sm text-paper-dim">Nenhum passo estruturado ainda.</p>
+        <p className="text-sm text-texto-suave">Nenhum passo estruturado ainda.</p>
       )}
 
       {linhas.map((linha, i) => (
         <div
           key={linha.chave}
-          className="flex flex-col gap-3 rounded-[2px] border border-paper-dim/20 bg-ink-soft p-3 sm:flex-row sm:items-start"
+          className="flex flex-col gap-3 rounded-controle border border-borda-forte bg-elevada p-3 sm:flex-row sm:items-start"
         >
-          <span className="pt-2 text-sm text-paper-dim sm:w-8">{i + 1}.</span>
+          <span className="pt-2 text-sm text-texto-suave sm:w-8">{i + 1}.</span>
           <div className="flex flex-1 flex-col gap-1.5">
             <label className={rotuloClasse}>Descrição</label>
             <textarea
@@ -125,7 +125,7 @@ export function EditorPassosPreparo({
               type="button"
               onClick={() => removerLinha(linha.chave)}
               aria-label={`Remover passo ${i + 1}`}
-              className="text-sm text-acao-claro underline decoration-acao-claro/40 underline-offset-4 transition hover:decoration-acao-claro"
+              className="text-sm text-link underline decoration-link/40 underline-offset-4 transition hover:decoration-link"
             >
               Remover
             </button>
@@ -136,7 +136,7 @@ export function EditorPassosPreparo({
       <button
         type="button"
         onClick={adicionarLinha}
-        className="self-start rounded-[2px] bg-paper px-3 py-1.5 text-sm font-medium text-paper-ink transition hover:brightness-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brass"
+        className="self-start rounded-controle bg-superficie px-3 py-1.5 text-sm font-medium text-texto transition hover:brightness-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foco"
       >
         + Adicionar passo
       </button>

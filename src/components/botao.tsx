@@ -2,7 +2,6 @@ import type { ButtonHTMLAttributes } from "react";
 
 export type VarianteBotao = "primario" | "secundario" | "perigo" | "link";
 export type TamanhoBotao = "md" | "sm";
-export type SuperficieBotao = "escuro" | "papel";
 
 // Brasa (DESIGN-SYSTEM §11.1). Toque de 44 px; no desktop (rail, 900 px) o `sm` vai a 36 px.
 // A transição não inclui outline-color: o anel de foco aparece na hora.
@@ -16,49 +15,24 @@ const tamanhos: Record<TamanhoBotao, string> = {
 
 const variantes: Record<VarianteBotao, string> = {
   primario: "bg-brasa text-sobre-brasa shadow-brasa hover:bg-brasa-hover",
-  secundario: "", // depende da superfície, ver secundarioPorSuperficie
+  secundario: "border-borda-forte bg-white/5 text-texto hover:bg-white/10",
   perigo: "bg-perigo text-sobre-perigo hover:bg-perigo-hover",
-  link: "px-1 underline underline-offset-4",
-};
-
-// O secundário não define cor de texto no papel (herda o texto escuro do papel).
-const secundarioPorSuperficie: Record<SuperficieBotao, string> = {
-  escuro: "border-borda-forte bg-white/5 text-texto hover:bg-white/10",
-  papel: "border-borda-campo hover:bg-paper-dim/10",
-};
-
-const linkPorSuperficie: Record<SuperficieBotao, string> = {
-  escuro: "text-link decoration-link/40 hover:decoration-link",
-  papel: "text-acao decoration-acao/40 hover:decoration-acao",
+  link: "px-1 text-link underline decoration-link/40 underline-offset-4 hover:decoration-link",
 };
 
 /** Classes de botão; use direto em `<Link>` que deve parecer botão. */
-export function botaoClasse(
-  variante: VarianteBotao = "primario",
-  tamanho: TamanhoBotao = "md",
-  sobre: SuperficieBotao = "escuro"
-) {
-  return [
-    base,
-    tamanhos[tamanho],
-    variantes[variante],
-    variante === "secundario" ? secundarioPorSuperficie[sobre] : "",
-    variante === "link" ? linkPorSuperficie[sobre] : "",
-  ]
-    .filter(Boolean)
-    .join(" ");
+export function botaoClasse(variante: VarianteBotao = "primario", tamanho: TamanhoBotao = "md") {
+  return [base, tamanhos[tamanho], variantes[variante]].join(" ");
 }
 
 type BotaoProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   variante?: VarianteBotao;
   tamanho?: TamanhoBotao;
-  sobre?: SuperficieBotao;
 };
 
 export function Botao({
   variante = "primario",
   tamanho = "md",
-  sobre = "escuro",
   type = "button",
   className,
   ...props
@@ -66,7 +40,7 @@ export function Botao({
   return (
     <button
       type={type}
-      className={`${botaoClasse(variante, tamanho, sobre)}${className ? ` ${className}` : ""}`}
+      className={`${botaoClasse(variante, tamanho)}${className ? ` ${className}` : ""}`}
       {...props}
     />
   );

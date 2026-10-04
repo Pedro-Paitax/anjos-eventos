@@ -7,11 +7,11 @@ import { excluirPreparoAction } from "@/app/actions/preparo";
 import { CATEGORIAS_PREPARO } from "@/lib/preparos-opcoes";
 import { ModalConfirmacao } from "@/components/modal-confirmacao";
 import { Alerta } from "@/components/alerta";
-import { campoClassePapel } from "@/components/campo";
+import { campoClasse } from "@/components/campo";
 import { botaoClasse } from "@/components/botao";
 import { Vazio } from "@/components/vazio";
 
-const campoFiltroClasse = campoClassePapel;
+const campoFiltroClasse = campoClasse;
 
 type Agrupamento = "nenhum" | "categoria";
 type Ordenacao = "nome" | "categoria" | "unidade";
@@ -60,8 +60,8 @@ function LinhaPreparo({ preparo }: { preparo: PreparoResumo }) {
     <li className="flex flex-col gap-2 px-6 py-4">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
         <div>
-          <p className="font-display text-lg italic">{preparo.nome}</p>
-          <p className="text-sm text-texto-suave-papel">
+          <p className="text-[17px] font-semibold">{preparo.nome}</p>
+          <p className="text-sm text-texto-suave">
             {preparo.categoria ?? "Sem categoria"} · {rotuloRendimento(preparo)}
           </p>
         </div>
@@ -69,7 +69,7 @@ function LinhaPreparo({ preparo }: { preparo: PreparoResumo }) {
           <Link
             href={`/preparos/${preparo.id}`}
             aria-label={`Editar ${preparo.nome}`}
-            className={botaoClasse("link", "sm", "papel")}
+            className={botaoClasse("link", "sm")}
           >
             Editar
           </Link>
@@ -78,13 +78,13 @@ function LinhaPreparo({ preparo }: { preparo: PreparoResumo }) {
             onClick={() => setConfirmando(true)}
             disabled={pendente}
             aria-label={`Excluir ${preparo.nome}`}
-            className={botaoClasse("link", "sm", "papel")}
+            className={botaoClasse("link", "sm")}
           >
             {pendente ? "Excluindo…" : "Excluir"}
           </button>
         </div>
       </div>
-      {erro && <Alerta tipo="perigo" sobre="papel">{erro}</Alerta>}
+      {erro && <Alerta tipo="perigo">{erro}</Alerta>}
 
       {confirmando && (
         <ModalConfirmacao
@@ -145,7 +145,7 @@ export function ListaPreparos({ preparos }: { preparos: PreparoResumo[] }) {
 
   return (
     <div>
-      <div className="flex flex-col gap-3 border-b border-paper-ink/10 p-4 sm:flex-row sm:flex-wrap sm:items-center">
+      <div className="flex flex-col gap-3 border-b border-borda p-4 sm:flex-row sm:flex-wrap sm:items-center">
         <input
           type="text"
           value={buscaNome}
@@ -158,7 +158,7 @@ export function ListaPreparos({ preparos }: { preparos: PreparoResumo[] }) {
           aria-label="Filtrar por categoria"
           value={categoriaFiltro}
           onChange={(e) => setCategoriaFiltro(e.target.value)}
-          className={`${campoFiltroClasse} sm:w-52`}
+          className={`${campoFiltroClasse} sm:w-60`}
         >
           <option value="">Todas as categorias</option>
           {CATEGORIAS_PREPARO.map((categoria) => (
@@ -171,7 +171,7 @@ export function ListaPreparos({ preparos }: { preparos: PreparoResumo[] }) {
           aria-label="Agrupamento"
           value={agrupamento}
           onChange={(e) => setAgrupamento(e.target.value as Agrupamento)}
-          className={`${campoFiltroClasse} sm:w-44`}
+          className={`${campoFiltroClasse} sm:w-56`}
         >
           <option value="nenhum">Sem agrupamento</option>
           <option value="categoria">Agrupar por Categoria</option>
@@ -180,7 +180,7 @@ export function ListaPreparos({ preparos }: { preparos: PreparoResumo[] }) {
           aria-label="Ordenação"
           value={ordenacao}
           onChange={(e) => setOrdenacao(e.target.value as Ordenacao)}
-          className={`${campoFiltroClasse} sm:w-44`}
+          className={`${campoFiltroClasse} sm:w-56`}
         >
           <option value="nome">Ordenar por Nome</option>
           <option value="categoria">Ordenar por Categoria</option>
@@ -189,17 +189,17 @@ export function ListaPreparos({ preparos }: { preparos: PreparoResumo[] }) {
       </div>
 
       {preparosFiltrados.length === 0 ? (
-        <p className="px-6 py-10 text-center text-sm text-texto-suave-papel">
+        <p className="px-6 py-10 text-center text-sm text-texto-suave">
           Nenhum preparo encontrado com esse filtro.
         </p>
       ) : grupos ? (
-        <div className="divide-y divide-paper-ink/10">
+        <div className="divide-y divide-borda">
           {grupos.map(([categoria, itens]) => (
             <div key={categoria}>
-              <p className="bg-paper-ink/5 px-6 py-2 text-xs font-medium uppercase tracking-wide text-texto-suave-papel">
+              <p className="bg-white/[0.03] px-6 py-2 text-[13px] font-medium text-texto-suave">
                 {categoria}
               </p>
-              <ul className="lista-enter divide-y divide-paper-ink/10">
+              <ul className="divide-y divide-borda">
                 {itens.map((preparo) => (
                   <LinhaPreparo key={preparo.id} preparo={preparo} />
                 ))}
@@ -208,7 +208,7 @@ export function ListaPreparos({ preparos }: { preparos: PreparoResumo[] }) {
           ))}
         </div>
       ) : (
-        <ul className="lista-enter divide-y divide-paper-ink/10">
+        <ul className="divide-y divide-borda">
           {preparosFiltrados.map((preparo) => (
             <LinhaPreparo key={preparo.id} preparo={preparo} />
           ))}

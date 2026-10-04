@@ -14,7 +14,7 @@ export function FormularioOrcamentoGenerico({ empresaId, action }: FormularioOrc
     <form action={action} className="flex flex-col gap-8">
       <input type="hidden" name="empresaId" value={empresaId} />
 
-      <p className="text-sm text-paper-dim">
+      <p className="text-sm text-texto-suave">
         Modelo de contrato ainda não definido pra esta empresa — orçamento
         fechado direto no valor negociado, sem itens de cardápio.
       </p>

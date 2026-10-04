@@ -19,21 +19,19 @@ export default async function SimuladorCardapioPage() {
   const cardapiosModelo = await listarCardapiosModelo();
 
   return (
-    <main className="venue-glow flex flex-1 flex-col items-center px-6 py-16">
-      <div className="flex w-full max-w-2xl flex-col gap-8">
-        <CabecalhoPagina
-          titulo="Simulador de Cardápio"
-          subtitulo="Monte um cardápio e veja o valor sugerido, sem criar um evento."
-          voltarPara={{ href: "/senhor-churrasco", rotulo: "← Senhor Churrasco" }}
-        />
+    <main className="mx-auto flex w-full max-w-pagina-documento flex-col gap-8">
+      <CabecalhoPagina
+        titulo="Simulador de Cardápio"
+        subtitulo="Monte um cardápio e veja o valor sugerido, sem criar um evento."
+        voltarPara={{ href: "/senhor-churrasco", rotulo: "← Senhor Churrasco" }}
+      />
 
-        <Painel>
-          <SimuladorCardapio
-            preparosPorCategoria={preparosPorCategoria}
-            cardapiosModelo={cardapiosModelo}
-          />
-        </Painel>
-      </div>
+      <Painel>
+        <SimuladorCardapio
+          preparosPorCategoria={preparosPorCategoria}
+          cardapiosModelo={cardapiosModelo}
+        />
+      </Painel>
     </main>
   );
 }

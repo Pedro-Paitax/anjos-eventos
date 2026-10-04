@@ -79,12 +79,12 @@ export function ComposicaoPreparo({
 
       <div className="flex flex-col gap-3">
         {linhas.length === 0 && (
-          <p className="text-sm text-paper-dim">Nenhum insumo adicionado ainda.</p>
+          <p className="text-sm text-texto-suave">Nenhum insumo adicionado ainda.</p>
         )}
         {linhas.map((linha, i) => (
           <div
             key={linha.chave}
-            className="flex flex-col gap-3 rounded-[2px] border border-paper-dim/20 bg-ink-soft p-3 sm:flex-row sm:items-end"
+            className="flex flex-col gap-3 rounded-controle border border-borda-forte bg-elevada p-3 sm:flex-row sm:items-end"
           >
             <input type="hidden" name="composicaoId" value={linha.id ?? ""} />
             <div className="flex flex-1 flex-col gap-1.5">
@@ -126,7 +126,7 @@ export function ComposicaoPreparo({
               type="button"
               onClick={() => removerLinha(linha.chave)}
               aria-label={`Remover insumo ${i + 1}`}
-              className="self-start text-sm text-acao-claro underline decoration-acao-claro/40 underline-offset-4 transition hover:decoration-acao-claro sm:self-center"
+              className="self-start text-sm text-link underline decoration-link/40 underline-offset-4 transition hover:decoration-link sm:self-center"
             >
               Remover
             </button>
@@ -137,7 +137,7 @@ export function ComposicaoPreparo({
       <button
         type="button"
         onClick={adicionarLinha}
-        className="self-start rounded-[2px] bg-paper px-3 py-1.5 text-sm font-medium text-paper-ink transition hover:brightness-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brass"
+        className="self-start rounded-controle bg-superficie px-3 py-1.5 text-sm font-medium text-texto transition hover:brightness-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foco"
       >
         + Adicionar Insumo
       </button>

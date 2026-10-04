@@ -142,6 +142,53 @@ body {
     opacity: 0.5;
     cursor: not-allowed;
   }
+  /* Caixa de seleção do Brasa (DESIGN-SYSTEM §11.3): o próprio input, sem marcação nova, então
+     name/value/checked e o FormData ficam intactos. 24 px; o rótulo clicável chega a 44 px. */
+  input[type="checkbox"] {
+    appearance: none;
+    flex: none;
+    display: inline-grid;
+    place-content: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    margin: 0;
+    border: 2px solid var(--color-borda-controle);
+    border-radius: var(--radius-chip);
+    background-color: transparent;
+    cursor: pointer;
+    transition:
+      background-color var(--motion-micro) var(--motion-ease),
+      border-color var(--motion-micro) var(--motion-ease);
+  }
+  input[type="checkbox"]::after {
+    content: "";
+    width: 1rem;
+    height: 1rem;
+    background-color: var(--color-sobre-brasa);
+    opacity: 0;
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7'/%3E%3C/svg%3E") center / contain no-repeat;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7'/%3E%3C/svg%3E") center / contain no-repeat;
+  }
+  input[type="checkbox"]:checked {
+    background-color: var(--color-brasa);
+    border-color: var(--color-brasa);
+  }
+  input[type="checkbox"]:checked::after {
+    opacity: 1;
+  }
+  input[type="checkbox"]:focus-visible {
+    outline: 2px solid var(--color-foco);
+    outline-offset: 2px;
+  }
+  input[type="checkbox"]:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  label:has(> input[type="checkbox"]) {
+    min-height: 2.75rem;
+    cursor: pointer;
+  }
+
   select.campo-controle {
     appearance: none;
     padding-right: 2.625rem;

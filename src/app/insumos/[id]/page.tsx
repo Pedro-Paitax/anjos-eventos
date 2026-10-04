@@ -33,21 +33,19 @@ export default async function InsumoPage({ params }: PaginaInsumoProps) {
   const atualizarComId = atualizarInsumoAction.bind(null, insumo.id);
 
   return (
-    <main className="venue-glow flex flex-1 flex-col items-center px-6 py-16">
-      <div className="flex w-full max-w-2xl flex-col gap-8">
-        <CabecalhoPagina
-          titulo={insumo.nome}
-          voltarPara={{ href: "/insumos", rotulo: "← Insumos" }}
-        />
+    <main className="mx-auto flex w-full max-w-pagina-documento flex-col gap-8">
+      <CabecalhoPagina
+        titulo={insumo.nome}
+        voltarPara={{ href: "/insumos", rotulo: "← Insumos" }}
+      />
 
-        <Painel>
-          <FormularioInsumo
-            valoresIniciais={insumo}
-            action={atualizarComId}
-            rotuloEnvio="Salvar alterações"
-          />
-        </Painel>
-      </div>
+      <Painel>
+        <FormularioInsumo
+          valoresIniciais={insumo}
+          action={atualizarComId}
+          rotuloEnvio="Salvar alterações"
+        />
+      </Painel>
     </main>
   );
 }

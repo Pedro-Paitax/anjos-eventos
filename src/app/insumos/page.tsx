@@ -26,17 +26,15 @@ export default async function InsumosPage() {
   }));
 
   return (
-    <main className="venue-glow flex flex-1 flex-col items-center px-6 py-16">
-      <div className="flex w-full max-w-2xl flex-col gap-8">
-        <CabecalhoPagina
-          titulo="Insumos"
-          subtitulo="Preço, unidade e fator de correção de cada insumo."
-          voltarPara={{ href: "/senhor-churrasco", rotulo: "← Senhor Churrasco" }}
-        />
+    <main className="mx-auto flex w-full max-w-pagina flex-col gap-8">
+      <CabecalhoPagina
+        titulo="Insumos"
+        subtitulo="Preço, unidade e fator de correção de cada insumo."
+        voltarPara={{ href: "/senhor-churrasco", rotulo: "← Senhor Churrasco" }}
+      />
 
-        <div className="rounded-[2px] bg-paper text-paper-ink shadow-[0_20px_40px_-20px_rgba(0,0,0,0.6)]">
-          <ListaInsumos insumos={insumos} />
-        </div>
+      <div className="overflow-hidden rounded-cartao border border-borda bg-superficie shadow-realce">
+        <ListaInsumos insumos={insumos} />
       </div>
     </main>
   );

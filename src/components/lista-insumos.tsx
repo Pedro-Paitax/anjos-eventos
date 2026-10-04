@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { InsumoResumo } from "@/lib/insumos";
 import { UNIDADES_INSUMO } from "@/lib/preparos-opcoes";
-import { campoClassePapel } from "@/components/campo";
+import { campoClasse } from "@/components/campo";
 import { Vazio } from "@/components/vazio";
 import { botaoClasse } from "@/components/botao";
 
@@ -13,7 +13,7 @@ import { botaoClasse } from "@/components/botao";
 // importado num "use client"). Ver src/app/insumos/page.tsx.
 export type InsumoComPrecoCorrigido = InsumoResumo & { precoCorrigido: number };
 
-const campoFiltroClasse = campoClassePapel;
+const campoFiltroClasse = campoClasse;
 
 // Insumos não têm campo Categoria no banco (src/db/schema/insumos.ts) —
 // só Unidade, Nome e Preço fazem sentido como filtro/ordenação aqui.
@@ -37,8 +37,8 @@ function LinhaInsumo({ insumo }: { insumo: InsumoComPrecoCorrigido }) {
   return (
     <li className="flex flex-col gap-2 px-6 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
       <div>
-        <p className="font-display text-lg italic">{insumo.nome}</p>
-        <p className="text-sm text-texto-suave-papel">
+        <p className="text-[17px] font-semibold">{insumo.nome}</p>
+        <p className="text-sm text-texto-suave">
           {insumo.udm} · {formatarReais(insumo.preco)} · fator{" "}
           {insumo.fatorCorrecao ?? "—"} · corrigido {formatarReais(insumo.precoCorrigido)}
         </p>
@@ -46,7 +46,7 @@ function LinhaInsumo({ insumo }: { insumo: InsumoComPrecoCorrigido }) {
       <Link
         href={`/insumos/${insumo.id}`}
         aria-label={`Editar ${insumo.nome}`}
-        className={`${botaoClasse("link", "sm", "papel")} self-start sm:self-center`}
+        className={`${botaoClasse("link", "sm")} self-start sm:self-center`}
       >
         Editar
       </Link>
@@ -86,7 +86,7 @@ export function ListaInsumos({ insumos }: { insumos: InsumoComPrecoCorrigido[] }
 
   return (
     <div>
-      <div className="flex flex-col gap-3 border-b border-paper-ink/10 p-4 sm:flex-row sm:flex-wrap sm:items-center">
+      <div className="flex flex-col gap-3 border-b border-borda p-4 sm:flex-row sm:flex-wrap sm:items-center">
         <input
           type="text"
           value={buscaNome}
@@ -99,7 +99,7 @@ export function ListaInsumos({ insumos }: { insumos: InsumoComPrecoCorrigido[] }
           aria-label="Filtrar por unidade"
           value={unidadeFiltro}
           onChange={(e) => setUnidadeFiltro(e.target.value)}
-          className={`${campoFiltroClasse} sm:w-44`}
+          className={`${campoFiltroClasse} sm:w-56`}
         >
           <option value="">Todas as unidades</option>
           {UNIDADES_INSUMO.map((unidade) => (
@@ -112,7 +112,7 @@ export function ListaInsumos({ insumos }: { insumos: InsumoComPrecoCorrigido[] }
           aria-label="Ordenação"
           value={ordenacao}
           onChange={(e) => setOrdenacao(e.target.value as Ordenacao)}
-          className={`${campoFiltroClasse} sm:w-44`}
+          className={`${campoFiltroClasse} sm:w-56`}
         >
           <option value="nome">Ordenar por Nome</option>
           <option value="preco-asc">Preço crescente</option>
@@ -121,11 +121,11 @@ export function ListaInsumos({ insumos }: { insumos: InsumoComPrecoCorrigido[] }
       </div>
 
       {insumosFiltrados.length === 0 ? (
-        <p className="px-6 py-10 text-center text-sm text-texto-suave-papel">
+        <p className="px-6 py-10 text-center text-sm text-texto-suave">
           Nenhum insumo encontrado com esse filtro.
         </p>
       ) : (
-        <ul className="lista-enter divide-y divide-paper-ink/10">
+        <ul className="divide-y divide-borda">
           {insumosFiltrados.map((insumo) => (
             <LinhaInsumo key={insumo.id} insumo={insumo} />
           ))}
