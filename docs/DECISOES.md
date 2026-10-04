@@ -1120,3 +1120,9 @@ Decisões:
 Limites que não mudam: regra de negócio, cálculos, APIs, Server Actions, schema, autenticação, `name=`/ordem/tipo dos campos dos formulários; Ficha Técnica e `@media print` idênticas; smoke test do deploy (página protegida sem sessão: 307 ou 200 com `NEXT_REDIRECT` e sem `<h1>`; sem `loading.tsx` novo; `/login` sem o shell); layout raiz sem consulta nova ao banco.
 
 Riscos registrados (DESIGN-SYSTEM.md §0, E8 e E9): a cor de ação (brasa) é a mesma da empresa Senhor Churrasco, e o aviso (âmbar) lembra a cor do Anjos Cerimonial; a mitigação é nunca depender só da cor (ponto + nome da empresa, ícone + texto no aviso). Tema escuro ao sol (chácara de dia) não foi testado em campo.
+
+### Etapa 1 do Redesign 2: fontes locais (2026-10-04)
+
+`next/font/google` foi trocado por `next/font/local` (`src/app/fonts/`, licenças OFL em `LICENSE-*.txt`). Fraunces e Archivo são os mesmos `.woff2` latinos que o build antigo gerava; Bricolage Grotesque e Instrument Sans são do redesign.
+
+**Limitação conhecida:** só o recorte **latino** foi incluído. Os recortes latin-ext e vietnamita (que o Google Fonts servia por `unicode-range`, cerca de 48 KB a mais no bundle) não entram: caractere fora do latino (por exemplo um nome com letra de outro alfabeto latino estendido) cai na fonte de fallback do sistema. Pt-BR é coberto pelo latino. Não foi feita varredura no banco por esses caracteres.
