@@ -14,7 +14,7 @@ Fontes de verdade (ler antes de começar, só o que for relevante à tarefa):
 - `docs/REGRAS_NEGOCIO.md` e `docs/DECISOES.md` — quando a tela toca regra de negócio.
 - `AGENTS.md` — o Next.js instalado tem mudanças de API; consultar `node_modules/next/dist/docs/` antes de usar recurso do framework.
 
-O DESIGN-SYSTEM.md é uma **proposta**: o que está marcado **[confirmar]** lá não está decidido. Não trate como decidido; pergunte.
+O DESIGN-SYSTEM.md descreve o **alvo da direção Brasa** (escolhida pelo Pedro em 2026-10-04). A tabela "Estado da implementação" no início dele diz o que já está no código; o que está **[alvo]** ainda não existe e o que está marcado **[confirmar]** não está decidido: não trate como decidido; pergunte. O protótipo de referência está em `docs/design/prototipos/direcao-1/`; quando ele for ambíguo, escolha, registre a escolha no DESIGN-SYSTEM.md (§0) e siga. O redesign anterior ("caderno do maître": papel sobre moldura escura, Fraunces, raio de 2 px) **não vale mais**.
 
 ---
 
@@ -40,23 +40,26 @@ Não invente: tokens, siglas, cores de status, textos de regra ou comportamentos
 ## 1. Seguir o DESIGN-SYSTEM.md
 Use os tokens e as regras do documento (cores, tipografia, espaçamento, raio, elevação, tamanhos, estados, componentes). Não escolha valor por gosto: se o documento define, use; se não define, proponha e peça confirmação em vez de inventar.
 
-## 2. Preservar a identidade visual
-- Moldura escura `ink`, superfícies `paper`, painéis `ink-soft`.
-- Títulos em Fraunces itálico (≥ 18 px, nunca em botões/campos/tabelas/erros); corpo em Archivo.
-- Raio de 2 px (`rounded-[2px]`) e pílula só para chip/badge.
-- Faixa de topo do cartão = **cor da empresa**, sem uso decorativo.
-- Cor significa uma coisa: `ember`/`brass`/`sage` identificam empresa; ação, erro, aviso, sucesso e info usam seus tokens próprios; **nunca só cor** (sempre texto ou ícone).
+## 2. Preservar a identidade visual (Brasa)
+- Tudo escuro, em três degraus: `fundo` → `superficie` → `elevada`, separados por borda fina (DESIGN-SYSTEM.md §4, §9). Sem cartão de "papel" claro.
+- Títulos em **Bricolage Grotesque** (`--font-titulo`), texto em **Instrument Sans** (`--font-texto`). Fraunces e Archivo (`--font-display`, `--font-sans`) são **só da Ficha Técnica**: não use o nome desses tokens no redesign.
+- Raio por papel (8, 12, 14, 16, 20, 28 px); círculo só no ponto de empresa e na marca; **sem "pílula"** e sem `rounded-[2px]` em código novo.
+- Brasa (`brasa`) = ação (preenchimento sólido ou link com texto). Cor da empresa = ponto de 8 px + nome, ou tile a 16 %; **nunca fundo de botão**. Erro, aviso, sucesso e info usam seus tokens; **nunca só cor** (sempre texto ou ícone).
+- Um herói por tela: o brilho de brasa existe só no herói da Home e no sinal da marca. Sem `backdrop-filter` e sem gradiente em cartão ou lista.
+- Hierarquia por claridade de superfície e borda; sombra só em modal, barra de salvar e brilho do botão primário.
 
 ## 3. Reutilizar antes de criar / evitar duplicação
 - Não copie strings de classe de botão/campo/painel para um terceiro lugar. Se já existem ≥ 2 cópias, **extraia** para o componente previsto em DESIGN-SYSTEM.md §17 (em vez de copiar mais uma).
 - Componentes previstos: `Botao`, `BotaoEnviar`, `Campo`, `Alerta`, `Modal`/`ModalConfirmacao`, `Painel`, `CartaoEntidade`, `CartaoAtalho`, `Badge`/`ChipEmpresa`, estados `Vazio`/`Esqueleto`. Crie o componente **uma vez** e migre os usos; não crie variantes paralelas.
 - Todo diálogo usa `src/components/modal.tsx`. Não crie overlay próprio e não use `window.confirm/alert`.
 - Antes de criar arquivo novo em `src/components/`, mostre que nenhum existente serve.
-- Sem nova dependência de UI/ícones (CLAUDE.md: poucas dependências). Ícones são SVG inline.
+- Poucas dependências (CLAUDE.md). Ícones são SVG inline. **Radix só onde uma tela precisar** (Dropdown, Tooltip, Popover, Command para busca de insumo e de itens de cardápio), com justificativa de custo e risco, uma tela por vez. **O `Modal` atual fica**: não trocar o miolo por Radix. **shadcn/ui:** só depois de teste de compatibilidade com Next 16 numa branch descartável com build no `ender`, mostrado ao Pedro; componente a componente, com `add --dry-run`/`--diff`; **nunca `init` que reescreva `globals.css` sem o Pedro ver o diff**.
+- Mantenha a **API atual** de `Botao`, `BotaoEnviar`, `Campo`, `Alerta`, `Painel`, `Modal`, `ModalConfirmacao`, `Vazio`: muda a aparência, não as props (os formulários não podem mudar).
 
 ## 4. Responsividade
 - Projete **mobile primeiro** (360 e 390 px), depois 768 e 1280 (DESIGN-SYSTEM.md §15).
-- Gutter 16 px mobile / 24 px ≥ sm; topo 24 px mobile / 64 px desktop; padding de painel 16/24 px.
+- Menu lateral a partir de 900 px (token `rail`), topo + barra de abas abaixo disso. Conteúdo: 24/16/112 px (topo/lados/base) no celular, 44/48/120 px no desktop; painel 18/24 px. A base de 112 px livra a barra de abas.
+- Sem rolagem horizontal da **página** em 360 px.
 - Alvo de toque ≥ 44 px (área clicável, não só o visual); campos ≥ 16 px de fonte.
 - Tabela vira lista de cartões no mobile (exceto a tabela de cálculos do Simulador).
 - Nenhuma informação essencial depende de `hover`.
@@ -65,14 +68,22 @@ Use os tokens e as regras do documento (cores, tipografia, espaçamento, raio, e
 ## 5. Acessibilidade
 - Todo `input/select/textarea` com `<label htmlFor>` real (ou `useId`); `aria-label` só quando não há rótulo visível.
 - Erros: `aria-invalid`, `aria-describedby`, mensagem acionável; avisos dinâmicos com `role="alert"`/`role="status"`.
-- Foco sempre visível; sobre **papel** não usar `brass` como anel (2,52:1) — usar a cor definida no DESIGN-SYSTEM.md §10.2.
-- Contraste: texto ≥ 4,5:1, controles/bordas ≥ 3:1. **Não usar opacidade (`/50`, `/60`) para texto secundário** — usar os tokens sólidos. Se usar uma cor nova, calcule o contraste e informe.
+- Foco sempre visível: anel de 2 px com o token `foco` (DESIGN-SYSTEM.md §10.2).
+- Contraste: texto ≥ 4,5:1, controles/bordas ≥ 3:1. **Não usar opacidade para texto secundário** — usar `texto-suave`. Toda cor ou mistura nova precisa de contraste calculado (a tabela do DESIGN-SYSTEM.md §4.2 lista os pares já calculados) e informado.
+- `z-index` só pelos tokens `--z-*` (conteúdo < barra de salvar < menu/abas < overlay do modal < popover < toast < skip link). Modal em portal; **nenhum `transform`, `filter`, `perspective` ou `overflow` em ancestral de `position: fixed`**; use as propriedades `translate` e `scale`, não `transform`.
+- Ordem de foco = ordem visual: skip link primeiro; menu lateral/topo antes do conteúdo no DOM; barra de abas depois. `aria-current="page"` no item ativo; `<nav aria-label>`.
 - Botão só com símbolo exige `aria-label`. Tooltip nunca é o único lugar de uma informação.
 - Respeitar `prefers-reduced-motion` (já existe em `globals.css`); sem animação nova em listas longas, em impressão ou na Ficha Técnica.
 - `<input disabled>` não é forma de mostrar valor calculado; use estado somente leitura (`<output>`/texto rotulado).
 
-## 6. Evitar estética genérica de "dashboard de IA"
-Não introduza: glassmorphism, gradientes em cartões, brilhos/neon, roxo/azul "SaaS", cantos muito arredondados, avatares coloridos, ilustrações/mascotes, "cards de KPI" para preencher espaço, ícone em tudo, emojis em texto de sistema, textos como "Oops!". Toda decisão visual precisa de uma justificativa ligada ao produto/usuário (ver DESIGN-SYSTEM.md §2). "Está em alta" não é justificativa.
+## 6. Evitar estética genérica
+Não introduza: `backdrop-filter`/vidro fosco, gradientes em cartões e listas, brilho fora do herói e da marca, roxo/azul "SaaS", avatares (o do usuário ficou de fora), ilustrações/mascotes, "cards de KPI" para preencher espaço, ícone em tudo, maiúsculas espaçadas como rótulo, "pílula" em tudo, emojis em texto de sistema, textos como "Oops!". Toda decisão visual precisa de uma justificativa ligada ao produto/usuário (DESIGN-SYSTEM.md §2). "Está em alta" não é justificativa.
+
+## 6.1 Movimento
+120 ms (micro), 200 ms (componente), 260 ms (overlay), curva `cubic-bezier(.2,.8,.2,1)`. Sem animação de entrada de página ou lista. `prefers-reduced-motion: reduce` desliga tudo. Nunca em `@media print` nem na Ficha Técnica.
+
+## 6.2 Fora do escopo do redesign (lista "PRECISA DE LÓGICA")
+Paginação e ordenação de tabela, filtro da Agenda, atividade recente, totais, mensagem de sucesso após salvar, recuperação de erro nos formulários, busca nos seletores (a menos que o Pedro aprove à parte), índice do formulário com item ativo, total ao vivo na barra de salvar, agrupamento por semana, valor do evento na Home, avatar, qualquer query ou Server Action nova (DESIGN-SYSTEM.md §19). Se uma melhoria visual depender de um desses, **pare e liste**; não implemente.
 
 ## 7. Textos de interface
 Português do Brasil, verbo + objeto nos botões ("Gerar orçamento"), capitalização de frase, mensagens que dizem o que corrigir. Vocabulário técnico (docs, "Máquina de Estados", nomes de arquivo) não vai para a tela. **Não reescreva texto que expressa regra de negócio** sem confirmação (ex.: "Ordens de Ação enviadas… não atualizam mensagens já enviadas", avisos de itens fora do cálculo).
@@ -110,9 +121,9 @@ Estas fronteiras valem para **toda** tarefa de UI. Violá-las exige pedido expl�
 | 5 | **APIs e rotas** | `src/app/api/**`, `src/lib/api-auth.ts`, `cron-auth.ts`, `rate-limit.ts` | Não alterar contrato, status, autenticação nem criar rota para "facilitar" a UI |
 | 6 | **Server Actions** | `src/app/actions/**` | Não alterar assinatura, validação, retorno nem efeitos. Qualquer mudança é lógica (ver acima) |
 | 7 | **Banco de dados** | `src/db/**`, `drizzle/`, `database/`, `docs/BANCO.md` | Nenhuma migration, coluna, query ou script. Alteração de banco segue a skill `alterar-banco` e **para para mostrar o SQL antes de produção** |
-| 8 | **Autenticação/sessão** | `usuario-atual.ts`, `login`, `actions/usuario.ts` | Manter o fluxo "quem está usando?"; sem senha/fluxo novo sem decisão |
+| 8 | **Autenticação/sessão** | `usuario-atual.ts`, `login`, `actions/usuario.ts` | Manter o fluxo "quem está usando?"; sem senha/fluxo novo sem decisão. O layout raiz **não ganha consulta nova ao banco**; "Trocar usuário" reaproveita a action existente |
 | 9 | **Automação WhatsApp, crons, ordens de ação** | `automacao-whatsapp.ts`, `ordem-acao.ts`, `whatsapp-worker/`, `api/cron/**` | Não alterar; só a apresentação do indicador/modal |
-| 10 | **Deploy e smoke test** | `scripts/deploy-oracle.sh` e relacionados | Não alterar. `loading.tsx` novo muda respostas das rotas protegidas e o smoke aceita só 307 ou 200 com `NEXT_REDIRECT`: não criar `loading.tsx` sem revisar o smoke com o Pedro. **Nunca fazer deploy** sem pedido |
+| 10 | **Deploy e smoke test** | `scripts/deploy-oracle.sh` e relacionados | Não alterar. `loading.tsx` novo muda respostas das rotas protegidas e o smoke aceita só 307 ou 200 com `NEXT_REDIRECT`: não criar `loading.tsx` sem revisar o smoke com o Pedro. Página protegida sem sessão: 307 ou 200 com `NEXT_REDIRECT` e **sem `<h1>`**; o shell (menu, abas, topo), o esqueleto e a marca **não usam `<h1>`**; `/login` continua **sem** o shell. **Nunca fazer deploy** sem pedido. Build válido só no `ender`, a partir de `git archive HEAD` já commitado |
 | 11 | **Dados reais** | Banco de produção | Nunca apagar/alterar dados para "testar" a interface |
 
 ## O que o formulário NÃO pode perder
@@ -127,7 +138,9 @@ Estas fronteiras valem para **toda** tarefa de UI. Violá-las exige pedido expl�
 
 ## Impressão
 
-- Ficha Técnica (`agenda/[id]/fichas-tecnicas`) e o bloco `@media print` de `globals.css`: já houve dois bugs em produção (página extra em branco, fundo preto). **Alterar por último, só com teste de PDF real** (1 e N preparos). Sem animação/sombra em impressão.
+- Ficha Técnica (`agenda/[id]/fichas-tecnicas`) e o bloco `@media print` de `globals.css`: já houve dois bugs em produção (página extra em branco, fundo preto). **Não alterar.** Com o redesign, o shell mora no layout raiz e aparece na Ficha em tela; portanto: menu, topo, abas e barra de salvar com `display: none` em `@media print`, contêiner do shell em `display: block` na impressão, fundo branco; a folha da Ficha (tela e impressa) fica idêntica à de hoje.
+- A Ficha usa `font-display` (Fraunces) e herda Archivo do `body`: **não reaproveite `--font-display` nem `--font-sans`** e mantenha `body:has(.sem-animacao)` com Archivo. Estilos globais novos (raio, sombra, fundo, movimento, fonte) não podem vazar para a Ficha nem para a impressão.
+- **Não use `window.print()` por automação.** Verifique comparando o CSS computado em emulação de mídia `print` e entregue ao Pedro as instruções para imprimir um PDF real (1 e N preparos) e comparar antes/depois.
 
 ## Dependências e escopo
 
@@ -146,6 +159,11 @@ Sempre que apropriado (CLAUDE.md): lint, TypeScript, testes e build; use o agent
 - [ ] Nenhum `name=`/payload de formulário mudou (comparar antes/depois quando o formulário foi tocado).
 - [ ] Nenhum arquivo das fronteiras de segurança acima foi modificado (`git diff --stat`).
 - [ ] Sem estilo duplicado: nenhuma string de classe nova copiada de outro componente.
+- [ ] Tema escuro conferido em formulário, alerta, tabela, modal e estados vazio/erro/carregamento.
+- [ ] Larguras 360, 390, 768 e 1280 px; sem rolagem horizontal da página em 360 px; barra de abas não cobre botão de envio nem o fim do formulário.
+- [ ] Smoke de leitura: página protegida sem sessão = 307 ou 200 com `NEXT_REDIRECT` e sem `<h1>`; `/login` sem shell.
+- [ ] Ficha Técnica: CSS computado em mídia `print` igual ao de antes; shell com `display: none`.
+- [ ] Build **no `ender`** (a partir de `git archive HEAD` commitado). Dev server local com `npx next dev --webpack`; encerrar por PID. Zero escrita no banco de produção; screenshots sem nome, telefone ou endereço reais.
 
 Se não for possível executar alguma validação, diga isso. **Não diga que algo foi testado se não foi.**
 

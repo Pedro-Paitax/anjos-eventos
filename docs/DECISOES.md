@@ -1104,3 +1104,19 @@ Correção no script (2026-10-03): o passo 4 agora usa `pm2 startOrRestart ecosy
 (sem `--update-env`) e confere que o `HOSTNAME` do processo é `0.0.0.0`; o smoke espera `/login`
 responder 200 por até 60 s e também prova `/login` pelo IP Tailscale `100.121.229.81:3001`
 (o smoke só em `localhost` não pegou esta falha).
+
+## Redesign 2: direção visual Brasa (2026-10-04)
+
+O Pedro escolheu a direção **Brasa** (escura e quente; menu lateral no desktop, abas embaixo no celular) entre as três propostas em `docs/design/REDESIGN-2-PROPOSTA.md`. A implementação é em etapas (0 a 6), cada uma com commit, verificação e pausa para o "continue" do Pedro. Alvo e escolhas de design: `docs/design/DESIGN-SYSTEM.md` (§0 lista o que mudou e as escolhas onde o protótipo era ambíguo). Referência visual: `docs/design/prototipos/direcao-1/`.
+
+Decisões:
+1. `next/font/local` é a Etapa 1, sozinha, em commit separado, com build no `ender`. A Ficha Técnica mantém as fontes antigas (Fraunces e Archivo); as do redesign têm nomes novos (`--font-titulo`, `--font-texto`) para a impressão não mudar.
+2. Radix só onde uma tela precisar (Dropdown, Tooltip, Popover, Command para busca de insumo e de itens de cardápio). O `Modal` atual fica; o miolo não troca por Radix.
+3. shadcn/ui: antes de instalar, teste de compatibilidade com Next 16 numa branch descartável, com build no `ender`, mostrado ao Pedro. Se falhar ou não estiver claro, Radix direto e componentes próprios. Componente a componente; nunca `init` que reescreva `globals.css` sem o Pedro ver o diff. (A documentação oficial do shadcn consultada em 2026-10-04 cita Next 15 + React 19 + Tailwind 4; Next 16 não é citado.)
+4. `listarEmpresas()` pode ser chamada na Home para os atalhos de novo orçamento por empresa, sem alterar a função.
+5. "Em N dias" só como derivação na UI da data que a lista da Home já traz, no fuso `America/Sao_Paulo`, por diferença de dias de calendário, sem query nova e sem mudar a função que busca os eventos. Se exigir mexer na query, parar e listar em "PRECISA DE LÓGICA".
+6. Valor do evento na Home e todos os itens da lista "PRECISA DE LÓGICA, NÃO IMPLEMENTAR" ficam de fora (lista em `docs/design/DESIGN-SYSTEM.md` §19). O avatar do usuário (que estava nessa lista) também ficou de fora.
+
+Limites que não mudam: regra de negócio, cálculos, APIs, Server Actions, schema, autenticação, `name=`/ordem/tipo dos campos dos formulários; Ficha Técnica e `@media print` idênticas; smoke test do deploy (página protegida sem sessão: 307 ou 200 com `NEXT_REDIRECT` e sem `<h1>`; sem `loading.tsx` novo; `/login` sem o shell); layout raiz sem consulta nova ao banco.
+
+Riscos registrados (DESIGN-SYSTEM.md §0, E8 e E9): a cor de ação (brasa) é a mesma da empresa Senhor Churrasco, e o aviso (âmbar) lembra a cor do Anjos Cerimonial; a mitigação é nunca depender só da cor (ponto + nome da empresa, ícone + texto no aviso). Tema escuro ao sol (chácara de dia) não foi testado em campo.

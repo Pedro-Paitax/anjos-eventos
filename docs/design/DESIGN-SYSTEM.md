@@ -1,56 +1,107 @@
-# Design System — Anjos Eventos
+# Design System — Anjos Eventos (direção Brasa)
 
-Status: **proposta de planejamento visual** (nenhum código alterado). Base: `docs/design/UX-AUDIT.md` + tokens atuais em `src/app/globals.css`.
-Data: 2026-10-03.
+Status: **direção Brasa escolhida pelo Pedro em 2026-10-04**. Este documento descreve o **alvo**; o código só passa a refletir cada parte quando a etapa correspondente do redesign 2 for implementada (tabela abaixo). Referência visual: `docs/design/prototipos/direcao-1/` (HTML+CSS estático) e `docs/design/REDESIGN-2-PROPOSTA.md` (auditoria, contrastes, riscos, plano). Base anterior: `docs/design/UX-AUDIT.md`.
 
-Convenções deste documento:
-- **[existe]** = já está no código hoje. **[novo]** = proposta. **[ajuste]** = existe, mas muda.
-- Razões de contraste foram **calculadas** (fórmula WCAG 2.x) com os hex indicados; não foram medidas em tela.
-- Onde algo depende de decisão do negócio ou de teste real, está marcado **[confirmar]**.
-- Nenhuma regra de negócio (`docs/REGRAS_NEGOCIO.md`) é alterada por este documento. Onde um componente toca regra, isso é dito.
+Convenções:
+- **[implementado]** = já está no código. **[alvo]** = definido aqui, ainda não implementado. **[confirmar]** = depende do Pedro ou de teste real.
+- Razões de contraste foram **calculadas** (fórmula WCAG 2.x) com os hex indicados; não foram medidas em tela. **Toda cor nova precisa de contraste calculado antes de entrar.**
+- Nenhuma regra de negócio (`docs/REGRAS_NEGOCIO.md`) é alterada por este documento.
+
+## Estado da implementação
+
+| Etapa | Conteúdo | Estado |
+|---|---|---|
+| 0 | Docs (este arquivo, a skill `anjos-design-system`, `docs/DECISOES.md`) | feita |
+| 1 | `next/font/local` (fontes do redesign e fontes antigas da Ficha) | pendente |
+| 2 | Tokens e componentes base (`Botao`, `BotaoEnviar`, `Campo`, `Alerta`, `Painel`, `Modal`, `Vazio`) | pendente |
+| 3 | Shell: menu lateral, abas, topo mobile, skip link, "Trocar usuário", WhatsApp | pendente |
+| 4 | Home + formulário longo (orçamento) | pendente |
+| 5 | Listas, cartões, badges, tabelas, modais de seleção, demais telas | pendente |
+| 6 | Fechamento (limpeza dos tokens antigos, lista final "PRECISA DE LÓGICA") | pendente |
+
+Até a Etapa 6, os tokens antigos (`ink`, `paper`, `ember`, `brass`, `sage`, `acao`…) continuam existindo ao lado dos novos; só saem quando nenhum arquivo os usar mais.
+
+---
+
+## 0. O que mudou em relação ao design system anterior, e por quê
+
+| Tema | Antes (primeira fase) | Agora (Brasa) | Por quê |
+|---|---|---|---|
+| Tema | Moldura escura `ink` com "papel" claro para ler dados | **Tudo escuro**: fundo, superfície e elevada em três degraus de grafite quente | Duas linguagens (escuro e claro) sem regra visível era uma das queixas da auditoria; um só tema simplifica e combina com uso noturno em salão |
+| Forma | Raio de 2 px em tudo | **Escala de raio por papel**: 8, 12, 14, 16, 20, 28 px | O Pedro achou o app "quadrado e rígido"; raio por papel dá hierarquia (controle, linha, cartão, modal) |
+| Tipografia | Fraunces itálico (títulos) + Archivo | **Bricolage Grotesque** (títulos) + **Instrument Sans** (texto). Fraunces e Archivo ficam só para a Ficha Técnica | Itálico serifado em tudo dava tom de convite até em telas de valores; a grotesca de títulos é mais firme e legível |
+| Navegação | Header superior com 4 itens | **Menu lateral** (≥ 900 px) e **barra de abas** embaixo (< 900 px) | Alvo de toque e polegar no celular; o desktop ganha menu sempre visível |
+| Cor de ação | Terracota escura `#a8431d` | **Brasa** `#f2753f` com texto escuro | Terracota escura sobre fundo escuro quase não destaca; brasa dá o contraste de valor que faltava |
+| Elevação | Sombras literais copiadas em cada cartão | **Degraus de superfície + borda**; sombra só no modal, na barra de salvar e no brilho do botão primário | Em tema escuro sombra quase não aparece; a hierarquia vem da claridade da superfície |
+| Movimento | 150/220/300 ms, entrada de página escalonada | **120 / 200 / 260 ms** (micro, componente, overlay); sem entrada escalonada de página | Faixas pedidas pelo Pedro; movimento só responde à ação do usuário |
+| Home | Título centralizado, cartões iguais, pendências escondidas | **Herói "Próximo evento"**, painel de pendências e lista com tile de data | A informação que pede ação passa a ficar visível |
+| Formulário | Coluna única, botão só no fim | **Seções em painéis**, índice lateral (âncoras) no desktop e **barra de salvar fixa** | Rolar ~3000 px para salvar |
+| Dependências | Nenhuma de UI | Nenhuma obrigatória. **Radix só onde uma tela precisar** (§11.11); shadcn/ui só depois de teste com Next 16 | Poucas dependências (CLAUDE.md) |
+
+**Decisões do Pedro (2026-10-04) que valem para todo o redesign:**
+1. `next/font/local` é a Etapa 1, sozinha, com build no `ender`. A Ficha Técnica mantém as fontes antigas; as do redesign têm **nomes novos**.
+2. Radix só onde uma tela precisar (Dropdown, Tooltip, Popover, Command para busca de insumo e de itens de cardápio). **O `Modal` atual fica**; o miolo não troca por Radix.
+3. shadcn/ui: antes de instalar, teste de compatibilidade com Next 16 numa branch descartável, com build no `ender`, e mostrar o resultado. Se falhar ou não estiver claro: Radix direto e componentes próprios. Componente a componente; nunca `init` que reescreva `globals.css` sem o Pedro ver o diff.
+4. `listarEmpresas()` pode ser chamada na Home (atalhos de novo orçamento por empresa), **sem alterar a função**.
+5. "Em N dias" só se for **derivado na UI** da data que a lista da Home já traz, no fuso `America/Sao_Paulo`, por **diferença de dias de calendário** (não de horas), sem query nova e sem mudar a função que busca os eventos. Se exigir mexer na query: parar e listar em "PRECISA DE LÓGICA".
+6. Valor do evento na Home e todo item da lista "PRECISA DE LÓGICA, NÃO IMPLEMENTAR" ficam de fora (§19).
+
+**Escolhas minhas onde o protótipo era ambíguo (registradas; o Pedro pode reverter):**
+
+| # | Ambiguidade | Escolha | Motivo |
+|---|---|---|---|
+| E1 | O protótipo não mostra o WhatsApp nem "Trocar usuário" no celular | Desktop: rodapé do menu lateral, acima do nome do usuário. Celular: topo, à direita (nome truncado, "Trocar" e o indicador), como no header atual | "Nada some; só muda de lugar" |
+| E2 | O protótipo tem avatar com a inicial do usuário | **Sem avatar**: só o nome | O avatar estava na lista "PRECISA DE LÓGICA" da proposta (elemento novo) e o Pedro excluiu essa lista |
+| E3 | Um botão "Novo orçamento" no topo da Home (protótipo) vs. atalhos por empresa (decisão 4) | Seção **"Novo orçamento"** com **três atalhos** (um por empresa, ids vindos de `listarEmpresas()`), no lugar do botão único. O botão do topo da **Agenda** continua | A decisão 4 só faz sentido com atalhos por empresa; o botão único repetiria a rota `/agenda/novo` |
+| E4 | O rail e a barra de abas são dois desenhos; o `IndicadorWhatsapp` faz polling | Dois blocos no DOM (menu lateral e topo/abas), cada um com sua cópia de "Trocar usuário" (a oculta fica `display: none`, fora do foco e do leitor de tela). **O `IndicadorWhatsapp` só monta no bloco visível** (`matchMedia`), para não duplicar o polling | Um único desenho com `order` quebraria "ordem de foco = ordem visual" em uma das larguras |
+| E5 | Ponto de troca entre menu lateral e abas | Breakpoint próprio de **900 px** (token `rail`), como no protótipo; 768 px usa o layout de abas | Com 768 px o menu lateral deixaria só ~520 px para o formulário |
+| E6 | Largura do conteúdo: o protótipo usa 1120 px | **Padrão 1120 px** em Home, Agenda e formulários longos (com índice); formulários curtos e telas de detalhe ficam em **48rem (768 px)**; a Ficha Técnica mantém `pagina-documento` | O protótipo só cobre Home, lista e formulário longo |
+| E7 | Teclado virtual e a barra de abas fixa | Com `input`, `select` ou `textarea` em foco, **a barra de abas é escondida só por CSS** (`:has(:focus)`), no celular | A barra não pode subir com o teclado nem cobrir o campo; não depende de JS |
+| E8 | Brasa é a cor de **ação** e é também a cor da empresa Senhor Churrasco (`#f2753f` nos dois) | **Mantido como no protótipo, com mitigação**: a cor da empresa aparece só em ponto de 8 px e em tile a 16 % (nunca como botão), sempre com o **nome da empresa ao lado**; a ação é sempre preenchimento sólido ou link com texto. Se o uso mostrar confusão, trocar o tom da empresa **[confirmar]** | Preserva a direção aprovada; "cor significa uma coisa" vira "cor nunca é o único sinal" |
+| E9 | Aviso (`#f2c14e`) e Anjos Cerimonial (`#d9a441`) têm matiz parecido | Aviso sempre com **ícone de triângulo e texto**; empresa sempre com ponto + nome | Mesma razão |
+| E10 | Cartão "em N dias": o que mostrar em "hoje" e "amanhã" | `hoje`, `amanhã`, `em N dias` (N ≥ 2); data passada nunca ocorre (a query só traz de hoje em diante) | A decisão 5 aprova "em N dias"; hoje e amanhã são o mesmo cálculo |
 
 ---
 
 ## 1. Quem usa e em que situação
 
-Isto decide quase tudo abaixo. Evidências vêm do código e da documentação, não de pesquisa com usuários (**não existe pesquisa; as premissas de uso precisam de confirmação do Pedro**).
+Evidências vêm do código e da documentação, não de pesquisa com usuários (**não existe pesquisa; premissas de uso precisam de confirmação do Pedro**).
 
 | Fato | Origem | Consequência de design |
 |---|---|---|
 | Equipe pequena de uma operação de eventos (3 empresas); login é "quem está usando?", sem senha | `login/page.tsx`, `usuario-atual.ts` | Interface sem cerimônia: poucos cliques, nenhum fluxo de conta |
-| Acesso via Tailscale, provavelmente celular e desktop **[confirmar proporção]** | comentário em `usuario-atual.ts` | Mobile é requisito de primeira classe, não adaptação |
-| Tarefa central: orçar → confirmar → preparar o evento, com **dinheiro e contrato** envolvidos | REGRAS §2, §3, §5 | Erros custam caro; clareza de valores e confirmação de ações irreversíveis valem mais que estética |
-| Uso em cozinha/ambiente de evento (Ficha Técnica impressa, equipe via WhatsApp) | `fichas-tecnicas`, `automacao-whatsapp` | Leitura rápida, números grandes e legíveis, impressão confiável |
+| Acesso via Tailscale, provavelmente celular e desktop **[confirmar proporção]** | comentário em `usuario-atual.ts` | Mobile é requisito de primeira classe |
+| Tarefa central: orçar → confirmar → preparar o evento, com **dinheiro e contrato** | REGRAS §2, §3, §5 | Clareza de valores e confirmação de ações irreversíveis valem mais que estética |
+| Uso em salão à noite e em chácara de dia (Ficha Técnica impressa, equipe via WhatsApp) | `fichas-tecnicas`, `automacao-whatsapp` | Leitura rápida, números grandes. **Tema escuro lê pior ao sol: não testado em campo [confirmar]** |
 | Quem mantém tem pouco tempo (CLAUDE.md) | CLAUDE.md | Poucos componentes, poucas variantes, tokens em um lugar só |
 
-**Tarefas do usuário em ordem de frequência provável:** ver o que vem aí (Home/Agenda) → resolver pendências → criar orçamento → confirmar evento → consultar/ajustar ficha técnica → cadastrar equipe/insumos.
+Tarefas por frequência provável: ver o que vem aí (Home/Agenda) → resolver pendências → criar orçamento → confirmar evento → consultar a ficha técnica → cadastrar equipe e insumos.
 
 ---
 
 ## 2. Filosofia visual
 
-> **"O caderno do maître": organizado, quente e firme.**
-> A interface deve parecer um instrumento de trabalho de quem organiza festas, não um painel de métricas.
+> **Brasa: a noite do evento.** Grafite quente, uma só cor viva para o que é ação, cantos macios e o próximo evento em destaque.
 
 Princípios (cada um com o porquê):
 
-1. **Informação antes de decoração.** Cada tela responde "o que preciso fazer agora?". *Porque* a maioria do tempo o usuário está a caminho de uma ação (confirmar, resolver pendência), não analisando dados. Não há gráficos no produto; não criar "cards de KPI" só para preencher espaço.
-2. **Dinheiro e ações irreversíveis têm tratamento próprio.** Valores em tipografia numérica estável; ações que gravam contrato ou apagam dados têm confirmação clara. *Porque* o preço é congelado no Orçamento (REGRAS §2) e exclusão de evento é hard delete (REGRAS §6).
-3. **Cor significa uma coisa só.** Cada cor da marca identifica uma empresa; estados usam cores próprias; nunca só cor. *Porque* hoje `ember` é ao mesmo tempo cor do Senhor Churrasco, do botão principal, de erro e de ação destrutiva (UX-AUDIT §2.6), o que torna "erro" indistinguível de "Senhor Churrasco".
-4. **Superfície clara para ler, moldura escura para orientar.** Mantém a identidade atual (fundo `ink`, papéis `paper`). *Porque* os dados densos (listas, formulários, tabelas) já são lidos em superfícies claras e de alto contraste; a moldura escura é a assinatura do produto e reduz brilho em ambiente de salão/noite. É decisão de identidade, não de função — mantida por ser o que o usuário já conhece.
-5. **Reutilizar antes de criar.** Uma variante nova só entra se houver uso real no código. *Porque* o maior custo atual é duplicação (UX-AUDIT §6).
-6. **Funciona sem hover e sem cor.** Tudo que existe no desktop existe no toque; todo estado tem texto ou ícone. *Porque* o uso em celular é premissa.
-
-**O que deliberadamente não fazemos**, e por quê:
+1. **Informação antes de decoração.** Cada tela responde "o que preciso fazer agora?". Sem gráficos nem "cards de KPI" para preencher espaço.
+2. **Dinheiro e ações irreversíveis têm tratamento próprio.** Valores em números tabulares; ações que gravam contrato ou apagam dados têm confirmação clara (REGRAS §2, §6).
+3. **Cor nunca é o único sinal.** Brasa = ação; estados têm cores próprias; empresa = ponto + nome (ver E8, E9). Todo estado tem ícone ou texto.
+4. **Um herói por tela, o resto calmo.** A Home destaca o próximo evento com o único brilho decorativo do produto; as demais telas não têm brilho.
+5. **Hierarquia por claridade, não por sombra.** Fundo → superfície → elevada, separados por borda fina; sombra só em overlay.
+6. **Reutilizar antes de criar.** Variante nova só com uso real no código.
+7. **Funciona sem hover e sem cor.** Tudo do desktop existe no toque.
 
 | Evitado | Motivo |
 |---|---|
-| Glassmorphism, gradientes decorativos em cartões, brilhos neon | Não carregam informação e reduzem contraste. O único gradiente é o `venue-glow` do fundo (identidade existente, **[existe]**, mantido sutil e limitado ao fundo da página). |
-| Roxo/azul "SaaS", cantos muito arredondados, avatares coloridos | Nada disso vem do negócio (buffet, cerimonial, chácara). A paleta nasce de brasa, latão, sálvia e papel — materiais do próprio ofício. |
-| Ilustrações e mascotes em estados vazios | Atrasam a leitura e exigem manutenção de arte; texto objetivo com ação resolve. |
-| Ícones em todo lugar | Poucos itens exigem ícone (ver §13). Ícone só onde reduz leitura ou ambiguidade. |
-| Animações de entrada em listas longas | Já limitadas (12 itens, `prefers-reduced-motion`); manter. Movimento só confirma ação (pressionar, abrir/fechar modal). |
-| Sidebar fixa com 12 itens | O produto tem 4 áreas principais (ver §11). |
+| `backdrop-filter` e vidro fosco | Criam contexto de empilhamento (já quebraram o modal) e reduzem contraste |
+| Gradiente em cartões e listas | Só o brilho do herói da Home e o sinal da marca têm gradiente |
+| Roxo/azul "SaaS", avatares coloridos | Nada disso vem do negócio |
+| Ilustrações e mascotes em estados vazios | Texto objetivo com ação resolve |
+| Maiúsculas espaçadas como rótulo | O protótipo não usa; rótulos em frase |
+| "Pílula" em tudo | Só o círculo de pontos e a marca; chips têm raio 8 |
+| Animação de entrada em lista e página | Movimento só responde à ação (§10) |
 
 ---
 
@@ -58,565 +109,449 @@ Princípios (cada um com o porquê):
 
 | Atributo | Como aparece | Como **não** aparece |
 |---|---|---|
-| **Confiável** | Valores sempre com símbolo e casas decimais (`R$ 1.234,00`); ações importantes mostram resumo antes de gravar | Texto vago ("Sucesso!"), números sem unidade |
-| **Calorosa** | Papel creme, serifa itálica nos títulos, tom de voz humano ("Nenhum evento nos próximos 15 dias.") | Humor, emojis em textos de sistema, "Oops!" |
-| **Direta** | Verbos no infinitivo nos botões (**Salvar**, **Excluir**, **Gerar orçamento**); erro diz o que corrigir | Mensagem técnica ("Algo deu errado", nome de arquivo de doc) |
-| **Tranquila sob pressão** | Alertas só para o que exige ação; pendências agrupadas em um lugar | Vários tons de vermelho disputando atenção |
+| **Confiável** | Valores com símbolo e casas (`R$ 1.234,00`) em números tabulares; resumo antes de gravar | Texto vago ("Sucesso!"), números sem unidade |
+| **Acolhedora** | Grafite quente, cantos macios, tom humano ("Nenhum evento nos próximos 15 dias.") | Humor, emoji em texto de sistema, "Oops!" |
+| **Direta** | Verbo + objeto nos botões (**Salvar orçamento**, **Excluir evento**); erro diz o que corrigir | Mensagem técnica |
+| **Tranquila sob pressão** | Aviso só para o que pede ação; pendências agrupadas num painel | Vários tons de vermelho disputando atenção |
 
-**Assinatura visual** (o que faz o produto reconhecível):
-- **Título em Fraunces itálico** (hoje já presente) — lembra convite/cardápio impresso.
-- **Faixa colorida no topo do cartão** (6 px) — hoje decorativa em `ember` em quase todo cartão; passa a ser **exclusivamente a cor da empresa** (§5.4). Vira informação.
-- **Papel sobre madeira escura**: cartões `paper` sobre o fundo `ink`.
-- **Cartões com cantos de 2 px** — referência a ficha/contrato impresso, não a app.
+**Assinatura visual:** (1) o **brilho de brasa** no herói "Próximo evento"; (2) o **tile de data** (dia grande sobre tinta da empresa a 16 %); (3) a **marca** com o sinal de brasa (círculo de 12 px com brilho); (4) o **menu lateral** com item ativo em brasa a 16 %.
 
 ---
 
 ## 4. Paleta de cores
 
-### 4.1 Cores base **[existem]** (mantidas)
+### 4.1 Tokens **[alvo]** (nomes novos; os antigos ficam até a Etapa 6)
 
-| Token | Hex | Papel |
+| Token (`--color-…`) | Hex | Papel |
 |---|---|---|
-| `ink` | `#1e1811` | Fundo da página (moldura) |
-| `ink-soft` | `#2a2118` | Painéis sobre a moldura (formulários, modal) |
-| `paper` | `#f6efe1` | Superfície de leitura (listas, cartões) e texto sobre escuro |
-| `paper-dim` | `#eae0cb` | Texto secundário sobre escuro; zebra/hover sobre papel |
-| `paper-ink` | `#2b2013` | Texto sobre papel (13,9:1 sobre `paper`) |
-| `ember` | `#c1552c` | **Marca / empresa Senhor Churrasco** (uso restrito, ver 4.2) |
-| `brass` | `#b8933f` | **Marca / empresa Anjos Cerimonial**; anel de foco sobre escuro (5,5:1 sobre `ink-soft`) |
-| `sage` | `#6e7a5c` | **Marca / empresa Em Plena Natureza** |
+| `fundo` | `#151210` | Fundo da página, fundo de campo |
+| `superficie` | `#1f1a17` | Cartões, linhas de lista, painéis de seção |
+| `elevada` | `#2a2420` | Modal, barra de salvar, item em hover, bloco dentro de cartão |
+| `menu` | `#1a1512` → `fundo` (degradê vertical) | Fundo do menu lateral |
+| `borda` | `rgb(255 255 255 / .08)` | Divisores e contorno de cartão (decorativo) |
+| `borda-forte` | `rgb(255 255 255 / .16)` | Contorno de botão secundário, hover de cartão |
+| `borda-controle` | `#8a7e73` | Borda de input, select e caixa de seleção |
+| `texto` | `#f4eee8` | Texto principal |
+| `texto-suave` | `#b9ada2` | Texto secundário, rótulo, ajuda |
+| `brasa` | `#f2753f` | Fundo do botão primário; ícone de item ativo |
+| `brasa-hover` | `#ff8a57` | Hover do primário |
+| `sobre-brasa` | `#1a0e08` | Texto sobre `brasa` |
+| `link` | `#ff9a6b` | Link e ação em texto |
+| `foco` | `#ffc089` | Anel de foco |
+| `perigo` | `#ff8c98` | Erro, exclusão (texto, ícone, preenchimento do botão) |
+| `sobre-perigo` | `#1f0a0d` | Texto sobre `perigo` |
+| `aviso` | `#f2c14e` | Aviso, pendência |
+| `sucesso` | `#a8c48f` | Sucesso, "Confirmado" |
+| `info` | `#8dbbe0` | Informação, "Orçado" |
+| `emp-churrasco` | `#f2753f` | Empresa Buffet Senhor Churrasco |
+| `emp-cerimonial` | `#d9a441` | Empresa Anjos Cerimonial |
+| `emp-chacara` | `#8db27a` | Empresa Em Plena Natureza |
 
-> Origem do mapeamento empresa→cor: `src/lib/formatacao.ts` (`coresEmpresa`). Mantido.
+Mapeamento empresa→cor: `src/lib/formatacao.ts` (`coresEmpresa`); na Etapa 5 ele passa a apontar para os tokens `emp-*` (mudança de classe, não de regra).
 
-### 4.2 Problema e correção do `ember`
+### 4.2 Contrastes calculados (WCAG 2.x)
 
-Contraste calculado hoje (UX-AUDIT §3): `text-ember` = 3,46–3,99:1 e botão `paper` sobre `ember` = 3,99:1 → abaixo de 4,5:1. A correção **separa três usos** que hoje usam o mesmo token:
+| Par | Razão | Mínimo |
+|---|---|---|
+| `texto` / `fundo` · `superficie` · `elevada` | 16,20 · 14,97 · 13,30 | 4,5 |
+| `texto-suave` / `fundo` · `superficie` · `elevada` | 8,49 · 7,85 · 6,97 | 4,5 |
+| `sobre-brasa` / `brasa` · `brasa-hover` | 6,66 · 8,13 | 4,5 |
+| `link` / `fundo` · `superficie` · `elevada` | 8,96 · 8,28 · 7,35 | 4,5 |
+| `foco` / `fundo` · `superficie` | 11,68 · 10,80 | 3 |
+| `borda-controle` / `fundo` · `superficie` · `elevada` | 4,72 · 4,36 · 3,87 | 3 |
+| `brasa` / `fundo` (forma do botão) | 6,57 | 3 |
+| `sobre-perigo` / `perigo` · hover `#ffa3ad` | 8,54 · 10,02 | 4,5 |
+| `perigo` / `superficie` | 7,76 | 4,5 |
+| `aviso` / `superficie` | 10,27 | 4,5 |
+| `sucesso` / `superficie` | 8,99 | 4,5 |
+| `info` / `superficie` | 8,47 | 4,5 |
+| `emp-churrasco` · `emp-cerimonial` · `emp-chacara` / `superficie` | 6,07 · 7,66 · 7,21 | 3 (forma) |
+| Texto do tile de data (empresa a 16 % sobre `superficie`) | 4,74 · 5,69 · 5,43 | 4,5 |
+| Chip de status (cor sobre a própria cor a 14 %): Confirmado · Orçado · Cancelado | 6,75 · 6,43 · 6,03 | 4,5 |
+| Chip "Realizado" (`texto-suave` sobre branco a 6 %) | 6,65 | 4,5 |
+| `texto` sobre chip de empresa (branco a 6 %) | 12,69 | 4,5 |
+| `texto` sobre item de menu ativo (`brasa` a 16 % sobre `menu`) | 12,45 | 4,5 |
+| `sobre-brasa` sobre o ícone da caixa marcada (`brasa`) | 6,66 | 3 |
 
-| Uso | Token novo | Hex | Contraste calculado |
-|---|---|---|---|
-| Identidade da empresa (barra, bolinha) — **sem texto** | `ember` **[existe]** | `#c1552c` | Não precisa contraste de texto; sempre acompanhada do nome |
-| Fundo do botão primário, com texto `paper` | `acao` **[novo]** | `#a8431d` | texto `paper` 5,27:1 |
-| Hover/pressionado do botão primário | `acao-forte` **[novo]** | `#9c3c19` | texto `paper` 5,97:1 |
-| Texto/ícone de ação sobre **escuro** (links, "Resolver pendências") | `acao-claro` **[novo]** | `#e8825a` | 6,51:1 sobre `ink`; 5,85:1 sobre `ink-soft` |
-| Texto/link de ação sobre **papel** | `acao` | `#a8431d` | 5,27:1 sobre `paper` |
+Texto em `elevada` e `fundo` com `texto-suave` passa em todos os casos acima. **Qualquer cor ou mistura fora desta tabela precisa ser calculada antes de entrar.**
 
-*Por que manter `acao` na família de `ember`:* é a cor com que o Pedro já identifica o produto; muda a luminosidade, não o matiz. *Por que não usar outra cor para o botão:* seria trocar a identidade para resolver contraste, e isso se resolve escurecendo.
+### 4.3 Superfícies e quando usar
 
-### 4.3 Superfícies e bordas **[novo/ajuste]**
-
-| Token | Hex | Uso | Justificativa |
-|---|---|---|---|
-| `superficie-escura` | `ink` | Página | — |
-| `superficie-painel` | `ink-soft` | Painéis de formulário, modais | — (1,11:1 contra `ink`; por isso painel precisa de **borda**, ver abaixo) |
-| `superficie-papel` | `paper` | Listas, cartões | — |
-| `superficie-papel-alt` | `paper-dim` | Zebra, hover, cabeçalho de grupo | — |
-| `borda-campo-escuro` | `#8a7d68` | Borda de input/select sobre `ink-soft` | **3,92:1** — hoje a borda é `paper-dim/20` (≈1,3:1), abaixo dos 3:1 de WCAG 1.4.11 para identificar o campo |
-| `borda-campo-papel` | `#8a7d68` | Borda de input sobre `paper` (filtros) | 3,52:1 |
-| `borda-suave-escuro` | `paper-dim/15` | Divisores decorativos (não identificam controle) | Divisor decorativo não exige 3:1 |
-| `borda-suave-papel` | `paper-ink/10` | Divisor de lista | idem |
-
-### 4.4 Texto secundário **[ajuste]**
-
-Hoje usa `/50`, `/60`, `/70` de opacidade (ex.: `paper-ink/50` = 3,07:1, placeholder `paper-ink/40` = 2,37:1). Substituir opacidade por **tokens sólidos**, para que o contraste seja previsível:
-
-| Token | Hex | Sobre | Contraste |
-|---|---|---|---|
-| `texto` | `paper-ink` `#2b2013` | `paper` | 13,9:1 |
-| `texto-suave-papel` | `#6b5b46` | `paper` | 5,72:1 (`paper-dim`: 4,99:1) |
-| `texto` (escuro) | `paper` | `ink-soft` | 13,8:1 |
-| `texto-suave-escuro` | `#a89c85` | `ink` / `ink-soft` | 6,50:1 / 5,84:1 |
-| placeholder | = `texto-suave` | — | ≥ 4,5:1 (hoje 2,4–4,1:1) |
-
-### 4.5 Quando usar cada superfície
-
-- **Ler e comparar dados (listas, tabelas, calendário, Ficha):** `paper`.
-- **Preencher dados (formulários):** `ink-soft` sobre `ink`. *Porque* formulários longos em fundo claro cansam mais em ambiente escuro e é a convenção já estabelecida no app; contraste interno dos campos é corrigido pelas bordas de 4.3.
-- **Foco/decisão (modal):** `ink` com borda `borda-suave-escuro`.
+- **Página:** `fundo`. **Cartão, linha de lista, painel de seção:** `superficie` com `borda`. **Modal, barra de salvar, hover:** `elevada`.
+- **Campo:** `fundo` dentro de um painel `superficie` (o campo "afunda"), borda `borda-controle`.
+- Cartão dentro de cartão (ex.: bloco de pendência no painel) usa `elevada`.
+- Texto secundário **nunca** usa opacidade; usa `texto-suave`.
 
 ---
 
 ## 5. Cores semânticas
 
-Cada semântica tem **duas versões** (para fundo escuro e para papel), porque a mesma cor não passa em ambos. Todos os contrastes são texto sobre a superfície indicada.
+| Semântica | Quando usar | Cor | Ícone/forma obrigatório |
+|---|---|---|---|
+| **Perigo** | Erro de validação, exclusão, falha de cálculo (fail-hard §15) | `perigo` | ✕ em círculo / lixeira |
+| **Aviso** | Item pendente, itens fora do cálculo (§10), valor que "NÃO reflete o cardápio inteiro" | `aviso` | triângulo "!" |
+| **Sucesso** | "Salvo", "Confirmado", conexão ativa | `sucesso` | ✓ |
+| **Informação** | Ajuda de campo, "Orçado", valor pré-preenchido do cardápio pré-montado | `info` | "i" em círculo |
 
-| Semântica | Quando usar | Sobre escuro (`ink-soft`) | Sobre papel (`paper`) | Ícone/forma obrigatório |
-|---|---|---|---|---|
-| **Perigo** `perigo` | Erro de validação, exclusão, falha de cálculo (fail-hard §15) | texto `#f08294` — 6,26:1 | texto `#a3243a` — 6,39:1; botão `#a3243a` + texto `paper` 6,39:1 | ✕ / "!" em círculo |
-| **Aviso** `aviso` | Item pendente, itens fora do cálculo (§10), valor que "NÃO reflete o cardápio inteiro" | texto `#e6b957` — 8,61:1 | texto `#7a5410` — 5,91:1 | triângulo "!" |
-| **Sucesso** `sucesso` | "Salvo", conexão ativa | texto `#9fae88` — 6,68:1 | texto `#4f5b3f` — 6,33:1 | ✓ |
-| **Informação** `info` | Ajuda de campo, "valor pré-preenchido do cardápio pré-montado" | texto `#8fb3cf` — 7,16:1 | texto `#2f5775` — 6,70:1 | "i" em círculo |
+Fundo de alerta: a cor semântica a **10 %** sobre `superficie`, **borda de 1 px a 50 %**, texto na cor cheia (conferir contraste do texto sobre o fundo misturado na Etapa 2, **[confirmar]**; a tabela 4.2 já cobre os chips a 14 %).
 
-Fundos de alerta: a cor semântica a **12–15 % de opacidade** sobre a superfície, com **borda de 1 px** na cor cheia e texto na versão calculada acima. (Contraste do texto sobre esses fundos translúcidos deve ser reconferido na implementação **[confirmar]**.)
+Pendências da Home usam `aviso`; erro usa `perigo`; **nunca só cor** (E8, E9).
 
-**Por que `perigo` é um carmesim e não o `ember`:** a distância entre `#c1552c` e `#a3243a` é pequena em luminância (1,6:1), mas o matiz de `perigo` fica mais para vermelho-vinho; **mesmo assim a distinção nunca depende da cor** — ícone e texto sempre acompanham. O ponto é que erro deixa de compartilhar token com "Senhor Churrasco" e com "botão principal".
+### 5.1 Cor da empresa (identidade, não estado)
 
-**Por que `aviso` ≠ `perigo`:** o produto tem muitos avisos que **não bloqueiam** (itens excluídos do cálculo, pendências) e poucos erros que bloqueiam. Se tudo for vermelho, o usuário aprende a ignorar o vermelho. Pendências (Home ⚠️) passam a usar `aviso` (âmbar).
-
-**Sucesso e `sage`:** `sage` é também a cor da Em Plena Natureza. `sucesso` usa a mesma família em tons claros/escuros mas **sempre com ✓ e texto "Salvo"**; a empresa nunca aparece sem nome. Se isso confundir em teste, trocar `sucesso` por verde puro **[confirmar com uso]**.
-
-### 5.4 Cor da empresa (identidade, não estado)
-
-| Empresa | Cor | Onde aparece |
+| Empresa | Token | Onde aparece |
 |---|---|---|
-| Buffet Senhor Churrasco | `ember` `#c1552c` | Faixa de topo de cartão do evento, bolinha em lista/calendário, chip |
-| Anjos Cerimonial | `brass` `#b8933f` | idem |
-| Em Plena Natureza Chácara de Eventos | `sage` `#6e7a5c` | idem |
+| Buffet Senhor Churrasco | `emp-churrasco` | Ponto de 8 px no chip, tile de data (tinta a 16 %), atalho de novo orçamento |
+| Anjos Cerimonial | `emp-cerimonial` | idem |
+| Em Plena Natureza Chácara de Eventos | `emp-chacara` | idem |
 
-Regras:
-1. A cor da empresa **só** aparece onde há uma entidade daquela empresa (evento, orçamento). Cartões neutros (atalhos do Hub, "Novo X") usam faixa `brass`? **Não:** usam **faixa neutra `paper-dim`** — hoje todos usam `ember` e parecem "do Senhor Churrasco" **[ajuste]**.
-2. Cor da empresa **sempre acompanhada do nome** (ou sigla — ver 5.5). Hoje a bolinha do calendário tem o nome só em `title` (UX-AUDIT §3.5).
-3. Cor da empresa nunca é fundo de texto (não passa 4,5:1 para `brass`/`sage` com texto `paper`).
-
-### 5.5 Chip da empresa **[novo, confirmar]**
-Chip: bolinha da cor + nome (ou sigla em telas estreitas). Siglas propostas: **SC**, **AC**, **EPN**. **Siglas são proposta minha, não existem na documentação — confirmar com o Pedro ou usar o nome completo truncado.**
+Regras: a cor da empresa só aparece onde há entidade daquela empresa; **sempre com o nome por perto** (chip: ponto + nome); nunca é fundo de botão; cartões neutros (atalhos do hub) não usam cor de empresa.
 
 ---
 
 ## 6. Tipografia
 
-### 6.1 Famílias **[existem]**
+### 6.1 Famílias **[alvo]**
 
-| Família | Uso | Por quê |
+| Família | Token | Uso |
 |---|---|---|
-| **Fraunces** (itálico) — `font-display` | Títulos de página e de seção, nome do cliente em cartão, título de modal | Serifa de caráter lembra convite/cardápio impresso; é a assinatura do produto |
-| **Archivo** — `font-sans` | Todo o resto: formulários, tabelas, botões, números, mensagens | Grotesca neutra e legível em tamanhos pequenos; boa para dados |
+| **Bricolage Grotesque** 600, 700 | `--font-titulo` | Títulos de página, seção e bloco, nome do cliente em cartão de destaque, título de modal, números grandes (dia no tile) |
+| **Instrument Sans** 400, 500, 600 | `--font-texto` | Todo o resto: formulários, listas, botões, valores, mensagens |
+| Fraunces 400 (normal e itálico) e Archivo 400, 500 | `--font-display`, `--font-sans` **[existem; não reutilizar o nome]** | **Só a Ficha Técnica.** Mantidos para a impressão não mudar |
 
-**Regras novas:**
-1. **Fraunces só a partir de 18 px** e só em texto de rótulo humano (títulos, nome de cliente). *Porque* itálico de serifa em tamanho pequeno perde legibilidade. Nunca em botões, campos, tabelas ou mensagens de erro.
-2. **Valores monetários e quantidades em Archivo com `tabular-nums`** (colunas alinham; mudar um dígito não "pula" o layout enquanto o preço recalcula). Hoje o Simulador mostra totais em Fraunces itálico `text-2xl`; **o valor total pode manter display grande**, mas **[confirmar]** que os dígitos da fonte são legíveis lado a lado (não testado).
-3. Texto em maiúsculas pequenas (`uppercase tracking-wide`) só em rótulos de grupo (≤ 3 palavras).
+Regras:
+1. Arquivos em `src/app/fonts/` via `next/font/local`, subset latino (cobre pt-BR). Pesos estáticos: Bricolage 600/700 e Instrument Sans 400/500/600 (~94 KB) mais Fraunces e Archivo (~69 KB) enquanto a Ficha existir.
+2. O `font-family` do `body` do redesign vale em todas as telas **menos** onde houver `.sem-animacao` (Ficha): `body:has(.sem-animacao)` mantém Archivo, no mesmo padrão já usado em `globals.css`. O menu lateral e o topo declaram `--font-texto` por conta própria, para ficarem iguais também na Ficha em tela.
+3. Valores monetários e quantidades com `font-variant-numeric: tabular-nums`.
+4. Sem maiúsculas espaçadas como rótulo.
 
-### 6.2 Escala tipográfica **[novo, proposta]**
+### 6.2 Escala **[alvo]** (base 16 px; campos de 16 px evitam o zoom do iOS **[confirmar em aparelho]**)
 
-Base **16 px** (1rem). *Porque* campos abaixo de 16 px disparam zoom automático ao focar no iOS Safari, e o app tem vários `text-sm` (14 px) em filtros **[confirmar em iPhone]**.
-
-| Token | Tamanho / altura de linha | Peso | Fonte | Uso |
+| Token | Tamanho / linha | Peso | Fonte | Uso |
 |---|---|---|---|---|
-| `titulo-pagina` | 30 / 36 px (36/40 em ≥ sm) | 400 itálico | Fraunces | H1 de página |
-| `titulo-secao` | 22 / 28 | 400 itálico | Fraunces | H2 (Próximos 15 dias, Decisões operacionais) |
-| `titulo-bloco` | 18 / 24 | 400 itálico | Fraunces | Título de seção interna de formulário, nome do cliente em cartão, título de modal |
-| `corpo` | 16 / 24 | 400 | Archivo | Texto de leitura, valores de campos |
-| `corpo-pequeno` | 14 / 20 | 400 | Archivo | Metadados, descrições de lista, tabelas densas |
-| `rotulo` | 14 / 20 | **500** | Archivo | Rótulo de campo (hoje 400 `text-sm text-paper-dim`) |
-| `legenda` | 12 / 16 | 400 | Archivo | Ajuda de campo, "+N mais" — **mínimo do produto; não usar abaixo de 12 px** |
-| `numero-destaque` | 24 / 32 | 500 | Archivo `tabular-nums` (ou Fraunces, ver 6.1.2) | Valor total, custo por pessoa |
-| `grupo` | 12 / 16, `uppercase`, tracking 0.06em | 600 | Archivo | Cabeçalho de grupo ("EQUIPE", "ENTRADA") |
+| `titulo-pagina` | `clamp(30px, 4vw, 42px)` / 1,05, espaçamento −0,025em | 700 | Titulo | H1 de página |
+| `titulo-secao` | 22 / 1,2, −0,01em | 600 | Titulo | H2 (Próximos 15 dias, Atalhos) |
+| `titulo-bloco` | 20 / 1,2, −0,01em | 600 | Titulo | Título de painel de formulário, de modal (24 / 700 no modal) |
+| `corpo` | 16 / 1,5 | 400 | Texto | Texto, valores de campos |
+| `corpo-pequeno` | 14 / 1,4 | 400 | Texto | Metadados, descrições de lista |
+| `rotulo` | 14 / 1,4 | 500 | Texto | Rótulo de campo |
+| `legenda` | 13 / 1,4 | 400 | Texto | Ajuda de campo, chips (mínimo do produto: **12 px**) |
+| `numero-destaque` | 18 / 1 | 600 | Titulo | "em N dias", valor total |
+| `data-heroi` | `clamp(64px, 9vw, 92px)` / 0,95, −0,04em | 700 | Titulo | Dia do evento no herói |
 
-*Por que `rotulo` com peso 500:* rótulos são a âncora de formulários de 25 campos; mais peso melhora a varredura sem aumentar tamanho.
-
-Comprimento de linha: texto corrido ≤ 65 caracteres (`max-w-prose`). A maioria do app é UI curta, então só importa em textos de ajuda e observações.
+Texto corrido ≤ 65 caracteres (`max-w-prose`).
 
 ---
 
 ## 7. Espaçamento
 
-### 7.1 Escala **[novo, alinhada ao Tailwind já usado]**
-Base 4 px. Tokens (os valores já são os do Tailwind, então **não exige mudar nenhuma classe**, só passar a usar um subconjunto):
-
-`1 = 4` · `2 = 8` · `3 = 12` · `4 = 16` · `5 = 20` · `6 = 24` · `8 = 32` · `10 = 40` · `12 = 48` · `16 = 64`
-
-### 7.2 Aplicação (o que cada espaço significa)
+Base 4 px (escala do Tailwind). Aplicação:
 
 | Espaço | Valor | Significa |
 |---|---|---|
-| Rótulo ↔ campo | 6 px (`gap-1.5`) **[existe]** | Pertencem juntos |
-| Campo ↔ campo (dentro de seção) | 20 px (`gap-5`) **[existe]** | Mesma seção |
-| Seção ↔ seção em formulário | 32 px (`gap-8`) **[existe]** | Assunto novo |
-| Padding de painel/cartão | 24 px (`p-6`) desktop, **16 px (`p-4`) mobile** **[ajuste]** | Hoje 24 px em 360 px de largura rouba ~13 % da largura útil |
-| Gutter da página | **16 px mobile, 24 px ≥ sm** **[ajuste]** (hoje `px-6` sempre) | Idem |
-| Topo da página | 24 px mobile, 64 px desktop **[ajuste]** (hoje `py-16` sempre) | `py-16` empurra a primeira informação 64 px para baixo em celular |
-| Linha de lista | 16 px vertical, 24 px horizontal (16/16 em mobile) | Densidade confortável para toque |
+| Rótulo ↔ campo | 6 px | Pertencem juntos |
+| Campo ↔ campo | 18 px | Mesma seção |
+| Painel de seção ↔ painel | 16 px | Assunto novo |
+| Padding de painel | 24 px desktop, 18 px mobile | — |
+| Conteúdo (`miolo`) | 44 px topo / 48 px lados / 120 px base no desktop; **24 px / 16 px / 112 px no celular** (a base livra a barra de abas) | — |
+| Linha de lista | 12 px de padding | Toque confortável |
+| Bloco ↔ bloco | 40 px | — |
 
-### 7.3 Larguras de página **[ajuste]**
-Hoje `max-w-2xl` / `3xl` / `4xl` misturados. Definir **três**:
+Larguras: **`pagina` 1120 px** (Home, Agenda, formulário longo); **`pagina-curta` 48rem** (formulário curto, detalhe); `pagina-documento` 48rem (Ficha, intacta).
 
-| Nome | Largura | Páginas |
+---
+
+## 8. Raio de borda **[alvo]**
+
+| Token | Valor | Uso |
 |---|---|---|
-| `pagina-estreita` | 42rem (672 px) | Formulários, detalhe, login |
-| `pagina-media` | 56rem (896 px) | Listas, hub, Cardápios Feitos, Agenda |
-| `pagina-documento` | 48rem (768 px) | Ficha Técnica (tela); impressão = sem limite |
-
-*Porque* a variedade atual (2xl em Agenda, 4xl em Cardápios Feitos) não segue critério do conteúdo; o calendário (7 colunas) precisa de mais largura que um formulário.
-
----
-
-## 8. Raio de borda
-
-| Token | Valor | Uso | Justificativa |
-|---|---|---|---|
-| `raio` | **2 px** **[existe]** | Botões, campos, cartões, painéis, modais | Remete a papel/ficha impressa; é assinatura do produto e já está em todo o código. Cantos quase retos também comunicam "formulário/contrato", coerente com a natureza do trabalho |
-| `raio-total` | 9999 px **[existe]** | Chips, badges, "×" de item, bolinhas | Elementos pequenos e contáveis que "flutuam" sobre o conteúdo |
-| — | Nenhum outro | — | Evitar escala de 6/8/12/16 px "por tendência"; o produto não tem justificativa para cantos suaves |
+| `raio-chip` | 8 px | Chips, status, ícone dentro de atalho (com 44 px: 12) |
+| `raio-controle` | 12 px | Botão, campo, select, item de menu, item de aba de visão |
+| `raio-tile` | 14 px | Tile de data, segmento de visão |
+| `raio-linha` | 16 px | Linha de lista, bloco dentro de cartão |
+| `raio-cartao` | 20 px | Cartão, painel de seção, barra de salvar |
+| `raio-modal` | 28 px | Modal (no celular: só os cantos de cima, como folha inferior) |
+| círculo | 9999 px | Só o ponto de empresa e o sinal da marca |
 
 ---
 
-## 9. Sombra e elevação
+## 9. Superfícies, elevação e camadas
 
-Em fundo escuro, sombra quase não aparece; **a hierarquia é feita por claridade da superfície + borda**, e sombra só reforça. Hoje existem ~6 sombras literais diferentes copiadas como strings (UX-AUDIT §2.8). Reduzir a **quatro níveis** **[ajuste]**:
+| Nível | Quando | Como |
+|---|---|---|
+| 0 | Fundo | `fundo` |
+| 1 | Cartão, linha, painel | `superficie` + `borda` + realce interno `inset 0 1px 0 rgb(255 255 255 / .05)` |
+| 2 | Hover de linha/cartão, bloco interno | `elevada` + `borda-forte` |
+| Overlay | Modal | `elevada` + `borda-forte` + sombra `0 32px 80px -20px rgb(0 0 0 / .75)`; fundo do overlay `rgb(10 7 6 / .72)` |
+| Barra de salvar | Fixa no rodapé do formulário | `elevada` + `borda-forte` + sombra `0 18px 44px -12px rgb(0 0 0 / .7)` |
+| Botão primário | — | Brilho `0 10px 28px -10px rgb(242 117 63 / .6)` |
 
-| Nível | Token | Quando | Valor proposto |
-|---|---|---|---|
-| 0 | `elev-0` | Painel `ink-soft` sobre `ink`; campos | Sem sombra; **borda `borda-suave-escuro`** |
-| 1 | `elev-1` | Cartão/lista de papel sobre `ink` | `0 12px 24px -16px rgb(0 0 0 / .55)` |
-| 2 | `elev-2` | Cartão clicável em hover/foco | `0 20px 32px -16px rgb(0 0 0 / .7)` + `translateY(-2px)` (hoje -4 px) |
-| 3 | `elev-3` | Modal | `0 30px 60px -20px rgb(0 0 0 / .8)` **[existe]** |
+Regras: elevação **não indica clicável**; sem sombra em cartão e lista; **sem `backdrop-filter` em lugar nenhum**; impressão: sem sombra, sem animação **[implementado]**.
 
-Regras:
-- Elevação **não indica clicável**: o que é clicável tem rótulo/seta/sublinhado. *Porque* em toque não há hover.
-- `translateY` em hover só em cartões de navegação (Home/Hub), nunca em linhas de lista.
-- Impressão: **sem sombra, sem animação** **[existe]** (`@media print`).
+**Escala de `z-index` (tokens `--z-*`)** — ordem obrigatória: **conteúdo < barra de salvar < menu/abas < overlay do modal < popover/tooltip < toast < skip link**
 
-Camadas (`z-index`): `10` cabeçalho fixo, `40` barra de ações fixa do formulário, `50` modal/overlay, `60` tooltip/toast. Hoje só existe `z-50`.
+| Token | Valor | Elemento |
+|---|---|---|
+| `--z-conteudo` | 0 | Conteúdo e cartões |
+| `--z-barra-acoes` | 20 | Barra de salvar do formulário |
+| `--z-shell` | 30 | Menu lateral, topo, barra de abas |
+| `--z-overlay` | 50 | Overlay e caixa do `Modal` (em portal no `<body>`) |
+| `--z-popover` | 60 | Dropdown, popover, tooltip (se existirem; ficam acima do modal para funcionar dentro dele) |
+| `--z-toast` | 70 | Toast (reservado; não existe hoje) |
+| `--z-skip` | 100 | Skip link ao receber foco |
+
+Os valores atuais `--z-header: 10`, `--z-barra-acoes: 40`, `--z-modal: 50`, `--z-tooltip: 60` são substituídos na Etapa 2. **Modais continuam em portal**; nenhum ancestral de `position: fixed` pode ter `transform`, `filter`, `perspective` ou `overflow` (a barra de abas e o menu lateral ficam fora de qualquer um).
 
 ---
 
-## 10. Tamanhos e estados de componentes
+## 10. Tamanhos, estados e movimento
 
 ### 10.1 Tamanhos
 
-| Elemento | Mobile | ≥ md | Justificativa |
-|---|---|---|---|
-| Altura de botão/campo/select | **44 px** | 40 px | 44 px é o alvo de toque recomendado; hoje ~36–38 px |
-| Altura mínima de alvo clicável (qualquer) | 44 × 44 (área, não só visual) | 32 × 32 | WCAG 2.2 AA exige ≥ 24 px; "×" de 12 px e links "Editar" de ~36 px não passam com folga |
-| Padding de botão | 16 px horizontal | 20 px | — |
-| Ícone | 16 px (inline), 20 px (botão de ícone) | idem | — |
-| Linha de lista | ≥ 56 px | ≥ 56 px | Duas linhas de texto + toque |
-| Linha de tabela | 48 px | 44 px | Idem |
-
-Tamanhos de botão: **`md`** (padrão) e **`sm`** (dentro de linhas e modais). Não existe `lg`/`xs` — nenhum caso real hoje.
-
-### 10.2 Estados universais (qualquer controle)
-
-| Estado | Regra visual | Regra de acessibilidade |
+| Elemento | Celular | Desktop (≥ 900 px) |
 |---|---|---|
-| **Repouso** | Conforme variante | — |
-| **Hover** (só ponteiro) | Clarear/escurecer 6–8 % ou sublinhar; **nunca revelar informação** | Nada essencial depende de hover |
-| **Foco (teclado)** | Anel de **2 px** a 2 px de distância, **sempre visível** | Sobre escuro: `brass` (5,5:1). **Sobre papel: `brass` falha (2,52:1) → usar `paper-ink` ou `acao` (13,9:1 / 5,3:1)** |
-| **Pressionado** | `scale(.97)` **[existe]** | — |
-| **Desabilitado** | Opacidade 50 % + `cursor-not-allowed`; **texto mantém ≥ 3:1 não é exigido por WCAG para desabilitados**, mas o motivo deve estar escrito perto quando não for óbvio | `disabled` real |
-| **Carregando** | Texto muda para "Salvando…" + spinner opcional; **botão desabilitado** (resolve duplo envio, UX-AUDIT §1.4) | `aria-busy`, texto muda |
-| **Erro** | Borda `perigo` 2 px + mensagem abaixo do campo com ícone | `aria-invalid`, `aria-describedby` apontando para a mensagem |
-| **Somente leitura / calculado** | Sem borda de campo, fundo `paper-dim/10`, valor em texto — **não usar `input disabled`** (UX-AUDIT §3.11) | `<output>` ou texto com rótulo |
+| Botão `md` | 44 px | 44 px |
+| Botão `sm` | 44 px | 36 px |
+| Campo e select | 48 px | 48 px |
+| Alvo clicável (qualquer) | ≥ 44 × 44 (área, não só o visual) | ≥ 36 × 36 |
+| Item de aba | 64 px | — |
+| Item de menu lateral | — | 44 px |
+| Caixa de seleção | 24 px com rótulo clicável (alvo 44 px) | idem |
 
-O anel de foco **substitui** o `focus:outline-none` atual dos campos. Hoje o foco é só uma borda `brass` fina — manter a borda e **acrescentar o anel**.
+### 10.2 Estados
+
+| Estado | Regra |
+|---|---|
+| Foco (teclado) | Anel de **2 px**, offset 2 px, `foco` (`#ffc089`), **sempre visível**. Campo: anel a 1 px de offset + borda `foco`. Em todas as superfícies do tema o contraste é ≥ 10,8:1 |
+| Hover (ponteiro) | Mais claro (`elevada`, `borda-forte`, `brasa-hover`); nunca revela informação |
+| Pressionado | `translate: 0 1px` (propriedade `translate`, não `transform`) |
+| Desabilitado | Opacidade 50 % + `cursor: not-allowed` + `disabled` real |
+| Carregando | Texto "Salvando…" + botão desabilitado + `aria-busy` |
+| Erro | Borda `perigo` 2 px + mensagem abaixo com ícone, `aria-invalid`, `aria-describedby` |
+| Somente leitura/calculado | Sem borda de campo, texto rotulado (não `input disabled`) |
+
+### 10.3 Movimento **[alvo]**
+
+| Token | Valor | Uso |
+|---|---|---|
+| `--motion-micro` | 120 ms | Cor, borda, hover, pressionar, caixa de seleção |
+| `--motion-comp` | 200 ms | Linha, cartão, abas de visão |
+| `--motion-overlay` | 260 ms | Modal (entra: sobe 14 px e aparece; sai em 120 ms) |
+| `--motion-ease` | `cubic-bezier(.2, .8, .2, 1)` | Todas |
+
+Regras: sem animação de entrada de página nem de lista; **`prefers-reduced-motion: reduce` desliga animação e transição**; nunca em `@media print` nem na Ficha (`body:has(.sem-animacao)`); só as propriedades `translate` e `scale`, nunca `transform` residual (animações com `animation-fill-mode: backwards`).
 
 ---
 
 ## 11. Componentes
 
+A **API atual** de `Botao`, `BotaoEnviar`, `Campo`, `Alerta`, `Painel`, `Modal`, `ModalConfirmacao`, `Vazio` **não muda** (props, render-prop de `Campo`, `data-foco-inicial`); muda só a aparência. Os formulários não mudam.
+
 ### 11.1 Botões
 
-| Variante | Aparência | Quando usar | Nunca usar para |
-|---|---|---|---|
-| **Primário** | Fundo `acao`, texto `paper`, sombra `elev-1` | **Uma** ação principal por tela/seção: "Gerar orçamento", "Salvar alterações", "Novo evento" | Duas por tela; ações destrutivas |
-| **Secundário** | Borda `borda-campo` 1 px, texto `paper`/`paper-ink`, fundo transparente | Ações alternativas: "Exportar fichas técnicas", "Fechar", "Cancelar" | — |
-| **Perigo** | Fundo `perigo` (sobre papel) com texto `paper`; **na tela de confirmação**, não na lista | Confirmar exclusão | Na linha da lista (ali é link, ver abaixo) |
-| **Link/ação em linha** | Texto `acao`/`acao-claro` sublinhado, **altura de toque 44 px** | "Editar" / "Excluir" em linhas | Ação principal |
-| **Ícone** | 44×44 com `aria-label` obrigatório | "×" de remover, ↑ ↓ de ordenar | Qualquer ação sem rótulo textual alternativo |
+| Variante | Aparência | Quando usar |
+|---|---|---|
+| **Primário** | Fundo `brasa`, texto `sobre-brasa`, brilho, raio 12 | **Uma** ação principal por tela/seção |
+| **Secundário** | Fundo branco a 5 %, borda `borda-forte`, texto `texto` | Alternativas: Cancelar, Fechar, Resolver pendências |
+| **Perigo** | Fundo `perigo`, texto `sobre-perigo` | Só na confirmação de exclusão |
+| **Link** | Texto `link` sublinhado (offset 4 px), altura de toque 44 px | Ação em linha |
+| **Ícone** | 44 × 44 com `aria-label` | "×", ↑ ↓ |
 
-Regras:
-- **Rótulo = verbo + objeto** quando ambíguo: "Excluir evento", "Gerar orçamento", "Aprovar e confirmar evento". Capitalização de frase (só a primeira letra) em todo o app — hoje mistura ("Novo Preparo"/"Novo colaborador").
-- Botão de envio **sempre desabilita e muda o texto** durante o envio.
-- "Aprovar e confirmar evento" (Ação de Conversão) é primário **mas** abre **resumo de confirmação** (11.7) antes de gravar — *porque* é irreversível na prática e grava o snapshot (REGRAS §5). **O fluxo de dados não muda** (regra de preço congelado intacta); só se acrescenta uma tela de conferência.
-- Excluir evento mantém **confirmação via Modal** (hoje `window.confirm`). **A regra de exclusão (REGRAS §6) não muda**; só o componente visual.
+Rótulo = verbo + objeto, capitalização de frase. O botão de envio sempre desabilita e muda o texto. "Aprovar e confirmar evento" mantém a tela de conferência (§11.7); a regra de preço congelado não muda. Excluir evento mantém confirmação por `ModalConfirmacao`.
 
-### 11.2 Inputs de texto/número/data/hora
+### 11.2 Campos
 
-- Estrutura: **rótulo acima**, campo, ajuda/erro abaixo — nunca placeholder como rótulo.
-- Fundo `ink-soft` (formulário) ou transparente com borda (filtros sobre papel); borda `borda-campo` (3,9:1); texto `paper`; placeholder = `texto-suave` (≥ 4,5:1).
-- Obrigatório: `*` **e** texto "(obrigatório)" no rótulo quando a maioria é opcional; o inverso ("(opcional)") onde a maioria é obrigatória. Hoje só aparece "(opcional)" em alguns campos.
-- Números: `inputmode="decimal"`/`numeric`, `step` explícito, sufixo/prefixo visual (**R$**, **g**, **min**) dentro do campo como texto fixo.
-- Campos calculados (Valor Total, Assadores) ⇒ **estado somente leitura** (10.2), com texto "calculado" visível — não um input desabilitado.
-- Erro: mensagem **específica e acionável** ("Informe ao menos 1 convidado"), não "Algo deu errado". Mostrar junto ao campo **e** num resumo no topo quando o form é longo.
-- Ajuda: `legenda` abaixo; o texto técnico atual (referências a `docs/DECISOES.md`, "Máquina de Estados") sai da tela — vai para a documentação.
+Rótulo acima (`rotulo`), campo de 48 px com `fundo` e `borda-controle`, texto `texto`, placeholder `texto-suave`; ajuda (`legenda`) e erro (com ícone) abaixo. `Campo` continua entregando `id`, `className`, `aria-describedby`, `aria-invalid`. Números com `inputmode` adequado e prefixo/sufixo visual. Campos calculados em estado somente leitura. Erro específico e acionável.
 
-### 11.3 Selects
+### 11.3 Selects e caixas de seleção
 
-- Select nativo (`<select>`) estilizado igual aos inputs. *Porque* é o que funciona melhor em toque (abre o seletor nativo do sistema) e não exige manutenção; as opções são curtas e fixas (decisões operacionais, unidades, categorias).
-- Opção vazia explícita: "Selecione…" com valor vazio **[existe]**; valores legados aparecem como "X (valor antigo)" **[existe]**, comportamento mantido.
-- **Quando passar de ~12 opções ou precisar de busca** (ex.: escolher insumo): combobox com busca. Hoje o seletor de insumo na composição e o seletor de itens de cardápio exigem rolar longas listas **[ajuste futuro, fase D]**.
-- Checkbox: caixa **20 px** com rótulo clicável em toda a linha (alvo 44 px). Grupo de checkboxes em `fieldset/legend` **[existe nas decisões]**.
+`<select>` **nativo estilizado** igual ao campo, com seta SVG (`appearance: none`; `padding-right: 42px`). Caixa de seleção: input real visualmente oculto + caixa de 24 px (raio 8; marcada = `brasa` com ✓ `sobre-brasa`; foco no anel). Grupos em `fieldset/legend`. Combobox com busca (Command) só nos seletores de insumo e de itens de cardápio (§11.11).
 
 ### 11.4 Tabelas
 
-O produto usa listas (`ul`) em quase tudo, o que é correto para mobile. **Tabela real só quando há colunas comparáveis em desktop**: Insumos (nome, unidade, preço, fator, corrigido), "Ver cálculos" do Simulador, Ficha Técnica (já tabela) e, futuramente, financeiro (REGRAS §16).
-
-- Desktop (≥ md): `<table>` semântico; cabeçalho `grupo` (12 px caps, `paper-ink` suave) sobre `paper-dim`; zebra opcional apenas em tabelas > 8 linhas (1,15:1 — é só guia visual, nunca informação); números **alinhados à direita** com `tabular-nums`; linha 44–48 px.
-- Mobile: **cada linha vira cartão/lista** (nome + 2–3 dados-chave + ação), não rolagem horizontal. Exceção: tabela de cálculos do Simulador (diagnóstico técnico): rolagem horizontal com **sombra de borda** indicando que há mais e primeira coluna fixa.
-- Ordenação/filtro: controles **acima**, visíveis; indicador textual do critério ("Ordenado por nome").
-- Ação por linha: **máximo 2** visíveis (Editar, Excluir); mais que isso, menu "⋯" com rótulo.
-- Estado vazio **dentro** da tabela (11.9).
+`<table>` semântico só com colunas comparáveis (Insumos, Simulador, Ficha). Dentro de cartão `superficie`: cabeçalho `legenda` em `texto-suave`, zebra `rgb(255 255 255 / .03)`, linha de 44–48 px, números à direita com `tabular-nums`. **Celular: cada linha vira cartão; sem rolagem horizontal da página em 360 px**; a tabela de cálculos do Simulador pode rolar dentro de um contêiner com indicação.
 
 ### 11.5 Cartões
 
-Três tipos, nada mais:
+| Tipo | Anatomia | Elevação |
+|---|---|---|
+| **Herói** (Home, próximo evento) | `superficie`, raio 20, padding 28, brilho de brasa no canto, data gigante + nome + chip de empresa + "em N dias" + "Abrir evento" | Nível 1 |
+| **Linha de evento** | Tile de data (68 × 76, tinta da empresa a 16 %) + nome e tipo/hora + chip de empresa + chip de status [+ valor, só onde a lista já traz] | Nível 1; hover nível 2 |
+| **Atalho** | Ícone em quadrado de 44, título e descrição | Nível 1; hover nível 2 |
+| **Painel de seção** | `superficie`, raio 20, padding 24/18, título `titulo-bloco` | Nível 1 |
 
-| Tipo | Anatomia | Elevação | Interação |
-|---|---|---|---|
-| **Cartão de entidade** (evento, cardápio, colaborador) | Faixa de topo 6 px na **cor da empresa** (quando há empresa), título `titulo-bloco`, 2–3 linhas de dados, ações | `elev-1` | Toda a área do título é o link; ações separadas |
-| **Cartão de atalho** (Home, Hub) | Faixa de topo **neutra** (`paper-dim`), título + descrição | `elev-1` → `elev-2` em hover/foco | Cartão inteiro é um `<a>` |
-| **Painel** (seção de formulário) | Fundo `ink-soft`, borda suave, `p-4 md:p-6` | `elev-0` | Sem interação própria |
-
-*Por que menos faixa colorida:* só quando carrega informação (empresa). Hoje 100 % dos cartões têm faixa `ember`, que o usuário aprende a ignorar.
-Cartão de evento na Home: mostrar **pendência como linha de aviso dentro do cartão** ("Faltam: 1 assador, veículo") em vez de ⚠️ com `title` (inacessível em toque). O botão "Resolver pendências" permanece.
+A lista da Home **não mostra valor** (a query não o traz).
 
 ### 11.6 Modais
 
-Base: o `Modal` atual **[existe]** (portal, foco preso, Esc, retorno de foco, `aria-modal`, animação respeitando `prefers-reduced-motion`). **Todos** os diálogos usam este componente (hoje `IndicadorWhatsapp` e `window.confirm` não).
+Mantém o `Modal` atual (portal, foco preso, Esc, clique fora configurável, foco devolvido, `data-foco-inicial`, título `h2` com `aria-labelledby`). Aparência: `elevada`, raio 28, padding 28, ícone de contexto em quadrado de 52 (perigo a 14 %), título 24/700, texto `texto-suave`, botões à direita (desktop). **Celular: folha inferior** (ancorada embaixo, cantos de cima 28, padding inferior com `env(safe-area-inset-bottom)`, botões em coluna invertida, como o `ModalConfirmacao` já faz). Foco inicial no botão seguro nas confirmações destrutivas. Clique fora não fecha modal com formulário preenchido.
 
-| Tipo | Largura | Conteúdo | Botões |
-|---|---|---|---|
-| **Confirmação** | `max-w-sm` | Título (`titulo-bloco`), 1–2 frases dizendo **o que será perdido**, nome do objeto | Secundário "Cancelar" (foco inicial) + Perigo/Primário |
-| **Formulário curto** (novo insumo) | `max-w-md` | Campos + erro inline | "Cancelar" + Primário |
-| **Seleção/lista** (adicionar itens, pendências) | `max-w-lg` | Busca (quando > 12 itens) + lista com rolagem interna | "Concluir" |
-| **Informativo** (WhatsApp/QR) | `max-w-sm` | Texto + QR | "Fechar" |
+### 11.7 Resumo de confirmação
 
-Regras:
-- **Foco inicial:** no botão **seguro** (Cancelar) nas confirmações destrutivas; no primeiro campo nos formulários.
-- **Clique fora não fecha** modais com formulário preenchido (hoje perde dados do `ModalNovoInsumo`); em confirmação/lista, fecha.
-- Título sempre `h2`, ligado por `aria-labelledby` (hoje `h2`/`h4` misturados).
-- Em mobile (< sm): **tela quase cheia** (margem 8 px) com ação principal no rodapé fixo do modal; evita teclado cobrir o botão **[confirmar em celular]**.
-- Fundo único `ink`; borda `borda-suave-escuro` (corrige variação `ink-soft`/`paper`).
-- Modal **não** é usado para fluxos com mais de ~6 campos (isso é página).
-
-### 11.7 Resumo de confirmação (componente **[novo]**)
-Usado em **Aprovar e confirmar evento** (e só nele, por ora): modal ou bloco com cliente, data, nº de convidados, **valor total** e "este valor foi definido no orçamento e não muda aqui". Botões: "Voltar e revisar" (secundário) / "Confirmar evento" (primário). *Porque* o Passo 3 é onde o contrato vira evento; é o momento de maior custo de erro.
+Como antes: usado em "Aprovar e confirmar evento", mostra cliente, data, convidados e **valor total** com a frase de que o valor foi definido no orçamento. Só visual.
 
 ### 11.8 Badges e chips
 
-| Tipo | Forma | Conteúdo | Exemplos |
-|---|---|---|---|
-| **Status** | Pílula, fundo semântico a 15 % + borda, texto na versão de contraste, **ícone ou texto** | Palavra curta | Evento: *Orçado* (`info`), *Confirmado* (`sucesso`), *Realizado* (neutro: `paper-dim`), *Cancelado* (`perigo`, riscado). Orçamento: *Simulação* (`info`), *Aceito* (`sucesso`). |
-| **Empresa** | Bolinha da cor + nome/sigla (5.5) | — | — |
-| **Contagem** | Pílula neutra | Número | "(3)" nas abas de categoria |
-| **Restrição** (tags de preparo) | Pílula neutra com borda | Texto | Vegetariano etc. (valores de `RESTRICOES_PREPARO`) |
+| Tipo | Forma | Cores |
+|---|---|---|
+| **Status do evento** | Raio 8, `legenda` 600, cor sobre a própria cor a 14 % | Confirmado `sucesso`; Orçado `info`; Realizado `texto-suave` sobre branco a 6 %; Cancelado `perigo` |
+| **Empresa** | Raio 8, fundo branco a 6 %, `texto`, ponto de 8 px na cor da empresa | `emp-*` |
+| **Contagem / restrição** | Raio 8, neutro | — |
 
-Regra: **um badge por entidade para status**; máximo 2 badges por linha. Texto 12–14 px, peso 500. Mapeamento de cores de status de evento é proposta **[confirmar]** — os rótulos vêm de `formatacao.ts`; hoje o status é texto simples.
+Máximo 2 chips por linha; mapeamento de cores de status é proposta **[confirmar]**.
 
 ### 11.9 Alertas
 
-Anatomia: ícone + título curto (opcional) + texto + ação (opcional). Cores por semântica (§5). Posição: **acima** da área afetada, nunca flutuando.
-
-| Situação do produto | Semântica | Obrigatoriedade |
-|---|---|---|
-| Itens fora do cálculo ("o valor NÃO reflete o cardápio inteiro") | `aviso` | **Visível sempre**; não colapsar (REGRAS §10) |
-| Falha de cálculo (timeout/rede) — fail-hard | `perigo` | Mostrar `mensagem` amigável do payload; **nunca exibir valor parcial** (REGRAS §15) |
-| Validação de formulário | `perigo` (resumo no topo + inline) | Move o foco para o resumo |
-| Pendências do evento | `aviso` | Lista + botão "Resolver pendências" |
-| "Ordens de Ação enviadas… não atualizam mensagens já enviadas" | `info` | Texto da regra preservado |
-| Salvo com sucesso | `sucesso` (faixa/toast curto) | `role="status"` |
-| Ajuda de preenchimento | `info` (legenda, sem caixa) | — |
-
-Acessibilidade: erros/avisos dinâmicos com `role="alert"` (urgente) ou `role="status"` (informativo). Toast de sucesso: 4 s, **não** para erros.
+Ícone (forma por tipo) + título curto opcional + texto + ação. Fundo a 10 %, borda a 50 %, raio 16, texto na cor cheia. `perigo` = `role="alert"`; os demais `role="status"`. Posição: acima da área afetada. Os avisos de regra (itens fora do cálculo, fail-hard) **mantêm o texto e ficam sempre visíveis** (REGRAS §10, §15).
 
 ### 11.10 Tooltips
 
-**Regra: tooltip nunca é o único lugar de uma informação.** Hoje `title` carrega o detalhe das pendências e o nome da empresa no calendário (inacessível em toque e teclado).
-- Uso permitido: esclarecer um **ícone** ou abreviação (ex.: "SC" → nome completo), em desktop, ao focar **ou** passar o mouse, com atraso de 300 ms; fecha com Esc.
-- Em toque: o mesmo conteúdo vira **texto visível** ou **disclosure** (botão "Por quê?" que expande), não long-press.
-- Estilo: fundo `ink`, texto `paper`, `legenda`, `max-w-xs`, `z-60`.
-- Caso de teste: o ⚠️ da Home deixa de ter tooltip e passa a mostrar o texto dentro do cartão.
+Nunca o único lugar de uma informação. Só quando uma tela precisar (§11.11).
+
+### 11.11 Biblioteca de comportamento (Radix) e shadcn/ui
+
+- **Radix só onde uma tela precisar:** Dropdown Menu, Tooltip, Popover e **Command (`cmdk`) para a busca de insumo na composição e de itens do cardápio**. Nada é instalado "por precaução"; cada um entra na etapa da tela que o usa, com justificativa de custo e risco.
+- **O `Modal` atual fica**; não trocar o miolo por Radix Dialog.
+- **shadcn/ui:** só depois de teste de compatibilidade com Next 16 numa branch descartável com build no `ender`, mostrado ao Pedro. Se falhar ou não estiver claro: Radix direto e componentes próprios. Componente a componente, com `add --dry-run` e `--diff`; **nunca `init` que reescreva `globals.css` sem o Pedro ver o diff**.
+- Ícones: **SVG inline** (traço 1,75 px, `currentColor`, 20 px), sem biblioteca. Os SVGs usados estão nas páginas do protótipo.
 
 ---
 
-## 12. Navegação
+## 12. Navegação (shell no layout raiz)
 
-### 12.1 Header **[implementado na Etapa 4/5 do redesign]**
+### 12.1 Estrutura
 
-Antes: marca "Anjos Eventos" + link "Colaboradores" + semáforo do WhatsApp; o usuário voltava à Home para ir a qualquer lugar (UX-AUDIT §4.2). Hoje (`src/components/navegacao-principal.tsx`):
-
-| Item | Rota | Ativo (`aria-current="page"`) em |
+| | ≥ 900 px (token `rail`) | < 900 px |
 |---|---|---|
-| Início | `/` | só `/` |
-| Agenda | `/agenda` | `/agenda` e filhas |
-| Senhor Churrasco | `/senhor-churrasco` | o hub e suas telas: `/preparos`, `/insumos`, `/cardapios-modelo`, `/simulador-cardapio` |
-| Colaboradores | `/colaboradores` | `/colaboradores` e filhas |
+| Navegação | **Menu lateral** de 248 px, fixo, altura da janela | **Topo** de 60 px + **barra de abas** fixa embaixo |
+| Itens | Início, Agenda, Senhor Churrasco, Colaboradores (ícone + texto, 44 px) | os mesmos, em 4 abas (64 px; "Senhor Churrasco" quebra em duas linhas) |
+| Marca | "Anjos Eventos" com o sinal de brasa, no topo do menu | no topo, à esquerda |
+| Usuário | Rodapé do menu: **nome**, **Trocar usuário** (action `trocarUsuario`) | Topo, à direita: nome truncado, "Trocar" (nome acessível "Trocar usuário") |
+| WhatsApp | Rodapé do menu, acima do nome | Topo, à direita |
 
-**Disposição (desktop, ≥ sm):** uma linha — **marca**, depois **usuário atual (nome) + "Trocar usuário" + indicador do WhatsApp** junto da marca, à esquerda, e os **4 itens à direita**. *Mudança em relação à proposta original (usuário à direita):* a ordem de foco (Tab) é a ordem do DOM e precisa coincidir com a ordem visual nas duas larguras; como no mobile o usuário fica na primeira linha e os itens na segunda, o DOM é marca → usuário → itens, e o desktop segue a mesma sequência.
+Item ativo: `aria-current="page"`, fundo `brasa` a 16 %, texto `texto`, ícone `brasa`; na aba, também barra de 3 px `brasa` no topo. Prefixos de rota ativa mantidos (Início só `/`; Agenda `/agenda…`; Senhor Churrasco: hub + `/preparos`, `/insumos`, `/cardapios-modelo`, `/simulador-cardapio`; Colaboradores).
 
-**Mobile (< sm):** duas linhas, sem hambúrguer. Linha 1: marca à esquerda; nome (truncado), "Trocar" e o indicador à direita. Linha 2: os 4 itens, com rolagem horizontal quando não cabem (em 360 px "Colaboradores" fica parcialmente fora). O texto "Trocar" aparece completo ("Trocar usuário") só a partir de `lg`; o nome acessível é sempre "Trocar usuário".
+### 12.2 Regras
 
-**Ordem de foco:** skip link → marca → nome/Trocar/WhatsApp → Início, Agenda, Senhor Churrasco, Colaboradores → conteúdo.
+- **Ordem de foco = ordem visual (DOM):** skip link → menu lateral (marca, itens, WhatsApp, Trocar) **ou** topo (marca, Trocar, WhatsApp) → `#conteudo` → barra de abas. O menu lateral e o topo ficam antes do conteúdo no DOM; a barra de abas fica depois, que é onde está na tela. O bloco que não está visível fica `display: none`.
+- `<nav aria-label="Navegação principal">` em ambos os blocos (só um visível por vez).
+- **Skip link** "Ir para o conteúdo": primeiro foco, `--z-skip`, fundo `texto` com texto `fundo`; destino `<div id="conteudo" tabIndex={-1}>`.
+- **Não existe `<h1>` no shell, no esqueleto nem na marca** (smoke test: página protegida sem sessão devolve 307 ou 200 com `NEXT_REDIRECT` e sem `<h1>`). Sem `loading.tsx` novo. `/login` continua **sem** o shell.
+- O layout raiz **não ganha consulta nova ao banco**: continua só com `obterUsuarioAtual()` (com `.catch(() => null)`). Não alterar `actions/usuario.ts`, `usuario-atual.ts` nem a página de login.
+- **Barra de abas e teclado virtual:** padding inferior no conteúdo (112 px), `env(safe-area-inset-bottom)` na barra, alvos de 64 px; com campo em foco a barra **é escondida por CSS** (E7). Não testado em aparelho **[confirmar]**.
+- **Impressão:** o menu, o topo, a barra de abas e a barra de salvar têm `display: none` em `@media print`; o contêiner do shell volta a `display: block` e o fundo a branco, para a Ficha imprimir idêntica. Na tela, a Ficha aparece dentro do shell, com a folha igual à de hoje.
+- Cada `<main>` de página hoje define o próprio `px-6 py-16`; a Etapa 3 move o espaçamento do conteúdo para o shell **sem** alterar a Ficha.
+- Título da aba por página: `metadata` estática; nunca o nome do cliente.
 
-- "Trocar usuário" reaproveita a action `trocarUsuario` (`src/app/actions/usuario.ts`); o nome vem de `obterUsuarioAtual()` chamado em `src/app/layout.tsx` (com `.catch(() => null)`). **Consequência:** o layout consulta o banco em toda página (ver pendência de `connectionTimeoutMillis` em `docs/PENDENCIAS_NOTURNAS.md`).
-- Alvos de toque de 44 px (mobile) em todos os itens; em ≥ sm o botão "Trocar usuário" tem 32 px.
-- O indicador do WhatsApp continua sendo o emoji 🟢🟡🔴 com `aria-label`/`title`; **ícone + texto curto ("WhatsApp: conectado") ainda não foi feito** (§13 prevê os SVGs).
-- Header **não fixo** (rolagem normal) em qualquer largura; fixo em ≥ md segue **[confirmar]**. Borda inferior `borda-suave-escuro`.
-- Item ativo: texto `paper` + sublinhado de 2 px `brass` (`box-shadow` inset) + `aria-current="page"` (brass sobre `ink` tem 6,1:1).
-- **Skip link** "Ir para o conteúdo": primeiro foco, visível só ao focar (fixo no canto, fundo `paper`, anel `paper-ink`); destino `<div id="conteudo" tabIndex={-1}>` logo após o header. Não aparece em `/login`, que não tem header.
-- Título da aba por página: `metadata` estática (modelo `%s · Anjos Eventos`); páginas por id usam títulos fixos, nunca o nome do cliente.
+### 12.3 Padrões internos
 
-### 12.2 Sidebar — decisão: **não adotar agora**
-
-| Critério | Situação | Decisão |
-|---|---|---|
-| Itens de primeiro nível | 4 | Cabem no header |
-| Largura útil | Páginas de 672–896 px; formulários longos | Sidebar de 240 px reduziria área em notebooks de 1280 px |
-| Uso em celular | Premissa forte | Sidebar vira hambúrguer em mobile, que é pior para 4 itens |
-
-**Gatilho para adotar:** ≥ 7 áreas de primeiro nível (ex.: quando entrarem Financeiro/Margem, REGRAS §16, além de Orçamentos e Relatórios) **ou** necessidade de sub-navegação persistente. **Especificação já definida para quando for necessário:** 240 px (recolhível a 64 px com ícones + rótulo), fundo `ink`, item ativo com barra lateral `brass` 3 px + texto `paper`, agrupamento por rótulos `grupo` ("Operação", "Cadastros"), em < md vira gaveta aberta por botão "Menu" com rótulo textual. *Justificativa de documentar agora:* evita redesenhar o header depois.
-
-### 12.3 Padrões de navegação internos
-
-- **Voltar:** link "← Agenda" no topo da página **[existe]**, sempre para o pai lógico (Preparos/Insumos/Cardápios → **Senhor Churrasco**, não Início — corrige UX-AUDIT §2.11). Breadcrumb não é necessário (profundidade máxima 3).
-- **Abas de visão** (Agenda / Em sequência): `role="tablist"`/ou `nav` com `aria-current`; estado ativo `paper` com texto `paper-ink` **[existe]**, acrescentar `aria-current`.
-- **Ação principal da página** (ex.: "Novo evento"): no cabeçalho, alinhada à direita em ≥ sm e **abaixo do título em largura total em mobile**.
-- **Barra de ações fixa** (formulários longos): rodapé fixo (`z-40`) com "Salvar"/"Cancelar" e status "Alterações não salvas" — **[novo, fase C]**. Em formulários curtos (< 1,5 tela), botão no fim do formulário basta.
-- **Paginação:** não existe hoje. Listas grandes (eventos, preparos) usam **filtro por período/busca** e "Mostrar mais" (carregar 25 por vez), nunca paginação numerada. *Porque* o usuário procura "o próximo" ou "um item que conheço", não a página 7.
-- **Agenda — padrão de abertura:** "Em sequência" começa em **hoje** com link "Ver eventos passados" (UX-AUDIT §1.9).
+- **Voltar:** "← Agenda" no topo da página, sempre para o pai lógico (Preparos, Insumos e Cardápios voltam ao **Senhor Churrasco**).
+- **Visão da Agenda** (Agenda / Em sequência): segmento com fundo `superficie`, item ativo `elevada`, `aria-current`.
+- **Ação principal da página:** no cabeçalho, à direita no desktop; abaixo do título no celular.
+- **Barra de salvar** (formulário longo): fixa no rodapé do formulário (`--z-barra-acoes`), acima das abas no celular (`bottom: 76px`); só "Cancelar" e "Salvar …"; **sem total ao vivo**.
+- **Índice do formulário** (desktop): âncoras para as seções, sem item ativo por rolagem (isso exigiria JS novo).
+- Paginação: não existe; sem busca nova (ver §19).
 
 ---
 
 ## 13. Ícones
 
-Conjunto mínimo de SVG inline, traço de 1,5–2 px, 16/20 px, `currentColor`. Lista (cada um com função real):
-`alerta` (triângulo), `erro` (círculo ✕), `sucesso` (✓), `info` (i), `fechar` (×), `editar` (lápis), `excluir` (lixeira), `adicionar` (+), `voltar` (←), `seta-mais` (→), `subir`/`descer`, `imprimir`, `whatsapp-status` (3 formas), `calendario`.
-Substitui emojis (⚠️ 🟢🟡🔴), cuja renderização varia por sistema e que não herdam cor. Sem biblioteca externa (CLAUDE.md: poucas dependências) — arquivo único de SVGs.
+SVG inline, traço 1,75 px, 20 px (16 px dentro de botão e chip), `currentColor`. Conjunto: início, agenda, churrasco (chama), equipe, adicionar, alerta, sucesso, fechar, seta, lixeira, seta para baixo (select). Substituem os emojis ⚠️ 🟢🟡🔴 (o `IndicadorWhatsapp` ganha ícone e texto curto na Etapa 3, **se** isso não alterar o comportamento do componente; caso contrário, só muda a cor).
 
 ---
 
 ## 14. Estados de tela
 
+Tema escuro em tudo: formulários, alertas, tabelas, modais, vazios, erro e carregamento usam os mesmos tokens. Nada de fundo claro herdado.
+
 ### 14.1 Loading
+Esqueleto da estrutura em `elevada` pulsando (desligado com `prefers-reduced-motion`). **Sem `loading.tsx` novo.** O esqueleto raiz atual não pode ter `<h1>`. Ação de formulário: "Salvando…" com botão desabilitado. Cálculo de preço: valor anterior esmaecido + "Calculando…" com `aria-live="polite"`; **nunca mostrar valor parcial como final** (REGRAS §15).
 
-| Contexto | Padrão | Justificativa |
-|---|---|---|
-| Navegação entre páginas | Esqueleto da estrutura da página (título + 3 linhas de lista) no lugar do "Carregando…" central | O usuário percebe a forma do que vem; o `loading.tsx` raiz atual deixa a tela vazia. **Atenção: `loading.tsx` altera as respostas HTTP das rotas protegidas e o smoke test do deploy depende disso (UX-AUDIT §9); mexer só com o `deploy-oracle.sh` revisado.** |
-| Ação de formulário | Botão "Salvando…" + desabilitado; campos permanecem | Evita duplo envio |
-| Cálculo de preço (debounce 600 ms) | Valor anterior **esmaecido** (não apagado) + texto "Calculando…" com `aria-live="polite"` | Não "pisca" o valor e deixa claro que está desatualizado. **Nunca mostrar valor parcial como final** (REGRAS §15) |
-| Polling do WhatsApp | Sem indicador (silencioso) | Atualização de fundo, não ação do usuário |
-| Primeira carga do indicador | Espaço reservado de 24 px | Evita deslocamento do header |
+### 14.2 Vazios
+Fórmula: o que está vazio + por quê + a ação (um verbo), sem ilustração; ação como botão primário dentro do vazio onde houver "Novo …". Textos existentes mantidos.
 
-Spinner: só ≥ 1 s de espera, 16 px, `currentColor`; esqueleto usa `paper-dim` pulsante **desligado com `prefers-reduced-motion`**.
-
-### 14.2 Estados vazios
-
-Fórmula: **o que está vazio + por quê + a ação** (sempre um verbo). Sem ilustração.
-
-| Local | Texto proposto (ajustar com o Pedro) | Ação |
-|---|---|---|
-| Home — sem eventos em 15 dias | "Nenhum evento nos próximos 15 dias." | "Ver agenda completa" |
-| Agenda — sem eventos | "Nenhum evento cadastrado." | "Novo evento" |
-| Lista com filtro sem resultado | "Nenhum preparo encontrado com 'xyz'." | "Limpar filtros" |
-| Preparos/Cardápios/Colaboradores vazios | Texto atual **[existe]** | Botão primário "Novo …" **dentro** do vazio |
-| Insumos vazios | "Insumos são criados a partir da composição de um preparo." **[existe]** | Link "Ir para Preparos" |
-| Orçamentos em aberto (novo) | "Nenhum orçamento em aberto." | "Gerar orçamento" |
-| Composição sem insumos | "Nenhum insumo adicionado." **[existe]** | "+ Adicionar insumo" |
-
-### 14.3 Estados de erro
-
-| Nível | Padrão | Regra |
-|---|---|---|
-| **Campo** | Borda `perigo` + mensagem abaixo com ícone | Dizer como corrigir |
-| **Formulário** | Resumo `perigo` no topo + foco nele + **valores preservados** | Todos os formulários devolvem `{erro, valores}` (UX-AUDIT §1.2–1.3) |
-| **Ação (falha de rede/servidor)** | Alerta `perigo` no ponto da ação com "Tentar de novo" | Não perder o que o usuário digitou |
-| **Cálculo (fail-hard)** | Alerta `perigo` com `mensagem` do payload; total **oculto** | REGRAS §15 |
-| **Página (`error.tsx`)** | Mantido: título "Algo deu errado", **código** (`digest`), "Tentar de novo" e "Voltar ao início"; **não** expor `error.message` **[existe, mantido]** | Segurança: pode vazar detalhes de banco |
-| **404** | Mantido **[existe]** | — |
-| **Serviço externo (WhatsApp offline)** | Aviso `aviso` não bloqueante: "O restante do sistema continua funcionando." **[existe no modal]** | Falha do worker não é falha do app |
-| **Sessão/usuário** | Redireciona para login com mensagem opcional | Hoje silencioso |
+### 14.3 Erros
+Campo: borda `perigo` + mensagem. Formulário: como hoje (a recuperação com valores preservados **não** entra, §19). Página: `error.tsx` mantido (código `digest`, sem `error.message`). 404 mantido. WhatsApp offline: aviso não bloqueante.
 
 ---
 
 ## 15. Responsividade
 
-### 15.1 Breakpoints
+Larguras de teste obrigatórias: **360, 390, 768 e 1280 px**. Breakpoints: o do Tailwind já usado mais o token `rail` (900 px).
 
-Usar os do Tailwind já presentes (sem criar novos):
-`< 640` (mobile, **projetar primeiro**), `≥ 640 sm`, `≥ 768 md`, `≥ 1024 lg`. **Larguras de teste obrigatórias:** 360, 390, 768, 1280.
-
-### 15.2 Regras por padrão
-
-| Padrão | Mobile | Desktop |
+| Padrão | Celular | Desktop |
 |---|---|---|
-| Gutter / topo | 16 px / 24 px | 24 px / 64 px |
-| Formulários | 1 coluna; grids de 3–4 campos curtos viram **2 colunas** só para campos ≤ 6 caracteres (horas, quantidades), senão 1 | 2–4 colunas |
-| Ação principal | Largura total, no fim do formulário **e** barra fixa em formulários longos | Auto, alinhada à esquerda |
-| Cabeçalho de página | Título, depois ação em largura total | Título à esquerda, ação à direita |
-| Lista de entidades | Linha única com ação textual de 44 px | Linha com colunas |
-| Tabela | Vira lista de cartões | Tabela |
-| Modal | Quase tela cheia, botão no rodapé | Centralizado, `max-w` por tipo |
-| Filtros | Empilhados; **campo de busca primeiro**, demais em "Filtros" expansível | Em linha |
-| Navegação | Header + segunda linha de itens | Header único |
+| Navegação | Topo + abas | Menu lateral |
+| Home | Coluna única: herói → pendências → lista → atalhos | Herói (1,6fr) e pendências (1fr) lado a lado, depois lista e atalhos |
+| Lista de eventos | Tile + nome na primeira linha; chips na segunda | Uma linha com chips à direita |
+| Formulário | Uma coluna; grades de 2 e 4 viram 1 e 2 colunas; barra de salvar com botões de largura total | Índice lateral de 200 px + painéis; grades de 2 e 4 colunas |
+| Modal | Folha inferior | Centralizado |
+| Tabela | Cartões; sem rolagem horizontal da página | Tabela |
 
-### 15.3 Calendário
-- **Mobile:** o padrão inicial é a visão **"Em sequência"** (lista agrupada por dia), e o calendário mensal vira **mini-mês** onde cada dia mostra **só um ponto/contador** e **tocar abre a lista do dia** abaixo. *Porque* células de ~50 px não comportam nomes (UX-AUDIT §4.1). **[confirmar com teste real em celular antes de remover o mês completo]**
-- **≥ md:** grade completa; cada evento = bolinha + nome; "+N mais" vira **botão** que expande o dia; dia com nome acessível ("15 de outubro, 2 eventos").
-- Legenda das empresas sempre visível (já existe).
+### Calendário
+Mantém a decisão anterior: no celular a visão "Em sequência" como padrão e mês enxuto **[confirmar com teste real]**; na grade, cores de empresa pelos tokens `emp-*`, sempre com legenda.
 
-### 15.4 Ficha Técnica e impressão
-- Tela: folha branca (`#fff`, texto preto) **[existe]** dentro de `pagina-documento`; **cabeçalho do app escuro permanece acima** (decisão atual), mas a barra de ações da folha ("Voltar", "Imprimir") passa a usar componentes do sistema.
-- Impressão: **sem alteração de comportamento**; qualquer ajuste só na fase F, com teste de PDF real (dois bugs prévios em produção).
-- Tema de documento é **separado** do tema do app: preto sobre branco, sem cor de marca. *Porque* vai para papel, às vezes em impressora monocromática.
-
-### 15.5 Toque x ponteiro
-- `hover` só realça; nenhuma informação essencial só em hover.
-- `:active` mantém o feedback `scale(.97)` **[existe]**.
-- Teclado e leitor de tela: ordem de foco = ordem visual; `aria-live` para cálculos; landmarks `header`, `nav`, `main`.
+### Ficha Técnica e impressão
+Tela: folha branca `#fff`, texto preto, **intacta**. Impressão: **sem alteração**; shell oculto (§12.2). Qualquer mudança só com teste de PDF real (1 e N preparos).
 
 ---
 
-## 16. Tokens propostos para `@theme` (resumo, sem implementar)
+## 16. Tokens para `@theme` (resumo)
 
 ```
-Cores:   ink, ink-soft, paper, paper-dim, paper-ink        [existem]
-         ember, brass, sage                                [existem — só identidade de empresa]
-         acao #a8431d, acao-forte #9c3c19, acao-claro #e8825a      [novos]
-         perigo-claro #f08294 / perigo-escuro #a3243a              [novos]
-         aviso-claro #e6b957 / aviso-escuro #7a5410                [novos]
-         sucesso-claro #9fae88 / sucesso-escuro #4f5b3f            [novos]
-         info-claro #8fb3cf / info-escuro #2f5775                  [novos]
-         texto-suave-papel #6b5b46, texto-suave-escuro #a89c85     [novos]
-         borda-campo #8a7d68                                       [novo]
-Fontes:  display (Fraunces), sans (Archivo)                [existem]
-Raio:    raio 2px, raio-total 9999px
-Sombra:  elev-1, elev-2, elev-3
-Z:       header 10, barra-acoes 40, modal 50, tooltip 60
-Largura: pagina-estreita 42rem, pagina-media 56rem, pagina-documento 48rem
-Movimento: --motion-fast/base/slow/ease/stagger            [existem, mantidos]
+Cores:    fundo, superficie, elevada, menu, borda, borda-forte, borda-controle,
+          texto, texto-suave, brasa, brasa-hover, sobre-brasa, link, foco,
+          perigo, sobre-perigo, aviso, sucesso, info,
+          emp-churrasco, emp-cerimonial, emp-chacara            [alvo]
+          ink, ink-soft, paper, paper-dim, paper-ink, ember, brass, sage, acao…  [existem; saem na Etapa 6]
+Fontes:   --font-titulo, --font-texto                           [alvo]
+          --font-display, --font-sans                           [existem; só Ficha]
+Raio:     raio-chip 8, raio-controle 12, raio-tile 14, raio-linha 16, raio-cartao 20, raio-modal 28
+Z:        conteudo 0, barra-acoes 20, shell 30, overlay 50, popover 60, toast 70, skip 100
+Movimento: --motion-micro 120ms, --motion-comp 200ms, --motion-overlay 260ms, --motion-ease
+Breakpoint: rail 900px
 ```
-
-Os valores de movimento atuais (150/220/300 ms, ease `cubic-bezier(.16,1,.3,1)`) são mantidos: já respeitam `prefers-reduced-motion` e a Ficha Técnica.
 
 ---
 
-## 17. Componentes a construir (ordem sugerida) e o que cada um resolve do UX-AUDIT
+## 17. Componentes a construir (ordem) e etapa
 
-| # | Componente | Resolve |
+| # | Componente | Etapa |
 |---|---|---|
-| 1 | Tokens em `@theme` (cores, raio, sombra, z, largura) | §2.1, §2.6, §2.8, §2.9, contraste §3 |
-| 2 | `Botao` + `BotaoEnviar` | §2.1, §1.4, §1.10 |
-| 3 | `Campo` (rótulo/ajuda/erro/`id`) e `Select`, `Checkbox` | §3.2, §3.11, erro por campo |
-| 4 | `Alerta` | §2.6, §3.8, avisos de regra de negócio |
-| 5 | `Modal` ajustado + `ModalConfirmacao` | §1.6, §2.3–2.5 |
-| 6 | `Painel`, `CartaoEntidade`, `CartaoAtalho` | §2.8, faixa de empresa |
-| 7 | `Badge` / `ChipEmpresa` | §3.5 |
-| 8 | `Header` com 4 itens + usuário + skip link | §4.2 |
-| 9 | Estados `Vazio`, `Esqueleto` | §1.10, loading |
-| 10 | Calendário móvel e lista de orçamentos em aberto | §1.1, §4.1 |
-
-(A ordem de implementação das *telas* segue as fases A–F do UX-AUDIT §8.)
+| 1 | Tokens e fontes | 1 e 2 |
+| 2 | `Botao`, `BotaoEnviar`, `Campo`, `Alerta`, `Painel`, `Vazio` (mesma API) | 2 |
+| 3 | `Modal` e `ModalConfirmacao` (aparência; mesma API) | 2 |
+| 4 | Shell: menu lateral, topo, abas, skip link | 3 |
+| 5 | Herói, linha de evento, atalho, `ChipEmpresa`, `ChipStatus` | 4 e 5 |
+| 6 | Home recomposta; formulário de orçamento (painéis, índice, barra de salvar) | 4 |
+| 7 | Listas, tabelas, modais de seleção, demais telas | 5 |
+| 8 | Command (busca) nos seletores de insumo e de itens de cardápio | 5, **só se o Pedro aprovar a busca** (é comportamento novo, §19) |
 
 ---
 
 ## 18. Pontos que dependem do Pedro ou de teste real
 
-1. **Proporção celular/desktop** do uso real (define quanto investir em mobile; hoje é premissa).
-2. **Siglas SC / AC / EPN** (inventadas aqui).
-3. **Cores de status do evento** (Orçado/Confirmado/Realizado/Cancelado): mapeamento é proposta.
-4. **Textos de estados vazios e de resumo de confirmação**: tom e palavras.
-5. **Sucesso em `sage`** vs verde: confirmar se confunde com a Em Plena Natureza.
-6. **Calendário mobile como lista por padrão**: validar com uso real.
-7. **Fraunces nos totais do Simulador**: verificar legibilidade dos dígitos em tela.
-8. **Header fixo ou não** em ≥ md.
-9. **Contraste dos fundos translúcidos de alertas** (texto sobre `cor/12–15 %`): reconferir na implementação.
-10. **Zoom automático em iOS** nos campos de 14 px: confirmar em aparelho.
+1. Tema escuro **ao sol** (chácara de dia): não testado em campo.
+2. Proporção celular/desktop do uso real.
+3. Cores de status do evento (mapeamento é proposta).
+4. Brasa como ação e como cor do Senhor Churrasco (E8) e aviso × Cerimonial (E9).
+5. Teclado virtual e barra de abas (E7) em aparelho; zoom do iOS em campo de 16 px.
+6. Calendário mobile como lista por padrão.
+7. Contraste de alerta a 10 % (texto sobre o fundo misturado) a conferir na Etapa 2.
+8. Compatibilidade do shadcn/ui com Next 16 (teste em branch descartável).
+9. Impressão real da Ficha (PDF com 1 e N preparos, antes e depois).
 
-## 19. Restrições que este design **respeita** (não alterar)
+## 19. PRECISA DE LÓGICA, NÃO IMPLEMENTAR (fica de fora do redesign)
 
-- Regra de **preço congelado** (Passo 2 → 3), cardápio fixo após orçamento, itens excluídos sempre visíveis e fail-hard (REGRAS §2, §10, §15).
+Paginação e ordenação de tabela; filtro por empresa ou status na Agenda; atividade recente; cartões de resumo com totais (query nova); mensagem de "sucesso" após salvar, toast ou aviso após redirecionamento; recuperação de erro nos formulários principais (manter valores digitados, foco no primeiro erro); busca nos seletores de preparos e de insumos (inclusive Command), **a menos que o Pedro aprove em decisão separada**; índice do formulário com item ativo por rolagem; total ao vivo na barra de salvar; agrupar a lista por semana ou mês; valor do evento na Home; avatar do usuário com inicial (E2); qualquer query ou Server Action nova.
+
+## 20. Restrições que este design **respeita**
+
+- Regra de **preço congelado** (Passo 2 → 3), cardápio fixo após orçamento, itens excluídos sempre visíveis, fail-hard (REGRAS §2, §10, §15).
 - **Exclusão de evento** continua hard delete sem restrição nova (REGRAS §6).
-- Textos legais/operacionais de regra (ex.: "Ordens de Ação enviadas… não atualizam mensagens já enviadas") permanecem.
+- Textos de regra (ex.: "Ordens de Ação enviadas… não atualizam mensagens já enviadas") permanecem.
 - Opções das decisões operacionais e valores legados (`OPCOES_POR_CAMPO`) não mudam.
-- Comportamento de impressão da Ficha Técnica (`@media print`) não muda sem teste de PDF.
-- `name=` dos inputs e a ordem dos campos dos formulários de orçamento/confirmação/evento não mudam.
+- **Ficha Técnica e `@media print` idênticas.**
+- `name=`, ordem e tipo dos campos dos formulários não mudam.
+- Smoke test do deploy: 307 ou 200 com `NEXT_REDIRECT` e sem `<h1>`; sem `loading.tsx` novo; `/login` sem shell.
+- Actions, `lib/` de regra, `api/`, `db/` e deploy não são tocados.
