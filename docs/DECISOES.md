@@ -1151,3 +1151,16 @@ Escolhas:
 5. O conteúdo ganhou base de `4rem + safe-area` abaixo do breakpoint `rail`; cada `<main>` de página ainda tem o próprio `px/py` (mover o espaçamento para o shell fica para as etapas das telas).
 6. **Preload das fontes:** o shell usa Bricolage 700 e Instrument 500/600 em toda página, então o preload das duas famílias foi ligado. Custo conhecido: o Next pré-carrega todos os pesos declarados, inclusive Bricolage 600 e Instrument 400, que ainda não aparecem (~34 KB a mais por página); revisar quando o `body` trocar de fonte.
 7. O anel de foco do `Botao` passou a aparecer na hora (a transição não inclui `outline-color`).
+
+### Etapa 4 do Redesign 2: Home e orçamento do churrasco (2026-10-04)
+
+Home: herói "Próximo evento" com "em N dias" (`diasAteEvento`, dias de calendário em America/Sao_Paulo, com testes), painel de Pendências, lista "Próximos 15 dias" com tile de data, chips de empresa e de status, seção "Novo orçamento" com um atalho por empresa (`listarEmpresas()`, sem alterá-la) e atalhos do hub. **Sem valor do evento**, sem query nova além de `listarEmpresas()`. O botão "Trocar usuário" da Home saiu (o shell já o tem). Orçamento do churrasco (`/agenda/novo?empresa=1`): seções em painéis, índice lateral por âncoras (>= 900 px) e barra de salvar fixa (Cancelar + Gerar Orçamento, sem total ao vivo); `name`, ordem e tipo dos campos intactos (ver `docs/amostras/payload-etapa4-orcamento-churrasco.md`).
+
+Escolhas:
+1. **Espaçamento no shell só nas telas desta etapa** (`/` e `/agenda/novo`, lista `telaComMiolo` em `shell.tsx`): fundo `fundo`, fonte Instrument Sans, padding 44/48/120 px no desktop e 24/16/112 px no celular. Os `<main>` dessas páginas não têm mais `px/py` nem `venue-glow`. As demais telas e a Ficha seguem como estavam.
+2. `CabecalhoPagina` ganhou a prop `brasa` (padrão: visual antigo) para não mexer nas telas da Etapa 5.
+3. A cor de ação e a cor da empresa Senhor Churrasco são o mesmo hex (`#f2753f`, risco E8): na Home a empresa aparece só em ponto/tinta com o nome ao lado, e a ação só em botão sólido (captura `etapa4-cores-acao-x-churrasco.png`).
+4. Preload de fontes mantido: com a Home no Brasa, Bricolage 600 e Instrument 400 passam a ser usadas (conferido por `document.fonts` carregadas).
+5. `SeletorCardapio` (compartilhado com outros formulários) e o formulário genérico de orçamento não foram reestilizados; ficam para a Etapa 5.
+6. Caixa "Região Metropolitana": caixa nativa de 24 px com `accent-color` brasa (não a caixa customizada do protótipo).
+7. O esqueleto `loading.tsx` raiz continua com o próprio `px/py`; nas telas com miolo ele aparece com espaçamento duplo enquanto carrega (não alterado: sem `loading.tsx` novo e sem mexer no existente nesta etapa).

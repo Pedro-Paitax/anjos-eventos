@@ -15,7 +15,7 @@ Convenções:
 | 1 | `next/font/local` (fontes do redesign e fontes antigas da Ficha) | feita (2026-10-04) |
 | 2 | Tokens e componentes base (`Botao`, `BotaoEnviar`, `Campo`, `Alerta`, `Painel`, `Modal`, `Vazio`) | feita (2026-10-04); ver `docs/DECISOES.md`, "Etapa 2" |
 | 3 | Shell: menu lateral, abas, topo mobile, skip link, "Trocar usuário", WhatsApp | feita (2026-10-04); ver `docs/DECISOES.md`, "Etapa 3" |
-| 4 | Home + formulário longo (orçamento) | pendente |
+| 4 | Home + formulário longo (orçamento) | feita (2026-10-04); ver `docs/DECISOES.md`, "Etapa 4" |
 | 5 | Listas, cartões, badges, tabelas, modais de seleção, demais telas | pendente |
 | 6 | Fechamento (limpeza dos tokens antigos, lista final "PRECISA DE LÓGICA") | pendente |
 
