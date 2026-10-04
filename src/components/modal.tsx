@@ -24,13 +24,13 @@ type ModalProps = {
   /** aria-labelledby (id do título dentro do modal) ou aria-label. */
   labelledBy?: string;
   rotulo?: string;
-  /** Classes da caixa (largura máxima, fundo). */
+  /** Classes da caixa (largura máxima). O fundo e o raio vêm do Brasa. */
   className?: string;
   children: ReactNode;
 };
 
-/** Igual a --motion-fast em globals.css. */
-const SAIDA_MS = 150;
+/** Igual a --motion-micro em globals.css. */
+const SAIDA_MS = 120;
 
 const FOCAVEIS =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -42,7 +42,7 @@ export function Modal({
   cliqueForaFecha = true,
   labelledBy,
   rotulo,
-  className = "max-w-md bg-ink",
+  className = "max-w-md",
   children,
 }: ModalProps) {
   const tituloId = useId();
@@ -121,7 +121,7 @@ export function Modal({
 
   return createPortal(
     <div
-      className="modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-2 sm:p-4 print:hidden"
+      className="modal-overlay fixed inset-0 z-50 flex items-end justify-center bg-[rgb(10_7_6/0.72)] sm:items-center sm:p-4 print:hidden"
       data-saindo={saindo ? "" : undefined}
       onClick={cliqueForaFecha ? fecharComSaida : undefined}
     >
@@ -132,12 +132,12 @@ export function Modal({
         aria-labelledby={labelledBy ?? (titulo ? tituloId : undefined)}
         aria-label={titulo ? undefined : rotulo}
         tabIndex={-1}
-        className={`modal-caixa flex max-h-[calc(100dvh-2rem)] w-full flex-col gap-4 overflow-y-auto rounded-[2px] border border-paper-dim/15 p-5 text-paper shadow-elev-3 outline-none ${className}`}
+        className={`modal-caixa flex max-h-[calc(100dvh-1rem)] w-full flex-col gap-4 overflow-y-auto rounded-t-modal border border-borda-forte bg-elevada px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-6 text-texto shadow-overlay outline-none sm:max-h-[calc(100dvh-2rem)] sm:rounded-modal sm:p-7 ${className}`}
         onClick={(e) => e.stopPropagation()}
       >
         {titulo && (
           <div className="flex items-start justify-between gap-3">
-            <h2 id={tituloId} className="font-display text-xl italic">
+            <h2 id={tituloId} className="font-titulo text-2xl font-bold tracking-tight">
               {titulo}
             </h2>
             {mostrarFechar && (

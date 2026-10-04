@@ -40,7 +40,7 @@ export function BotaoResolverPendencias({ eventoId, itens, ativosPorFuncao, clas
       </button>
 
       {aberto && (
-        <Modal titulo="Pendências do evento" onFechar={() => setAberto(false)} className="max-w-md bg-ink">
+        <Modal titulo="Pendências do evento" onFechar={() => setAberto(false)} className="max-w-md">
           {grupos.map((grupo) => (
             <section key={grupo.titulo} className="flex flex-col gap-2">
               <h3 className="text-xs uppercase tracking-wide text-paper-dim">{grupo.titulo}</h3>

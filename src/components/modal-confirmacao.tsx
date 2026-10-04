@@ -29,8 +29,8 @@ export function ModalConfirmacao({
   children,
 }: ModalConfirmacaoProps) {
   return (
-    <Modal titulo={titulo} onFechar={onCancelar} className="max-w-sm bg-ink">
-      <div className="text-sm text-paper-dim">{children}</div>
+    <Modal titulo={titulo} onFechar={onCancelar} className="max-w-sm">
+      <div className="text-sm text-texto-suave">{children}</div>
       {erro && <Alerta tipo="perigo">{erro}</Alerta>}
       <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
         <Botao variante="secundario" onClick={onCancelar} disabled={pendente} data-foco-inicial>

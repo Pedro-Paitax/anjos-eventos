@@ -26,6 +26,46 @@
   --color-texto-suave-escuro: #a89c85;
   --color-borda-campo: #8a7d68;
 
+  /* Redesign Brasa (docs/design/DESIGN-SYSTEM.md §4, §8, §9). Nomes novos ao lado dos
+     antigos (ink, paper, ember, acao…), que saem na Etapa 6. */
+  --color-fundo: #151210;
+  --color-superficie: #1f1a17;
+  --color-elevada: #2a2420;
+  --color-menu: #1a1512;
+  --color-borda: rgb(255 255 255 / 0.08);
+  --color-borda-forte: rgb(255 255 255 / 0.16);
+  --color-borda-controle: #8a7e73;
+  --color-texto: #f4eee8;
+  --color-texto-suave: #b9ada2;
+  --color-brasa: #f2753f;
+  --color-brasa-hover: #ff8a57;
+  --color-sobre-brasa: #1a0e08;
+  --color-link: #ff9a6b;
+  --color-foco: #ffc089;
+  --color-perigo: #ff8c98;
+  --color-perigo-hover: #ffa3ad;
+  --color-sobre-perigo: #1f0a0d;
+  --color-aviso: #f2c14e;
+  --color-sucesso: #a8c48f;
+  --color-info: #8dbbe0;
+  --color-emp-churrasco: #f2753f;
+  --color-emp-cerimonial: #d9a441;
+  --color-emp-chacara: #8db27a;
+
+  --radius-chip: 8px;
+  --radius-controle: 12px;
+  --radius-tile: 14px;
+  --radius-linha: 16px;
+  --radius-cartao: 20px;
+  --radius-modal: 28px;
+
+  --shadow-brasa: 0 10px 28px -10px rgb(242 117 63 / 0.6);
+  --shadow-overlay: 0 32px 80px -20px rgb(0 0 0 / 0.75);
+  --shadow-barra: 0 18px 44px -12px rgb(0 0 0 / 0.7);
+  --shadow-realce: inset 0 1px 0 rgb(255 255 255 / 0.05);
+
+  --breakpoint-rail: 900px;
+
   --shadow-elev-1: 0 12px 24px -16px rgb(0 0 0 / 0.55);
   --shadow-elev-2: 0 20px 32px -16px rgb(0 0 0 / 0.7);
   --shadow-elev-3: 0 30px 60px -20px rgb(0 0 0 / 0.8);
@@ -42,26 +82,77 @@
 
   /* Tokens de animação: ajuste aqui e vale para o app inteiro. Os utilitários
      `transition` do Tailwind também usam estes dois valores. */
-  --default-transition-duration: 150ms;
-  --default-transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  --default-transition-duration: 120ms;
+  --default-transition-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 :root {
-  /* Camadas */
-  --z-header: 10;
-  --z-barra-acoes: 40;
-  --z-modal: 50;
-  --z-tooltip: 60;
+  /* Camadas: conteúdo < barra de salvar < menu/abas < overlay < popover < toast < skip link */
+  --z-conteudo: 0;
+  --z-barra-acoes: 20;
+  --z-shell: 30;
+  --z-overlay: 50;
+  --z-popover: 60;
+  --z-toast: 70;
+  --z-skip: 100;
 
-  --motion-fast: 150ms; /* cor, foco, pressionar */
-  --motion-base: 220ms; /* modal, itens de lista */
-  --motion-slow: 300ms; /* entrada de página e cards */
-  --motion-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --motion-micro: 120ms; /* cor, borda, hover, pressionar, caixa de seleção */
+  --motion-comp: 200ms; /* linha, cartão, abas de visão */
+  --motion-overlay: 260ms; /* modal: entra em 260 ms, sai em --motion-micro */
+  --motion-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  /* Ainda usados pelas animações de entrada (saem nas Etapas 3 e 5). */
+  --motion-fast: 150ms;
+  --motion-base: 220ms;
+  --motion-slow: 300ms;
   --motion-stagger: 40ms; /* atraso entre itens escalonados */
 }
 
 body {
   font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+/* Campo, select e textarea do Brasa (DESIGN-SYSTEM §11.2, §11.3). Usado por `campoClasse`. */
+@layer components {
+  .campo-controle {
+    min-height: 3rem;
+    border: 1px solid var(--color-borda-controle);
+    border-radius: var(--radius-controle);
+    background-color: var(--color-fundo);
+    padding: 0.5rem 0.875rem;
+    font-size: 1rem;
+    color: var(--color-texto);
+    color-scheme: dark;
+  }
+  .campo-controle::placeholder {
+    color: var(--color-texto-suave);
+  }
+  .campo-controle:hover:not(:disabled) {
+    border-color: #a89c90;
+  }
+  .campo-controle:focus-visible {
+    outline: 2px solid var(--color-foco);
+    outline-offset: 1px;
+    border-color: var(--color-foco);
+  }
+  .campo-controle[aria-invalid="true"] {
+    border: 2px solid var(--color-perigo);
+  }
+  .campo-controle:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  select.campo-controle {
+    appearance: none;
+    padding-right: 2.625rem;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23b9ada2' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 1.25rem;
+  }
+  textarea.campo-controle {
+    min-height: 6rem;
+    resize: vertical;
+  }
 }
 
 .venue-glow {
@@ -116,25 +207,25 @@ body {
   /* Modal */
   .modal-overlay {
     animation-name: fade-in;
-    animation-duration: var(--motion-base);
+    animation-duration: var(--motion-overlay);
     animation-timing-function: var(--motion-ease);
     animation-fill-mode: backwards;
   }
   .modal-caixa {
     animation-name: modal-entra;
-    animation-duration: var(--motion-base);
+    animation-duration: var(--motion-overlay);
     animation-timing-function: var(--motion-ease);
     animation-fill-mode: backwards;
   }
   .modal-overlay[data-saindo] {
     animation-name: fade-out;
-    animation-duration: var(--motion-fast);
+    animation-duration: var(--motion-micro);
     animation-timing-function: var(--motion-ease);
     animation-fill-mode: forwards;
   }
   .modal-overlay[data-saindo] .modal-caixa {
     animation-name: modal-sai;
-    animation-duration: var(--motion-fast);
+    animation-duration: var(--motion-micro);
     animation-timing-function: var(--motion-ease);
     animation-fill-mode: forwards;
   }
@@ -158,15 +249,15 @@ body {
   button,
   a[href] {
     transition-property: color, background-color, border-color, text-decoration-color, opacity, scale, box-shadow, translate, filter;
-    transition-duration: var(--motion-fast);
+    transition-duration: var(--motion-micro);
     transition-timing-function: var(--motion-ease);
   }
   input,
   select,
   textarea {
-    transition: border-color var(--motion-fast) var(--motion-ease),
-      box-shadow var(--motion-fast) var(--motion-ease),
-      background-color var(--motion-fast) var(--motion-ease);
+    transition: border-color var(--motion-micro) var(--motion-ease),
+      box-shadow var(--motion-micro) var(--motion-ease),
+      background-color var(--motion-micro) var(--motion-ease);
   }
 }
 
@@ -201,11 +292,12 @@ body {
 @keyframes fade-out {
   to { opacity: 0; }
 }
+/* Modal: só `translate` (nunca `transform` residual); sobe 14 px e aparece. */
 @keyframes modal-entra {
-  from { opacity: 0; transform: scale(0.97); }
+  from { opacity: 0; translate: 0 14px; }
 }
 @keyframes modal-sai {
-  to { opacity: 0; transform: scale(0.97); }
+  to { opacity: 0; translate: 0 14px; }
 }
 
 /* Ficha Técnica e qualquer tela marcada: nada de animação/transição. */

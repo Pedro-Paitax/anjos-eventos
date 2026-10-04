@@ -4,23 +4,30 @@ export type VarianteBotao = "primario" | "secundario" | "perigo" | "link";
 export type TamanhoBotao = "md" | "sm";
 export type SuperficieBotao = "escuro" | "papel";
 
+// Brasa (DESIGN-SYSTEM §11.1). Toque de 44 px; no desktop (rail, 900 px) o `sm` vai a 36 px.
 const base =
-  "inline-flex items-center justify-center rounded-[2px] font-medium transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brass disabled:cursor-not-allowed disabled:opacity-50";
+  "inline-flex items-center justify-center gap-2 rounded-controle border border-transparent font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foco disabled:cursor-not-allowed disabled:opacity-50";
 
 const tamanhos: Record<TamanhoBotao, string> = {
-  md: "min-h-11 px-5 text-sm md:min-h-10",
-  sm: "min-h-11 px-3 text-sm md:min-h-8",
+  md: "min-h-11 px-5 text-[15px]",
+  sm: "min-h-11 px-3.5 text-sm rail:min-h-9",
 };
 
 const variantes: Record<VarianteBotao, string> = {
-  primario: "bg-acao text-paper shadow-elev-1 hover:bg-acao-forte",
-  secundario: "border border-borda-campo hover:bg-paper-dim/10",
-  perigo: "bg-perigo-escuro text-paper hover:brightness-110",
-  link: "px-0 underline underline-offset-4",
+  primario: "bg-brasa text-sobre-brasa shadow-brasa hover:bg-brasa-hover",
+  secundario: "", // depende da superfície, ver secundarioPorSuperficie
+  perigo: "bg-perigo text-sobre-perigo hover:bg-perigo-hover",
+  link: "px-1 underline underline-offset-4",
+};
+
+// O secundário não define cor de texto no papel (herda o texto escuro do papel).
+const secundarioPorSuperficie: Record<SuperficieBotao, string> = {
+  escuro: "border-borda-forte bg-white/5 text-texto hover:bg-white/10",
+  papel: "border-borda-campo hover:bg-paper-dim/10",
 };
 
 const linkPorSuperficie: Record<SuperficieBotao, string> = {
-  escuro: "text-acao-claro decoration-acao-claro/40 hover:decoration-acao-claro",
+  escuro: "text-link decoration-link/40 hover:decoration-link",
   papel: "text-acao decoration-acao/40 hover:decoration-acao",
 };
 
@@ -34,6 +41,7 @@ export function botaoClasse(
     base,
     tamanhos[tamanho],
     variantes[variante],
+    variante === "secundario" ? secundarioPorSuperficie[sobre] : "",
     variante === "link" ? linkPorSuperficie[sobre] : "",
   ]
     .filter(Boolean)

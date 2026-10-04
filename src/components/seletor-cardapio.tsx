@@ -198,7 +198,7 @@ export function SeletorCardapio({
       </div>
 
       {modalAberto && (
-        <Modal titulo="Adicionar ao cardápio" mostrarFechar onFechar={() => setModalAberto(false)} className="max-w-lg bg-ink">
+        <Modal titulo="Adicionar ao cardápio" mostrarFechar onFechar={() => setModalAberto(false)} className="max-w-lg">
 
           <div className="flex flex-wrap gap-1 rounded-[2px] bg-ink-soft p-1">
             {CATEGORIAS_CARDAPIO.map((categoria) => (

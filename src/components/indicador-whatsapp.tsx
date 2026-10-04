@@ -66,7 +66,7 @@ export function IndicadorWhatsapp() {
       </button>
 
       {modalVisivel && (
-        <Modal titulo="Reconectar WhatsApp" onFechar={() => setModalAberto(false)} className="max-w-sm bg-ink">
+        <Modal titulo="Reconectar WhatsApp" onFechar={() => setModalAberto(false)} className="max-w-sm">
           {dados.worker_offline ? (
             <p className="text-sm text-paper-dim">
               O serviço de WhatsApp não está respondendo. O restante do sistema

@@ -7,11 +7,11 @@ type PainelProps = {
   children: ReactNode;
 };
 
-/** Painel de formulário sobre a moldura escura: superfície `ink-soft` + borda suave, sem sombra. */
+/** Painel de seção do Brasa: `superficie` + borda fina + realce interno, raio de cartão, sem sombra. */
 export function Painel({ como: Tag = "div", className, ...props }: PainelProps) {
   return (
     <Tag
-      className={`rounded-[2px] border border-paper-dim/15 bg-ink-soft p-4 sm:p-6${className ? ` ${className}` : ""}`}
+      className={`rounded-cartao border border-borda bg-superficie p-[18px] shadow-realce sm:p-6${className ? ` ${className}` : ""}`}
       {...props}
     />
   );

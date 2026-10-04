@@ -189,7 +189,7 @@ function ModalNovoInsumo({
       mostrarFechar
       cliqueForaFecha={!nome.trim() && !preco}
       onFechar={onFechar}
-      className="max-w-md bg-ink"
+      className="max-w-md"
     >
       <div className="flex flex-col gap-1.5">
         <label className={rotuloClasse}>Nome</label>

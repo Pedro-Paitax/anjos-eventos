@@ -6,19 +6,19 @@ export type SuperficieAlerta = "escuro" | "papel";
 // Classes literais (o Tailwind só gera o que aparece escrito por inteiro).
 const cores: Record<TipoAlerta, Record<SuperficieAlerta, string>> = {
   perigo: {
-    escuro: "border-perigo-claro/50 bg-perigo-claro/10 text-perigo-claro",
+    escuro: "border-perigo/50 bg-perigo/10 text-perigo",
     papel: "border-perigo-escuro/50 bg-perigo-escuro/10 text-perigo-escuro",
   },
   aviso: {
-    escuro: "border-aviso-claro/50 bg-aviso-claro/10 text-aviso-claro",
+    escuro: "border-aviso/50 bg-aviso/10 text-aviso",
     papel: "border-aviso-escuro/50 bg-aviso-escuro/10 text-aviso-escuro",
   },
   sucesso: {
-    escuro: "border-sucesso-claro/50 bg-sucesso-claro/10 text-sucesso-claro",
+    escuro: "border-sucesso/50 bg-sucesso/10 text-sucesso",
     papel: "border-sucesso-escuro/50 bg-sucesso-escuro/10 text-sucesso-escuro",
   },
   info: {
-    escuro: "border-info-claro/50 bg-info-claro/10 text-info-claro",
+    escuro: "border-info/50 bg-info/10 text-info",
     papel: "border-info-escuro/50 bg-info-escuro/10 text-info-escuro",
   },
 };
@@ -79,11 +79,11 @@ export function Alerta({ tipo, sobre = "escuro", titulo, className, children }: 
   return (
     <div
       role={tipo === "perigo" ? "alert" : "status"}
-      className={`flex gap-2 rounded-[2px] border p-3 text-sm ${cores[tipo][sobre]}${className ? ` ${className}` : ""}`}
+      className={`flex gap-2 rounded-linha border p-3.5 text-sm ${cores[tipo][sobre]}${className ? ` ${className}` : ""}`}
     >
       <Icone tipo={tipo} />
       <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-        {titulo && <p className="font-medium">{titulo}</p>}
+        {titulo && <p className="font-semibold">{titulo}</p>}
         {children}
       </div>
     </div>
