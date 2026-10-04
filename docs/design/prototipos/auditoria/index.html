@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Auditoria do visual atual (réplica estática)</title>
+<link rel="stylesheet" href="auditoria.css">
+</head>
+<body>
+<h1 class="neutro">Visual atual (master ee49970), réplica estática sobre fundo neutro. Dados fictícios.</h1>
+
+<div class="grade">
+  <div class="amostra">
+    <p class="tag">Botão: primário, secundário, perigo, link</p>
+    <div class="moldura"><div class="linha">
+      <span class="btn prim">Salvar orçamento</span>
+      <span class="btn sec">Cancelar</span>
+      <span class="btn per">Excluir</span>
+      <span class="btn lnk">Ver agenda completa</span>
+    </div></div>
+  </div>
+
+  <div class="amostra">
+    <p class="tag">Campo (normal e com erro)</p>
+    <div class="moldura"><div class="dois">
+      <div class="campo"><label>Cliente</label><input value="Helena Duarte"></div>
+      <div class="campo"><label>Celular</label><input class="erro" value="41 9"><span class="msg">Informe o DDD e o número.</span></div>
+    </div></div>
+  </div>
+
+  <div class="amostra">
+    <p class="tag">Alerta: perigo, aviso, sucesso, info</p>
+    <div class="moldura">
+      <div class="alerta p">Não foi possível salvar. Confira os campos.</div>
+      <div class="alerta a">Pendências do evento: definir veículo.</div>
+      <div class="alerta s">Evento confirmado.</div>
+      <div class="alerta i">O valor sugerido usa o cardápio base.</div>
+    </div>
+  </div>
+
+  <div class="amostra">
+    <p class="tag">Modal de confirmação</p>
+    <div class="palco"><div class="modal">
+      <h2>Excluir evento?</h2>
+      <p>O evento e o orçamento ligados a ele serão apagados. Isso não pode ser desfeito.</p>
+      <div class="acoes"><span class="btn sec">Cancelar</span><span class="btn per">Excluir evento</span></div>
+    </div></div>
+  </div>
+
+  <div class="amostra">
+    <p class="tag">Estado vazio (sobre papel)</p>
+    <div class="papel"><div class="vazio">Nenhum evento ainda. Cadastre o primeiro pra começar a montar a agenda.<span class="btn prim">Novo evento</span></div></div>
+  </div>
+
+  <div class="amostra">
+    <p class="tag">Painel de formulário</p>
+    <div class="moldura"><div class="painel">
+      <h3 class="secao">Dados do cliente</h3>
+      <div class="campo"><label>Endereço do evento</label><input value="Rua das Palmeiras, 100"></div>
+      <div class="dois">
+        <div class="campo"><label>Tipo de evento</label><input value="Aniversário"></div>
+        <div class="campo"><label>Data e hora</label><input value="10/10/2026 12:30"></div>
+      </div>
+      <div class="linha"><span class="btn prim">Salvar orçamento</span></div>
+    </div></div>
+  </div>
+
+  <div class="amostra">
+    <p class="tag">Header (desktop)</p>
+    <div class="header">
+      <span class="marca">Anjos Eventos</span>
+      <div class="acoes"><span>Pedro</span><span class="btn lnk">Trocar usuário</span></div>
+      <nav><a>Início</a><a class="at">Agenda</a><a>Senhor Churrasco</a><a>Colaboradores</a></nav>
+    </div>
+  </div>
+
+  <div class="amostra">
+    <p class="tag">Header (390 px)</p>
+    <div class="header m" style="max-width:390px">
+      <span class="marca">Anjos Eventos</span>
+      <div class="acoes"><span>Pedro</span><span class="btn lnk">Trocar</span></div>
+      <nav><a>Início</a><a class="at">Agenda</a><a>Senhor Chur…</a></nav>
+    </div>
+  </div>
+
+  <div class="amostra">
+    <p class="tag">Lista (papel)</p>
+    <div class="papel"><ul class="lista">
+      <li><div class="l1"><span class="dot" style="background:var(--brass)"></span><div><span class="cli">Helena Duarte</span><small>Anjos Cerimonial, Casamento</small></div></div><span class="dt">sex., 09 de outubro de 2026, 20:00 · Confirmado · R$ 38.500,00</span></li>
+      <li><div class="l1"><span class="dot" style="background:var(--ember)"></span><div><span class="cli">Família Pontes</span><small>Buffet Senhor Churrasco, Aniversário</small></div></div><span class="dt">sáb., 10 de outubro de 2026, 12:30 · Confirmado · R$ 12.400,00</span></li>
+      <li><div class="l1"><span class="dot" style="background:var(--sage)"></span><div><span class="cli">Escritório Vale &amp; Costa</span><small>Em Plena Natureza, Confraternização</small></div></div><span class="dt">dom., 11 de outubro de 2026, 11:00 · Orçado · R$ 9.800,00</span></li>
+    </ul></div>
+  </div>
+
+  <div class="amostra" style="grid-column: 1 / -1">
+    <p class="tag">Home (como composição)</p>
+    <div class="moldura" style="padding: 40px 24px">
+      <div class="home-titulo">
+        <span class="sup">Anjos Eventos</span>
+        <h1>Bem-vindo, Pedro.</h1>
+        <span class="sub">Central de eventos do Buffet Senhor Churrasco, da Anjos Cerimonial e da Em Plena Natureza.</span>
+      </div>
+      <h2 class="display" style="font-size:20px; margin: 12px 0 10px">Próximos 15 dias</h2>
+      <div class="cartoes">
+        <div class="cartao"><span class="faixa" style="background:var(--brass)"></span><span class="cli">Helena Duarte</span><p>sex., 09 de outubro de 2026, 20:00</p><p class="xs">Anjos Cerimonial</p></div>
+        <div class="cartao"><span class="faixa" style="background:var(--ember)"></span><span class="cli">Família Pontes</span><p>sáb., 10 de outubro de 2026, 12:30</p><p class="xs">Buffet Senhor Churrasco</p></div>
+      </div>
+      <div class="cartoes">
+        <div class="cartao"><span class="faixa" style="background:var(--paper-dim)"></span><span class="cli">Agenda unificada</span><p>Todos os eventos das três empresas, num só calendário.</p></div>
+        <div class="cartao"><span class="faixa" style="background:var(--paper-dim)"></span><span class="cli">Senhor Churrasco</span><p>Preparos, Cardápios Feitos e Simulador de Cardápio.</p></div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

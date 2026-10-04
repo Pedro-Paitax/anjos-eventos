@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Protótipos do redesign 2 (estáticos, dados fictícios)</title>
+<style>
+body{font:16px/1.5 system-ui,sans-serif;background:#e6e6e6;color:#222;margin:0;padding:24px}
+h1{font-size:20px;margin:0 0 4px}p{margin:0 0 20px;color:#555}
+.linha{display:grid;grid-template-columns:1fr;gap:28px;margin-bottom:28px}.quadro{flex:none}
+.col h2{font-size:16px;margin:0 0 8px}.col a{display:inline-block;margin-right:12px}
+.quadro{background:#fff;border:1px solid #bbb;overflow:hidden;position:relative}
+.quadro iframe{border:0;display:block;transform-origin:0 0}
+.d{height:420px}.d iframe{width:1280px;height:840px;transform:scale(.3)}
+.m{height:420px;width:216px}.m iframe{width:390px;height:760px;transform:scale(.55)}
+.par{display:flex;gap:12px;align-items:flex-start}
+
+</style></head><body>
+<h1>Redesign 2: três direções (protótipos estáticos)</h1>
+<p>Home em desktop e 390 px. Clique nos links para abrir cada página em tamanho real e redimensione a janela. Auditoria do visual atual: <a href="auditoria/index.html">auditoria</a>.</p>
+<div class="linha">
+<div class="col"><h2>Direção 1: Brasa (escura)</h2><div class="par"><div class="quadro d" style="width:384px;height:252px"><iframe src="direcao-1/index.html" title="Brasa desktop" tabindex="-1" style="height:840px"></iframe></div><div class="quadro m" style="height:420px"><iframe src="direcao-1/index.html" title="Brasa 390" tabindex="-1"></iframe></div></div>
+<p><a href="direcao-1/index.html">Home</a><a href="direcao-1/agenda.html">Lista</a><a href="direcao-1/novo-evento.html">Formulário</a><a href="direcao-1/modal.html">Modal</a></p></div>
+<div class="col"><h2>Direção 2: Linho (clara, editorial)</h2><div class="par"><div class="quadro d" style="width:384px;height:252px"><iframe src="direcao-2/index.html" title="Linho desktop" tabindex="-1"></iframe></div><div class="quadro m"><iframe src="direcao-2/index.html" title="Linho 390" tabindex="-1"></iframe></div></div>
+<p><a href="direcao-2/index.html">Home</a><a href="direcao-2/agenda.html">Lista</a><a href="direcao-2/novo-evento.html">Formulário</a><a href="direcao-2/modal.html">Modal</a></p></div>
+<div class="col"><h2>Direção 3: Casas (clara, por empresa)</h2><div class="par"><div class="quadro d" style="width:384px;height:252px"><iframe src="direcao-3/index.html" title="Casas desktop" tabindex="-1"></iframe></div><div class="quadro m"><iframe src="direcao-3/index.html" title="Casas 390" tabindex="-1"></iframe></div></div>
+<p><a href="direcao-3/index.html">Home</a><a href="direcao-3/agenda.html">Lista</a><a href="direcao-3/novo-evento.html">Formulário</a><a href="direcao-3/modal.html">Modal</a></p></div>
+</div></body></html>
