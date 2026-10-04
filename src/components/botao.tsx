@@ -5,8 +5,9 @@ export type TamanhoBotao = "md" | "sm";
 export type SuperficieBotao = "escuro" | "papel";
 
 // Brasa (DESIGN-SYSTEM §11.1). Toque de 44 px; no desktop (rail, 900 px) o `sm` vai a 36 px.
+// A transição não inclui outline-color: o anel de foco aparece na hora.
 const base =
-  "inline-flex items-center justify-center gap-2 rounded-controle border border-transparent font-semibold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foco disabled:cursor-not-allowed disabled:opacity-50";
+  "inline-flex items-center justify-center gap-2 rounded-controle border border-transparent font-semibold transition-[color,background-color,border-color,text-decoration-color,opacity,box-shadow,translate,scale] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foco disabled:cursor-not-allowed disabled:opacity-50";
 
 const tamanhos: Record<TamanhoBotao, string> = {
   md: "min-h-11 px-5 text-[15px]",
