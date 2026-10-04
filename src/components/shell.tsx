@@ -123,9 +123,9 @@ export function Shell({ nomeUsuario, children }: { nomeUsuario?: string; childre
       >
         Ir para o conteúdo
       </a>
-      <div className="flex flex-1 flex-col font-texto rail:grid rail:grid-cols-[248px_minmax(0,1fr)] print:block">
+      <div className="flex flex-1 flex-col rail:grid rail:grid-cols-[248px_minmax(0,1fr)] print:block">
         {/* Menu lateral (>= 900 px). Hidden no celular: fora do foco e do leitor de tela. */}
-        <aside className="sticky top-0 hidden h-dvh flex-col gap-7 border-r border-borda bg-gradient-to-b from-menu to-fundo px-3.5 py-5 rail:flex print:hidden">
+        <aside className="sticky top-0 hidden h-dvh font-texto flex-col gap-7 border-r border-borda bg-gradient-to-b from-menu to-fundo px-3.5 py-5 rail:flex print:hidden">
           <Marca />
           <nav aria-label="Navegação principal" className="flex flex-col gap-1">
             {links.map((link) => {
@@ -161,7 +161,7 @@ export function Shell({ nomeUsuario, children }: { nomeUsuario?: string; childre
         </aside>
 
         {/* Topo (< 900 px): marca, usuário e WhatsApp. */}
-        <header className="flex h-[60px] items-center justify-between gap-3 border-b border-borda pl-[max(0.5rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] rail:hidden print:hidden">
+        <header className="flex h-[60px] font-texto items-center justify-between gap-3 border-b border-borda pl-[max(0.5rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] rail:hidden print:hidden">
           <Marca />
           <div className="flex min-w-0 items-center gap-2">
             {nomeUsuario && (
@@ -174,7 +174,8 @@ export function Shell({ nomeUsuario, children }: { nomeUsuario?: string; childre
           </div>
         </header>
 
-        {/* Destino do skip link. A base livra a barra de abas (64 px + área segura). */}
+        {/* Destino do skip link. A fonte do conteúdo NÃO é do shell (a Ficha depende do Archivo do body). */}
+        {/* A base livra a barra de abas (64 px + área segura). */}
         <div
           id="conteudo"
           tabIndex={-1}
@@ -186,7 +187,7 @@ export function Shell({ nomeUsuario, children }: { nomeUsuario?: string; childre
         {/* Barra de abas (< 900 px). Some por CSS com campo de texto em foco (globals.css). */}
         <nav
           aria-label="Navegação principal"
-          className="barra-abas fixed inset-x-0 bottom-0 z-30 grid grid-cols-4 border-t border-borda-forte bg-superficie pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] rail:hidden print:hidden"
+          className="barra-abas font-texto fixed inset-x-0 bottom-0 z-30 grid grid-cols-4 border-t border-borda-forte bg-superficie pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] rail:hidden print:hidden"
         >
           {links.map((link) => {
             const ativo = estaAtivo(pathname, link);
