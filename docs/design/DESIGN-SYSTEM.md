@@ -12,8 +12,8 @@ Convenções:
 | Etapa | Conteúdo | Estado |
 |---|---|---|
 | 0 | Docs (este arquivo, a skill `anjos-design-system`, `docs/DECISOES.md`) | feita |
-| 1 | `next/font/local` (fontes do redesign e fontes antigas da Ficha) | pendente |
-| 2 | Tokens e componentes base (`Botao`, `BotaoEnviar`, `Campo`, `Alerta`, `Painel`, `Modal`, `Vazio`) | pendente |
+| 1 | `next/font/local` (fontes do redesign e fontes antigas da Ficha) | feita (2026-10-04) |
+| 2 | Tokens e componentes base (`Botao`, `BotaoEnviar`, `Campo`, `Alerta`, `Painel`, `Modal`, `Vazio`) | feita (2026-10-04); ver `docs/DECISOES.md`, "Etapa 2" |
 | 3 | Shell: menu lateral, abas, topo mobile, skip link, "Trocar usuário", WhatsApp | pendente |
 | 4 | Home + formulário longo (orçamento) | pendente |
 | 5 | Listas, cartões, badges, tabelas, modais de seleção, demais telas | pendente |
@@ -172,6 +172,10 @@ Mapeamento empresa→cor: `src/lib/formatacao.ts` (`coresEmpresa`); na Etapa 5 e
 | `texto` sobre chip de empresa (branco a 6 %) | 12,69 | 4,5 |
 | `texto` sobre item de menu ativo (`brasa` a 16 % sobre `menu`) | 12,45 | 4,5 |
 | `sobre-brasa` sobre o ícone da caixa marcada (`brasa`) | 6,66 | 3 |
+| Texto do alerta (cor cheia) sobre a própria cor a 10 % sobre `fundo` · `superficie` · `elevada`: perigo | 7,21 · 6,56 · 5,77 | 4,5 |
+| idem aviso | 9,16 · 8,29 · 7,26 | 4,5 |
+| idem sucesso | 8,15 · 7,40 · 6,49 | 4,5 |
+| idem info | 7,75 · 7,04 · 6,19 | 4,5 |
 
 Texto em `elevada` e `fundo` com `texto-suave` passa em todos os casos acima. **Qualquer cor ou mistura fora desta tabela precisa ser calculada antes de entrar.**
 
@@ -193,7 +197,7 @@ Texto em `elevada` e `fundo` com `texto-suave` passa em todos os casos acima. **
 | **Sucesso** | "Salvo", "Confirmado", conexão ativa | `sucesso` | ✓ |
 | **Informação** | Ajuda de campo, "Orçado", valor pré-preenchido do cardápio pré-montado | `info` | "i" em círculo |
 
-Fundo de alerta: a cor semântica a **10 %** sobre `superficie`, **borda de 1 px a 50 %**, texto na cor cheia (conferir contraste do texto sobre o fundo misturado na Etapa 2, **[confirmar]**; a tabela 4.2 já cobre os chips a 14 %).
+Fundo de alerta: a cor semântica a **10 %** sobre `superficie`, **borda de 1 px a 50 %**, texto na cor cheia (contraste do texto sobre o fundo misturado **calculado na Etapa 2**: menor razão 5,77 — `perigo` sobre `elevada`; ver tabela 4.2).
 
 Pendências da Home usam `aviso`; erro usa `perigo`; **nunca só cor** (E8, E9).
 

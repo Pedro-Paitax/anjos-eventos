@@ -1126,3 +1126,15 @@ Riscos registrados (DESIGN-SYSTEM.md §0, E8 e E9): a cor de ação (brasa) é a
 `next/font/google` foi trocado por `next/font/local` (`src/app/fonts/`, licenças OFL em `LICENSE-*.txt`). Fraunces e Archivo são os mesmos `.woff2` latinos que o build antigo gerava; Bricolage Grotesque e Instrument Sans são do redesign.
 
 **Limitação conhecida:** só o recorte **latino** foi incluído. Os recortes latin-ext e vietnamita (que o Google Fonts servia por `unicode-range`, cerca de 48 KB a mais no bundle) não entram: caractere fora do latino (por exemplo um nome com letra de outro alfabeto latino estendido) cai na fonte de fallback do sistema. Pt-BR é coberto pelo latino. Não foi feita varredura no banco por esses caracteres.
+
+### Etapa 2 do Redesign 2: tokens e componentes base (2026-10-04)
+
+Tokens do Brasa entram no `@theme` ao lado dos antigos (nomes do DESIGN-SYSTEM §16; raio como `--radius-chip|controle|tile|linha|cartao|modal`; breakpoint `rail` 900 px). `Botao`, `Campo`, `Alerta`, `Painel`, `Vazio` e `Modal` ganham a pele nova com a **mesma API**; nenhum formulário mudou.
+
+Escolhas:
+1. **Variantes `sobre="papel"` ficam como eram** (botão secundário, link, campo, alerta e `Vazio` sobre papel) até as listas e tabelas migrarem para o tema escuro (Etapa 5). `Vazio` ganhou `sobre` (padrão `papel`).
+2. `campoClasse` virou a classe `campo-controle` em `globals.css` (camada `components`), que também estiliza `select` (seta SVG) e `textarea`. Utilitários nos chamadores ainda a sobrescrevem.
+3. O fundo do `Modal` saiu dos 5 chamadores (`bg-ink`) e passou a ser `bg-elevada` dentro do componente; no celular o modal é folha inferior.
+4. Fontes novas: só o título do `Modal` usa Bricolage (nenhuma tela a usa no primeiro carregamento), então o **preload segue desligado**; Instrument Sans ainda não é usada (o `body` continua em Archivo até o shell, Etapa 3). Ligar `preload` quando o `body` trocar de fonte.
+5. O anel de foco do `Botao` anima a cor (a classe `transition` inclui `outline-color`); fica em `foco` (#ffc089) em ~120 ms.
+6. Contraste do alerta a 10 %: menor razão 5,77:1 (§4.2 do DESIGN-SYSTEM).
