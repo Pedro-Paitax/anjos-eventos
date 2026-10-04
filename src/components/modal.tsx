@@ -132,7 +132,7 @@ export function Modal({
         aria-labelledby={labelledBy ?? (titulo ? tituloId : undefined)}
         aria-label={titulo ? undefined : rotulo}
         tabIndex={-1}
-        className={`modal-caixa flex max-h-[calc(100dvh-1rem)] w-full flex-col gap-4 overflow-y-auto rounded-t-modal border border-borda-forte bg-elevada px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-6 text-texto shadow-overlay outline-none sm:max-h-[calc(100dvh-2rem)] sm:rounded-modal sm:p-7 ${className}`}
+        className={`modal-caixa flex max-h-[calc(100dvh-1rem)] w-full flex-col gap-4 overflow-y-auto rounded-t-modal border border-borda-forte bg-elevada font-texto px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-6 text-texto shadow-overlay outline-none sm:max-h-[calc(100dvh-2rem)] sm:rounded-modal sm:p-7 ${className}`}
         onClick={(e) => e.stopPropagation()}
       >
         {titulo && (

@@ -37,6 +37,12 @@ const links = [
   },
 ];
 
+// Telas já no Brasa: o shell dá o espaçamento e o fundo do conteúdo (o <main> da página não tem px/py).
+// As demais telas (Etapa 5) seguem com o espaçamento próprio; a Ficha Técnica nunca entra aqui.
+function telaComMiolo(pathname: string) {
+  return pathname === "/" || pathname === "/agenda/novo";
+}
+
 function estaAtivo(pathname: string, link: (typeof links)[number]) {
   if (link.href === "/") return pathname === "/";
   return link.prefixos.some((p) => pathname === p || pathname.startsWith(`${p}/`));
@@ -114,6 +120,7 @@ export function Shell({ nomeUsuario, children }: { nomeUsuario?: string; childre
   const pathname = usePathname();
   const railVisivel = useRailVisivel();
   if (pathname === "/login") return <>{children}</>;
+  const miolo = telaComMiolo(pathname);
 
   return (
     <>
@@ -161,7 +168,7 @@ export function Shell({ nomeUsuario, children }: { nomeUsuario?: string; childre
         </aside>
 
         {/* Topo (< 900 px): marca, usuário e WhatsApp. */}
-        <header className="flex h-[60px] font-texto items-center justify-between gap-3 border-b border-borda pl-[max(0.5rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] rail:hidden print:hidden">
+        <header className="flex h-[60px] items-center bg-fundo font-texto justify-between gap-3 border-b border-borda pl-[max(0.5rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] rail:hidden print:hidden">
           <Marca />
           <div className="flex min-w-0 items-center gap-2">
             {nomeUsuario && (
@@ -179,7 +186,11 @@ export function Shell({ nomeUsuario, children }: { nomeUsuario?: string; childre
         <div
           id="conteudo"
           tabIndex={-1}
-          className="flex min-w-0 flex-1 flex-col pb-[calc(4rem+env(safe-area-inset-bottom))] outline-none rail:pb-0 print:pb-0"
+          className={`flex min-w-0 flex-1 flex-col outline-none print:pb-0 ${
+            miolo
+              ? "bg-fundo px-4 pb-[calc(7rem+env(safe-area-inset-bottom))] pt-6 font-texto text-texto rail:px-12 rail:pb-[120px] rail:pt-11"
+              : "pb-[calc(4rem+env(safe-area-inset-bottom))] rail:pb-0"
+          }`}
         >
           {children}
         </div>

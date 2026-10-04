@@ -1,30 +1,14 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { obterUsuarioAtual } from "@/lib/usuario-atual";
-import { trocarUsuario } from "@/app/actions/usuario";
 import { listarEventosProximos } from "@/lib/eventos";
+import { listarEmpresas } from "@/lib/empresas";
 import { itensPendenciaPorEvento } from "@/lib/decisoes-operacionais";
 import { listarColaboradoresAtivos } from "@/lib/colaboradores";
 import type { AtivosPorFuncao } from "@/lib/pendencias-evento";
-import { BotaoResolverPendencias } from "@/components/botao-resolver-pendencias";
-import { corEmpresa, formatarData, formatarHora } from "@/lib/formatacao";
-import { botaoClasse } from "@/components/botao";
-import { Alerta } from "@/components/alerta";
+import { diasAteEvento, formatarHora, partesDataEvento } from "@/lib/formatacao";
+import { HomeConteudo, type EventoHome, type PendenciaHome } from "@/components/home-conteudo";
 
 const DIAS_PROXIMOS_EVENTOS = 15;
-
-const funcionalidades = [
-  {
-    titulo: "Agenda unificada",
-    descricao: "Todos os eventos das três empresas, num só calendário.",
-    href: "/agenda",
-  },
-  {
-    titulo: "Senhor Churrasco",
-    descricao: "Preparos, Cardápios Feitos e Simulador de Cardápio.",
-    href: "/senhor-churrasco",
-  },
-];
 
 export default async function Home() {
   const usuarioAtual = await obterUsuarioAtual();
@@ -39,124 +23,34 @@ export default async function Home() {
   if (temPendencia) {
     for (const c of await listarColaboradoresAtivos()) ativosPorFuncao[c.funcao] += 1;
   }
+  // Atalhos "Novo orçamento": uma empresa por atalho (mesma consulta de /agenda/novo).
+  const empresas = await listarEmpresas();
+
+  const agora = new Date();
+  const eventos: EventoHome[] = eventosProximos.map((e) => ({
+    id: e.id,
+    cliente: e.cliente,
+    empresaNome: e.empresa_nome,
+    tipo: e.tipo_evento,
+    status: e.status,
+    ...partesDataEvento(e.data_evento),
+    hora: formatarHora(e.data_evento),
+    emDias: diasAteEvento(e.data_evento, agora),
+  }));
+  const comPendencia: PendenciaHome[] = eventos
+    .map((evento) => ({ evento, itens: pendencias.get(evento.id) ?? [] }))
+    .filter((p) => p.itens.length > 0);
 
   return (
-    <main className="venue-glow flex flex-1 flex-col items-center px-6 py-16">
-      <div className="flex w-full max-w-2xl flex-col items-center gap-10">
-        <div className="flex flex-col items-center gap-3 text-center">
-          <p className="font-display text-sm italic text-brass">
-            Anjos Eventos
-          </p>
-          <h1 className="font-display text-4xl italic text-paper sm:text-5xl">
-            Bem-vindo, {usuarioAtual.nome}.
-          </h1>
-          <p className="max-w-sm text-sm text-paper-dim">
-            Central de eventos do Buffet Senhor Churrasco, da Anjos Cerimonial
-            e da Em Plena Natureza.
-          </p>
-        </div>
-
-        <section className="flex w-full flex-col gap-3">
-          <h2 className="font-display text-xl italic text-paper">
-            Próximos {DIAS_PROXIMOS_EVENTOS} dias
-          </h2>
-          {eventosProximos.length === 0 ? (
-            <div className="flex flex-col items-start gap-1">
-              <p className="text-sm text-paper-dim">
-                Nenhum evento nos próximos {DIAS_PROXIMOS_EVENTOS} dias.
-              </p>
-              <Link href="/agenda" className={botaoClasse("link", "sm")}>
-                Ver agenda completa
-              </Link>
-            </div>
-          ) : (
-            <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              {eventosProximos.map((evento, i) => (
-                <li
-                  key={evento.id}
-                  className="card-enter"
-                  style={{ ["--enter-order" as string]: i }}
-                >
-                  <div className="relative flex h-full flex-col overflow-hidden rounded-[2px] bg-paper text-paper-ink border border-transparent shadow-[0_18px_28px_-16px_rgba(0,0,0,0.6)] transition hover:-translate-y-1 hover:border-brass/60 hover:shadow-[0_24px_34px_-16px_rgba(0,0,0,0.75)] focus-within:-translate-y-1 focus-within:border-brass/60">
-                    <span
-                      aria-hidden
-                      className={`absolute inset-x-0 top-0 h-1.5 ${corEmpresa(evento.empresa_nome)}`}
-                    />
-                    <Link
-                      href={`/agenda/${evento.id}`}
-                      className="flex flex-1 flex-col gap-1 p-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brass"
-                    >
-                      <p className="font-display text-lg italic">
-                        {evento.cliente}
-                      </p>
-                      <p className="text-sm text-texto-suave-papel">
-                        {formatarData(evento.data_evento)}, {formatarHora(evento.data_evento)}
-                      </p>
-                      <p className="text-xs text-texto-suave-papel">{evento.empresa_nome}</p>
-                    </Link>
-                    {(pendencias.get(evento.id)?.length ?? 0) > 0 && (
-                      <div className="flex flex-col items-start gap-3 px-4 pb-4">
-                        <Alerta tipo="aviso" sobre="papel" titulo="Pendências do evento" className="w-full">
-                          <ul className="list-disc pl-4">
-                            {(pendencias.get(evento.id) ?? []).map((item) => (
-                              <li key={item.texto}>{item.texto}</li>
-                            ))}
-                          </ul>
-                        </Alerta>
-                        <BotaoResolverPendencias
-                          eventoId={evento.id}
-                          itens={pendencias.get(evento.id) ?? []}
-                          ativosPorFuncao={ativosPorFuncao}
-                          className={botaoClasse("secundario", "sm")}
-                        />
-                      </div>
-                    )}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-
-        <div className="grid w-full grid-cols-1 gap-4 sm:grid-cols-2">
-          {funcionalidades.map((item, i) =>
-            item.href ? (
-              <Link
-                key={item.titulo}
-                href={item.href}
-                style={{ ["--enter-order" as string]: i }}
-                className="card-enter group relative flex flex-col gap-2 overflow-hidden rounded-[2px] border border-transparent bg-paper p-5 text-paper-ink shadow-[0_18px_28px_-16px_rgba(0,0,0,0.6)] transition hover:-translate-y-1 hover:border-brass/60 hover:shadow-[0_24px_34px_-16px_rgba(0,0,0,0.75)] focus-visible:-translate-y-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brass"
-              >
-                <span
-                  aria-hidden
-                  className="absolute inset-x-0 top-0 h-1.5 bg-paper-dim"
-                />
-                <p className="font-display text-lg italic">{item.titulo}</p>
-                <p className="text-sm text-texto-suave-papel">{item.descricao}</p>
-              </Link>
-            ) : (
-              <div
-                key={item.titulo}
-                className="flex flex-col gap-2 rounded-[2px] border border-paper-dim/15 p-5"
-              >
-                <p className="font-display text-lg italic text-paper-dim">
-                  {item.titulo}
-                </p>
-                <p className="text-sm text-texto-suave-escuro">{item.descricao}</p>
-              </div>
-            )
-          )}
-        </div>
-
-        <form action={trocarUsuario}>
-          <button
-            type="submit"
-            className="rounded-full px-1 text-sm text-paper-dim underline decoration-paper-dim/40 underline-offset-4 transition hover:text-paper hover:decoration-paper focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brass"
-          >
-            Trocar usuário
-          </button>
-        </form>
-      </div>
+    <main className="mx-auto flex w-full max-w-pagina flex-col gap-10">
+      <HomeConteudo
+        nome={usuarioAtual.nome}
+        dias={DIAS_PROXIMOS_EVENTOS}
+        eventos={eventos}
+        pendencias={comPendencia}
+        empresas={empresas}
+        ativosPorFuncao={ativosPorFuncao}
+      />
     </main>
   );
 }

@@ -70,6 +70,7 @@
   --shadow-elev-2: 0 20px 32px -16px rgb(0 0 0 / 0.7);
   --shadow-elev-3: 0 30px 60px -20px rgb(0 0 0 / 0.8);
 
+  --container-pagina: 1120px;
   --container-pagina-estreita: 42rem;
   --container-pagina-media: 56rem;
   --container-pagina-documento: 48rem;
@@ -169,6 +170,14 @@ body {
     )
     .barra-abas {
     display: none;
+  }
+  body:has(
+      input:not([type="checkbox"], [type="radio"], [type="submit"], [type="button"]):focus,
+      select:focus,
+      textarea:focus
+    )
+    .barra-salvar {
+    bottom: 0.75rem;
   }
 }
 

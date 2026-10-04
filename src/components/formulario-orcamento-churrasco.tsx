@@ -2,7 +2,10 @@
 
 import { useEffect, useState } from "react";
 import type { Preparo, CategoriaCardapio } from "@/lib/cardapio";
-import { campoClasse, rotuloClasse, secaoTituloClasse } from "@/components/formulario-evento";
+import Link from "next/link";
+import { campoClasse, rotuloClasse } from "@/components/formulario-evento";
+import { botaoClasse } from "@/components/botao";
+import { Painel } from "@/components/painel";
 import { Campo } from "@/components/campo";
 import { SeletorCardapio, paraValoresIniciaisCardapio, type ValoresIniciaisCardapio } from "@/components/seletor-cardapio";
 import { obterItensCardapioModeloAction } from "@/app/actions/cardapio-modelo";
@@ -44,6 +47,18 @@ function arredondar(valor: number): number {
  * (docs/PENDENCIAS_NOTURNAS.md, correção do bug de preço fixo não
  * respeitado, 2026-09-28).
  */
+// Âncoras do índice lateral (sem item ativo por rolagem: isso pediria JS novo).
+const SECOES = [
+  { id: "orc-cliente", rotulo: "Cliente" },
+  { id: "orc-convidados", rotulo: "Convidados" },
+  { id: "orc-cardapio", rotulo: "Cardápio" },
+  { id: "orc-deslocamento", rotulo: "Deslocamento" },
+  { id: "orc-valores", rotulo: "Valores" },
+];
+
+const tituloBloco = "font-titulo text-xl font-semibold leading-[1.2] tracking-[-0.01em]";
+const painelSecao = "flex scroll-mt-6 flex-col gap-[18px]";
+
 export function FormularioOrcamentoChurrasco({
   empresaId,
   preparosPorCategoria,
@@ -182,22 +197,34 @@ export function FormularioOrcamentoChurrasco({
   });
 
   return (
-    <form action={action} className="flex flex-col gap-8">
+    <div className="grid gap-5 rail:grid-cols-[200px_minmax(0,1fr)] rail:gap-7">
+      <nav aria-label="Seções do formulário" className="sticky top-6 hidden flex-col gap-0.5 self-start rail:flex">
+        {SECOES.map((secao) => (
+          <a
+            key={secao.id}
+            href={`#${secao.id}`}
+            className="flex min-h-10 items-center rounded-[10px] px-3 text-[15px] text-texto-suave transition-colors hover:bg-white/[0.06] hover:text-texto focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foco"
+          >
+            {secao.rotulo}
+          </a>
+        ))}
+      </nav>
+    <form action={action} className="flex min-w-0 flex-col gap-4">
       <input type="hidden" name="empresaId" value={empresaId} />
       <input type="hidden" name="usarPrecoFixoModelo" value={String(precoFixoSelecionado != null)} />
       <input type="hidden" name="regiaoMetropolitanaCuritiba" value={String(regiaoMetropolitana)} />
 
-      <section className="flex flex-col gap-5">
-        <h3 className={secaoTituloClasse}>Dados do cliente</h3>
+      <Painel como="section" id="orc-cliente" className={painelSecao}>
+        <h2 className={tituloBloco}>Dados do cliente</h2>
         <Campo rotulo="Cliente">
           {(p) => (
             <input {...p} name="clienteNome" type="text" required />
           )}
         </Campo>
-      </section>
+      </Painel>
 
-      <section className="flex flex-col gap-5">
-        <h3 className={secaoTituloClasse}>Convidados</h3>
+      <Painel como="section" id="orc-convidados" className={painelSecao}>
+        <h2 className={tituloBloco}>Convidados</h2>
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
           <Campo rotulo="Adultos">
             {(p) => (
@@ -233,10 +260,10 @@ export function FormularioOrcamentoChurrasco({
             )}
           </Campo>
         </div>
-      </section>
+      </Painel>
 
-      <section className="flex flex-col gap-5">
-        <h3 className={secaoTituloClasse}>Cardápio</h3>
+      <Painel como="section" id="orc-cardapio" className={painelSecao}>
+        <h2 className={tituloBloco}>Cardápio</h2>
 
         {cardapiosModelo.length > 0 && (
           <div className="flex flex-col gap-1.5">
@@ -257,7 +284,7 @@ export function FormularioOrcamentoChurrasco({
                 </option>
               ))}
             </select>
-            <p className="text-xs text-paper-dim">
+            <p className="text-[13px] text-texto-suave">
               Só pré-preenche os itens abaixo — você ainda pode adicionar ou
               remover livremente.
             </p>
@@ -271,34 +298,35 @@ export function FormularioOrcamentoChurrasco({
           valoresIniciais={cardapioBase}
           onSelecaoIdsChange={setPreparoIdsSelecionados}
         />
-      </section>
+      </Painel>
 
-      <section className="flex flex-col gap-5">
-        <h3 className={secaoTituloClasse}>Deslocamento</h3>
-        <label className="flex items-center gap-2 text-sm text-paper">
+      <Painel como="section" id="orc-deslocamento" className={painelSecao}>
+        <h2 className={tituloBloco}>Deslocamento</h2>
+        <label className="flex min-h-11 items-center gap-3 text-texto">
           <input
             type="checkbox"
+            className="h-6 w-6 accent-brasa"
             checked={regiaoMetropolitana}
             onChange={(e) => setRegiaoMetropolitana(e.target.checked)}
           />
           Região Metropolitana de Curitiba?
         </label>
-        <p className="text-sm text-paper-dim">
+        <p className="text-sm text-texto-suave">
           Taxa de deslocamento:{" "}
           {taxaDeslocamento.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
         </p>
-      </section>
+      </Painel>
 
-      <section className="flex flex-col gap-5">
-        <h3 className={secaoTituloClasse}>Valores</h3>
-        <p aria-live="polite" className="text-sm text-paper-dim">
+      <Painel como="section" id="orc-valores" className={painelSecao}>
+        <h2 className={tituloBloco}>Valores</h2>
+        <p aria-live="polite" className="text-sm text-texto-suave">
           {calculandoPrecificacao
             ? "Calculando valor sugerido a partir do cardápio…"
             : precoFixoSelecionado != null
               ? "Preço por pessoa pré-preenchido com o preço fixo do Cardápio Pré-Montado selecionado — editável."
               : "Preço por pessoa vem do custo real do cardápio selecionado (+ 40%) — pré-preenchido, mas editável."}
         </p>
-        <p className="text-xs text-paper-dim">
+        <p className="text-[13px] text-texto-suave">
           Este é o valor que fica congelado no Orçamento — o Passo 3
           (Aprovar e Confirmar Evento) não recalcula preço, só confirma
           logística.
@@ -369,13 +397,20 @@ export function FormularioOrcamentoChurrasco({
               readOnly
               disabled
               value={valorTotalPreviewFormatado}
-              className={`${campoClasse} cursor-not-allowed text-paper-dim`}
+              className={`${campoClasse} cursor-not-allowed text-texto-suave`}
             />
           </div>
         </div>
-      </section>
+      </Painel>
 
-      <BotaoEnviar rotulo="Gerar Orçamento" className="w-full sm:w-auto sm:self-start" />
+      {/* Barra de salvar: fixa no rodapé do formulário; só Cancelar e o envio, sem total ao vivo. */}
+      <div className="barra-salvar sticky bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-20 flex justify-end gap-3 rounded-cartao border border-borda-forte bg-elevada p-3 shadow-barra rail:bottom-4">
+        <Link href="/agenda" className={`${botaoClasse("secundario")} flex-1 rail:flex-none`}>
+          Cancelar
+        </Link>
+        <BotaoEnviar rotulo="Gerar Orçamento" className="flex-1 rail:flex-none" />
+      </div>
     </form>
+    </div>
   );
 }

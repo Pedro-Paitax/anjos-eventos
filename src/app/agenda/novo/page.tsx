@@ -9,6 +9,7 @@ import { CabecalhoPagina } from "@/components/cabecalho-pagina";
 import { FormularioOrcamentoChurrasco } from "@/components/formulario-orcamento-churrasco";
 import { FormularioOrcamentoGenerico } from "@/components/formulario-orcamento-generico";
 import { Painel } from "@/components/painel";
+import { ChipEmpresa } from "@/components/chip-empresa";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = { title: "Novo orçamento" };
@@ -31,53 +32,48 @@ export default async function NovoEventoPage({
     ? empresas.find((item) => item.id === Number(empresa))
     : undefined;
 
-  return (
-    <main className="venue-glow flex flex-1 flex-col items-center px-6 py-16">
-      <div className="flex w-full max-w-2xl flex-col gap-8">
-        <CabecalhoPagina
-          titulo="Novo orçamento"
-          subtitulo="Passo 2 da Máquina de Estados: Orçamento → Aprovar → Evento. Cadastro manual — a extração automática de contrato vem numa etapa futura."
-          voltarPara={
-            empresaEscolhida
-              ? { href: "/agenda/novo", rotulo: "← Trocar empresa" }
-              : { href: "/agenda", rotulo: "← Agenda" }
-          }
-        />
+  const churrasco = empresaEscolhida?.nome === "Buffet Senhor Churrasco";
 
-        {!empresaEscolhida ? (
-          <div className="grid w-full grid-cols-1 gap-4 sm:grid-cols-3">
-            {empresas.map((item) => (
-              <Link
-                key={item.id}
-                href={`/agenda/novo?empresa=${item.id}`}
-                className="group relative flex flex-col gap-2 overflow-hidden rounded-[2px] bg-paper p-5 text-paper-ink shadow-[0_18px_28px_-16px_rgba(0,0,0,0.6)] transition hover:-translate-y-1 focus-visible:-translate-y-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brass"
-              >
-                <span
-                  aria-hidden
-                  className="absolute inset-x-0 top-0 h-1.5 bg-paper-dim"
-                />
-                <p className="font-display text-lg italic">{item.nome}</p>
-                <p className="text-sm text-texto-suave-papel">
-                  Cadastrar evento para esta empresa.
-                </p>
-              </Link>
-            ))}
-          </div>
-        ) : (
-          <Painel>
-            {empresaEscolhida.nome === "Buffet Senhor Churrasco" ? (
-              <FormularioOrcamentoChurrasco
-                empresaId={empresaEscolhida.id}
-                preparosPorCategoria={await listarPreparosPorCategoria()}
-                cardapiosModelo={await listarCardapiosModelo()}
-                action={criarOrcamentoAction}
-              />
-            ) : (
-              <FormularioOrcamentoGenerico empresaId={empresaEscolhida.id} action={criarOrcamentoAction} />
-            )}
-          </Painel>
-        )}
-      </div>
+  return (
+    <main
+      className={`mx-auto flex w-full flex-col gap-8 ${churrasco ? "max-w-pagina" : "max-w-pagina-documento"}`}
+    >
+      <CabecalhoPagina
+        brasa
+        titulo="Novo orçamento"
+        subtitulo="Passo 2 da Máquina de Estados: Orçamento → Aprovar → Evento. Cadastro manual — a extração automática de contrato vem numa etapa futura."
+        voltarPara={
+          empresaEscolhida
+            ? { href: "/agenda/novo", rotulo: "← Trocar empresa" }
+            : { href: "/agenda", rotulo: "← Agenda" }
+        }
+      />
+
+      {!empresaEscolhida ? (
+        <div className="grid w-full grid-cols-1 gap-3.5 sm:grid-cols-3">
+          {empresas.map((item) => (
+            <Link
+              key={item.id}
+              href={`/agenda/novo?empresa=${item.id}`}
+              className="flex flex-col gap-2 rounded-cartao border border-borda bg-superficie p-[18px] shadow-realce transition-[background-color,border-color] hover:border-borda-forte hover:bg-elevada focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foco"
+            >
+              <ChipEmpresa nome={item.nome} />
+              <p className="text-sm text-texto-suave">Cadastrar evento para esta empresa.</p>
+            </Link>
+          ))}
+        </div>
+      ) : churrasco ? (
+        <FormularioOrcamentoChurrasco
+          empresaId={empresaEscolhida.id}
+          preparosPorCategoria={await listarPreparosPorCategoria()}
+          cardapiosModelo={await listarCardapiosModelo()}
+          action={criarOrcamentoAction}
+        />
+      ) : (
+        <Painel>
+          <FormularioOrcamentoGenerico empresaId={empresaEscolhida.id} action={criarOrcamentoAction} />
+        </Painel>
+      )}
     </main>
   );
 }
