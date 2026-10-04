@@ -16,7 +16,7 @@ Convenções:
 | 2 | Tokens e componentes base (`Botao`, `BotaoEnviar`, `Campo`, `Alerta`, `Painel`, `Modal`, `Vazio`) | feita (2026-10-04); ver `docs/DECISOES.md`, "Etapa 2" |
 | 3 | Shell: menu lateral, abas, topo mobile, skip link, "Trocar usuário", WhatsApp | feita (2026-10-04); ver `docs/DECISOES.md`, "Etapa 3" |
 | 4 | Home + formulário longo (orçamento) | feita (2026-10-04); ver `docs/DECISOES.md`, "Etapa 4" |
-| 5 | Listas, cartões, badges, tabelas, modais de seleção, demais telas | pendente |
+| 5 | Listas, cartões, badges, tabelas, modais de seleção, demais telas | feita (2026-10-04), exceto a decisão sobre o calendário no celular; ver `docs/DECISOES.md`, "Etapa 5" |
 | 6 | Fechamento (limpeza dos tokens antigos, lista final "PRECISA DE LÓGICA") | pendente |
 
 Até a Etapa 6, os tokens antigos (`ink`, `paper`, `ember`, `brass`, `sage`, `acao`…) continuam existindo ao lado dos novos; só saem quando nenhum arquivo os usar mais.

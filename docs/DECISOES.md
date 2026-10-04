@@ -1164,3 +1164,16 @@ Escolhas:
 5. `SeletorCardapio` (compartilhado com outros formulários) e o formulário genérico de orçamento não foram reestilizados; ficam para a Etapa 5.
 6. Caixa "Região Metropolitana": caixa nativa de 24 px com `accent-color` brasa (não a caixa customizada do protótipo).
 7. O esqueleto `loading.tsx` raiz continua com o próprio `px/py`; nas telas com miolo ele aparece com espaçamento duplo enquanto carrega (não alterado: sem `loading.tsx` novo e sem mexer no existente nesta etapa).
+
+### Etapa 5 do Redesign 2: listas, cartões, formulários e demais telas (2026-10-04)
+
+Todas as telas, **exceto o login e a Ficha Técnica**, estão no Brasa: Agenda (calendário e "Em sequência"), Colaboradores, Senhor Churrasco (hub, Preparos, Insumos, Cardápios Feitos, Simulador), detalhe do evento e Orçamento, formulários, `error`, `not-found` e `loading`. Sem lógica, query, action nem `name` de campo novos.
+
+Escolhas:
+1. **Espaçamento no shell para todas as telas** (`telaComMiolo` em `shell.tsx` passa a ser "tudo, menos `*/fichas-tecnicas`"; o login nem usa o shell). Os `<main>` perderam `px/py` e `venue-glow`; larguras: `max-w-pagina` (1120 px) em Agenda, hub e listas; `max-w-pagina-documento` (48rem) nos formulários e detalhes. O `loading.tsx` raiz perdeu o padding próprio (não duplica mais em nenhuma tela); continua sem `<h1>`.
+2. **Variantes "papel" removidas** de `Botao`, `Campo`, `Alerta` e `Vazio` (ninguém mais as usa) e a prop `brasa` de `CabecalhoPagina` virou o único visual. As classes antigas ainda existem em `globals.css` e no login; saem na Etapa 6.
+3. **Caixa de seleção: customizada, aplicada no próprio `input[type=checkbox]` por CSS global** (24 px, raio 8, marcada em `brasa` com ✓ `sobre-brasa`, foco no anel `foco`), sem marcação nova, para não mexer em `name`/`value`/FormData; o `label` que a envolve ganha altura mínima de 44 px. Substitui a escolha provisória da Etapa 4 (nativa com `accent-color`). Payload por teclado, foco e contraste verificados em `docs/amostras/payload-etapa5-formularios.md`.
+4. `SeletorCardapio` e `SeletorPreparos` (compartilhados por 4 telas) só mudaram de aparência (`className`); chips, abas e botões de item com alvo de 44 px. Payload de cada formulário comparado no navegador (mesmo documento).
+5. A lista "Em sequência" e o Orçamento seguem mostrando o valor onde já mostravam (a regra "sem valor" vale só para a Home).
+6. **Calendário da Agenda no celular: não alterado** (continua a grade de 7 colunas, com nomes cortados). A proposta de abrir em "Em sequência" no celular muda comportamento e aguarda decisão do Pedro.
+7. A Ficha Técnica não importa `CabecalhoPagina`, `Botao`, `Campo`, `Alerta` nem `Vazio` (só `BotaoImprimir`, com classes próprias, e `formatarData`); renderização em mídia print idêntica ao fim da Etapa 4 (CSS computado e pixels).
