@@ -1,0 +1,135 @@
+"use client";
+
+import { useActionState } from "react";
+import type { Colaborador } from "@/lib/colaboradores";
+import {
+  FUNCOES_COLABORADOR,
+  ROTULOS_FUNCAO,
+} from "@/lib/colaboradores-opcoes";
+import { campoClasse, rotuloClasse, secaoTituloClasse } from "@/components/formulario-evento";
+import {
+  OPCOES_POR_CAMPO,
+  ROTULOS_CAMPO,
+  ehValorLegado,
+  type CampoOpcao,
+} from "@/lib/decisoes-operacionais-opcoes";
+import type { EstadoFormularioDecisoes } from "@/app/actions/decisoes-operacionais";
+import { BotaoEnviar } from "@/components/botao-enviar";
+import { Alerta } from "@/components/alerta";
+
+type ValoresDecisoes = {
+  veiculo: string | null;
+  modelo_prato: string | null;
+  sousplat: boolean;
+  tipo_bebida_recipiente: string | null;
+  taca_furta_cor: boolean;
+  taca_champanhe: boolean;
+  tipo_talher: string | null;
+};
+
+type FormularioDecisoesProps = {
+  colaboradoresAtivos: Colaborador[];
+  equipeIds: number[];
+  valoresIniciais: ValoresDecisoes | null;
+  action: (
+    estadoAnterior: EstadoFormularioDecisoes,
+    formData: FormData
+  ) => Promise<EstadoFormularioDecisoes>;
+};
+
+function CampoSelect({
+  nome,
+  valor,
+  enviado,
+}: {
+  nome: CampoOpcao;
+  valor: string | null | undefined;
+  /** Valor enviado antes de um erro; tem prioridade sobre o salvo. */
+  enviado?: string;
+}) {
+  valor = enviado ?? valor;
+  const legado = ehValorLegado(nome, valor) ? valor : null;
+  return (
+    <div className="flex flex-col gap-1.5">
+      <label htmlFor={nome} className={rotuloClasse}>
+        {ROTULOS_CAMPO[nome]}
+      </label>
+      <select id={nome} name={nome} defaultValue={valor ?? ""} className={campoClasse}>
+        <option value="">Selecione…</option>
+        {OPCOES_POR_CAMPO[nome].map((opcao) => (
+          <option key={opcao} value={opcao}>
+            {opcao}
+          </option>
+        ))}
+        {legado && <option value={legado}>{legado} (valor antigo)</option>}
+      </select>
+    </div>
+  );
+}
+
+export function FormularioDecisoesOperacionais({
+  colaboradoresAtivos,
+  equipeIds,
+  valoresIniciais,
+  action,
+}: FormularioDecisoesProps) {
+  const [estado, formAction] = useActionState(action, {});
+
+  return (
+    <form action={formAction} className="flex flex-col gap-6">
+      <h3 className={secaoTituloClasse}>Equipe</h3>
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
+        {FUNCOES_COLABORADOR.map((funcao) => {
+          const doGrupo = colaboradoresAtivos.filter((c) => c.funcao === funcao);
+          return (
+            <fieldset key={funcao} className="flex flex-col gap-2">
+              <legend className={rotuloClasse}>{ROTULOS_FUNCAO[funcao]}</legend>
+              {doGrupo.length === 0 && (
+                <p className="text-xs text-paper-dim">Nenhum ativo cadastrado.</p>
+              )}
+              {doGrupo.map((c) => (
+                <label key={c.id} className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    name="colaboradorIds"
+                    value={c.id}
+                    defaultChecked={(estado.equipeIds ?? equipeIds).includes(c.id)}
+                  />
+                  {c.nome}
+                </label>
+              ))}
+            </fieldset>
+          );
+        })}
+      </div>
+
+      <h3 className={secaoTituloClasse}>Logística</h3>
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+        <CampoSelect nome="veiculo" valor={valoresIniciais?.veiculo} enviado={estado.valores?.veiculo} />
+        <CampoSelect nome="modeloPrato" valor={valoresIniciais?.modelo_prato} enviado={estado.valores?.modeloPrato} />
+        <CampoSelect nome="tipoBebidaRecipiente" valor={valoresIniciais?.tipo_bebida_recipiente} enviado={estado.valores?.tipoBebidaRecipiente} />
+        <CampoSelect nome="tipoTalher" valor={valoresIniciais?.tipo_talher} enviado={estado.valores?.tipoTalher} />
+      </div>
+
+      <div className="flex flex-col gap-2 text-sm">
+        <label className="flex items-center gap-2">
+          <input type="checkbox" name="sousplat" defaultChecked={estado.valores ? "sousplat" in estado.valores : (valoresIniciais?.sousplat ?? false)} />
+          Sousplat
+        </label>
+        <label className="flex items-center gap-2">
+          <input type="checkbox" name="tacaFurtaCor" defaultChecked={estado.valores ? "tacaFurtaCor" in estado.valores : (valoresIniciais?.taca_furta_cor ?? false)} />
+          Taça furta-cor
+        </label>
+        <label className="flex items-center gap-2">
+          <input type="checkbox" name="tacaChampanhe" defaultChecked={estado.valores ? "tacaChampanhe" in estado.valores : (valoresIniciais?.taca_champanhe ?? false)} />
+          Taça de champanhe
+        </label>
+      </div>
+
+      {estado.erro && <Alerta tipo="perigo">{estado.erro}</Alerta>}
+      {estado.salvo && <p className="text-sm text-sage">Decisões salvas.</p>}
+
+      <BotaoEnviar rotulo={"Salvar decisões operacionais"} className="w-full sm:w-auto sm:self-start" />
+    </form>
+  );
+}

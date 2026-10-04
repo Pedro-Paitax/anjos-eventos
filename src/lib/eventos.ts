@@ -233,3 +233,24 @@ export async function atualizarEvento(
     [...valoresNaOrdem(dados), id]
   );
 }
+
+export type EventoProximo = Pick<
+  Evento,
+  "id" | "cliente" | "empresa_id" | "empresa_nome" | "data_evento" | "tipo_evento" | "status"
+>;
+
+/** Eventos não cancelados de hoje até hoje+`dias` (inclusive), em ordem de data. */
+export async function listarEventosProximos(dias: number): Promise<EventoProximo[]> {
+  const { rows } = await pool.query<EventoProximo>(
+    `SELECT e.id, e.cliente, e.empresa_id, emp.nome AS empresa_nome,
+            e.data_evento, e.tipo_evento, e.status
+       FROM eventos e
+       JOIN empresas emp ON emp.id = e.empresa_id
+      WHERE e.status <> 'cancelado'
+        AND e.data_evento >= CURRENT_DATE
+        AND e.data_evento < CURRENT_DATE + ($1::int + 1)
+      ORDER BY e.data_evento ASC`,
+    [dias]
+  );
+  return rows;
+}

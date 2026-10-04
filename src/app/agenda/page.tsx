@@ -6,6 +6,10 @@ import { chaveAnoMes } from "@/lib/formatacao";
 import { CabecalhoPagina } from "@/components/cabecalho-pagina";
 import { ListaEventos } from "@/components/lista-eventos";
 import { CalendarioEventos } from "@/components/calendario-eventos";
+import { botaoClasse } from "@/components/botao";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = { title: "Agenda" };
 
 type AgendaPageProps = {
   searchParams: Promise<{ visao?: string; mes?: string }>;
@@ -33,7 +37,7 @@ export default async function AgendaPage({ searchParams }: AgendaPageProps) {
           acao={
             <Link
               href="/agenda/novo"
-              className="inline-flex items-center justify-center rounded-[2px] bg-ember px-5 py-2.5 text-sm font-medium text-paper shadow-[0_10px_20px_-10px_rgba(0,0,0,0.6)] transition hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brass"
+              className={botaoClasse()}
             >
               Novo evento
             </Link>
@@ -43,7 +47,7 @@ export default async function AgendaPage({ searchParams }: AgendaPageProps) {
         <div className="inline-flex w-fit gap-1 rounded-[2px] bg-ink-soft p-1">
           <Link
             href={`/agenda?visao=agenda&mes=${mesAtual}`}
-            className={`rounded-[2px] px-4 py-1.5 text-sm transition ${
+            className={`inline-flex min-h-11 items-center rounded-[2px] px-4 text-sm transition ${
               visaoAtual === "agenda"
                 ? "bg-paper text-paper-ink"
                 : "text-paper-dim hover:text-paper"
@@ -53,7 +57,7 @@ export default async function AgendaPage({ searchParams }: AgendaPageProps) {
           </Link>
           <Link
             href="/agenda?visao=sequencia"
-            className={`rounded-[2px] px-4 py-1.5 text-sm transition ${
+            className={`inline-flex min-h-11 items-center rounded-[2px] px-4 text-sm transition ${
               visaoAtual === "sequencia"
                 ? "bg-paper text-paper-ink"
                 : "text-paper-dim hover:text-paper"

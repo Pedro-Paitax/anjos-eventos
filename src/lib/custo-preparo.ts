@@ -69,7 +69,7 @@ export type CustoPreparoErro = { erro: string; status: number; motivoFalhaRede?:
  * do float (ex.: 0.15 * 29.9 vira 4.484999999999999 em vez de 4.485), que
  * faria casos de meio-centavo exato arredondarem pra baixo por engano.
  */
-function arredondarCentavos(valor: number): number {
+export function arredondarCentavos(valor: number): number {
   return Math.round(Number(valor.toFixed(8)) * 100) / 100;
 }
 
@@ -80,6 +80,18 @@ export type ItemComposicaoParaCusto = {
 };
 
 /**
+ * Preço já dividido pelo Fator de Correção — mesma regra de borda usada no
+ * motor de custo (Preço vazio ou Fator de Correção 0 → R$0, nunca dividir
+ * por zero). Extraído do loop de calcularCustoTotalComposicao (matemática
+ * idêntica, sem arredondamento aqui — quem chama decide se/quando
+ * arredonda) pra ser reaproveitado fora do cálculo de composição, ex.:
+ * exibição na lista de Insumos.
+ */
+export function calcularPrecoCorrigido(preco: number | null, fatorCorrecao: number | null): number {
+  return preco == null || !fatorCorrecao ? 0 : preco / fatorCorrecao;
+}
+
+/**
  * Núcleo puro do motor de custo (sem I/O): soma quantidade x preço
  * corrigido de cada item da composição, seguindo docs/REGRAS_NEGOCIO.md
  * seção 4. Separado da busca no NocoDB pra poder ser validado
@@ -88,10 +100,7 @@ export type ItemComposicaoParaCusto = {
 export function calcularCustoTotalComposicao(itens: ItemComposicaoParaCusto[]): number {
   let custoTotal = 0;
   for (const item of itens) {
-    // Regra de borda: Preço vazio OU Fator de Correção 0 → custo R$0
-    // (nunca dividir por zero).
-    const custoCorrigido =
-      item.preco == null || !item.fatorCorrecao ? 0 : item.preco / item.fatorCorrecao;
+    const custoCorrigido = calcularPrecoCorrigido(item.preco, item.fatorCorrecao);
     const subtotal = arredondarCentavos(item.quantidade * custoCorrigido);
     custoTotal = arredondarCentavos(custoTotal + subtotal);
   }

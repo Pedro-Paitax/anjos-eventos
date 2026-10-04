@@ -1,10 +1,14 @@
 import { NextResponse } from "next/server";
+import { exigirUsuarioApi } from "@/lib/api-auth";
 import { calcularDimensionamentoOrcamento } from "@/lib/dimensionamento-cardapio";
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const negado = await exigirUsuarioApi(request);
+  if (negado) return negado;
+
   const { id } = await params;
   const orcamentoId = Number(id);
 

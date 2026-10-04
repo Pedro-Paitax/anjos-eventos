@@ -73,7 +73,7 @@ export function CalendarioEventos({
           {diasSemana.map((dia) => (
             <div
               key={dia}
-              className="px-2 py-2 text-center text-sm text-paper-ink/60"
+              className="px-2 py-2 text-center text-sm text-texto-suave-papel"
             >
               {dia}
             </div>
@@ -99,8 +99,8 @@ export function CalendarioEventos({
                 <span
                   className={`self-start text-sm ${
                     ehHoje
-                      ? "flex h-6 w-6 items-center justify-center rounded-full bg-ember text-paper"
-                      : "text-paper-ink/70"
+                      ? "flex h-6 w-6 items-center justify-center rounded-full bg-acao text-paper"
+                      : "text-texto-suave-papel"
                   }`}
                 >
                   {celula.dia}
@@ -123,7 +123,7 @@ export function CalendarioEventos({
                     </Link>
                   ))}
                   {eventosDoDia.length > 3 && (
-                    <p className="text-sm text-paper-ink/60">
+                    <p className="text-sm text-texto-suave-papel">
                       +{eventosDoDia.length - 3} mais
                     </p>
                   )}

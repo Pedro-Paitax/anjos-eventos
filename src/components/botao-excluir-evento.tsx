@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { excluirEventoAction } from "@/app/actions/evento";
+import { Botao } from "@/components/botao";
+import { ModalConfirmacao } from "@/components/modal-confirmacao";
 
 export function BotaoExcluirEvento({
   eventoId,
@@ -10,14 +12,12 @@ export function BotaoExcluirEvento({
   eventoId: number;
   clienteNome: string;
 }) {
+  const [confirmando, setConfirmando] = useState(false);
   const [excluindo, setExcluindo] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
 
   async function excluir() {
-    const confirmado = window.confirm(
-      `Excluir o evento de "${clienteNome}"? Essa ação não pode ser desfeita.`
-    );
-    if (!confirmado) return;
-
+    setErro(null);
     setExcluindo(true);
     try {
       await excluirEventoAction(eventoId);
@@ -36,18 +36,33 @@ export function BotaoExcluirEvento({
         throw erro;
       }
       setExcluindo(false);
-      window.alert("Não foi possível excluir o evento. Tente de novo.");
+      setErro("Não foi possível excluir o evento. Tente de novo.");
     }
   }
 
   return (
-    <button
-      type="button"
-      onClick={excluir}
-      disabled={excluindo}
-      className="inline-flex items-center justify-center rounded-[2px] border border-red-500/50 px-5 py-2.5 text-sm font-medium text-red-300 transition hover:bg-red-950/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brass disabled:opacity-50"
-    >
-      {excluindo ? "Excluindo…" : "Excluir evento"}
-    </button>
+    <>
+      <Botao
+        variante="secundario"
+        onClick={() => {
+          setErro(null);
+          setConfirmando(true);
+        }}
+      >
+        Excluir evento
+      </Botao>
+      {confirmando && (
+        <ModalConfirmacao
+          titulo="Excluir evento"
+          rotuloConfirmar="Excluir evento"
+          onConfirmar={excluir}
+          onCancelar={() => setConfirmando(false)}
+          pendente={excluindo}
+          erro={erro}
+        >
+          Excluir o evento de &quot;{clienteNome}&quot;? Essa ação não pode ser desfeita.
+        </ModalConfirmacao>
+      )}
+    </>
   );
 }

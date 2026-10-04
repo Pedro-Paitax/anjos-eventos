@@ -15,6 +15,34 @@
       "when": 1790024833266,
       "tag": "0001_tabelas_faltantes",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790523465602,
+      "tag": "0002_steady_the_hunter",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1790556456887,
+      "tag": "0003_orcamentos_valor_negociado_e_faixa_etaria",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1790587461468,
+      "tag": "0004_orcamentos_preco_pessoa_garcom_deslocamento",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1790714590811,
+      "tag": "0005_operacional_colaboradores_decisoes",
+      "breakpoints": true
     }
   ]
 }

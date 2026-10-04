@@ -5,6 +5,10 @@ import { listarInsumos } from "@/lib/insumos";
 import { atualizarPreparoAction } from "@/app/actions/preparo";
 import { CabecalhoPagina } from "@/components/cabecalho-pagina";
 import { FormularioPreparo } from "@/components/formulario-preparo";
+import { Painel } from "@/components/painel";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = { title: "Editar preparo" };
 
 type PaginaPreparoProps = {
   params: Promise<{ id: string }>;
@@ -42,14 +46,14 @@ export default async function PreparoPage({ params }: PaginaPreparoProps) {
           voltarPara={{ href: "/preparos", rotulo: "← Preparos" }}
         />
 
-        <div className="rounded-[2px] bg-ink-soft/60 p-6 shadow-[0_20px_40px_-24px_rgba(0,0,0,0.6)]">
+        <Painel>
           <FormularioPreparo
             valoresIniciais={preparo}
             insumosDisponiveis={insumos}
             action={atualizarComId}
             rotuloEnvio="Salvar alterações"
           />
-        </div>
+        </Painel>
       </div>
     </main>
   );

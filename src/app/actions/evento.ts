@@ -2,7 +2,6 @@
 
 import { redirect } from "next/navigation";
 import {
-  criarEvento,
   atualizarEvento,
   excluirEvento,
   type DadosEvento,
@@ -89,20 +88,6 @@ function extrairDados(formData: FormData): DadosEvento {
     valor: paraNumero(formData.get("valor")),
     observacoes: paraTexto(formData.get("observacoes")),
   };
-}
-
-export async function criarEventoAction(formData: FormData) {
-  const usuarioAtual = await obterUsuarioAtual();
-  if (!usuarioAtual) {
-    redirect("/login");
-  }
-
-  const dados = extrairDados(formData);
-  if (!dados.cliente || !dados.dataEvento || !dados.empresaId) {
-    throw new Error("Preencha empresa, cliente e data do evento.");
-  }
-  const id = await criarEvento(dados);
-  redirect(`/agenda/${id}`);
 }
 
 export async function atualizarEventoAction(id: number, formData: FormData) {

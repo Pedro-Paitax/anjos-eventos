@@ -4,9 +4,16 @@ import { useEffect, useState } from "react";
 import type { CategoriaCardapio, Preparo } from "@/lib/cardapio";
 import type { PrecificacaoResultado } from "@/lib/precificacao-cardapio";
 import { campoClasse, rotuloClasse, secaoTituloClasse } from "@/components/formulario-evento";
-import { SeletorCardapio } from "@/components/seletor-cardapio";
+import {
+  SeletorCardapio,
+  paraValoresIniciaisCardapio,
+  type ValoresIniciaisCardapio,
+} from "@/components/seletor-cardapio";
 import { calcularDebugCardapioAction, calcularPrecificacaoAction } from "@/app/actions/precificacao";
+import { obterItensCardapioModeloAction } from "@/app/actions/cardapio-modelo";
+import type { CardapioModeloResumo } from "@/lib/cardapios-modelo";
 import { calcularTaxaDeslocamento, sugerirQuantidadeGarcom, VALOR_GARCOM_PADRAO } from "@/lib/precificacao-constantes";
+import { Alerta } from "@/components/alerta";
 
 type ResultadoDebug = Awaited<ReturnType<typeof calcularDebugCardapioAction>>;
 
@@ -33,14 +40,63 @@ function mensagemDeErro(resposta: { erro: string; mensagem?: string }): string {
 
 export function SimuladorCardapio({
   preparosPorCategoria,
+  cardapiosModelo,
 }: {
   preparosPorCategoria: Record<CategoriaCardapio, Preparo[]>;
+  cardapiosModelo: CardapioModeloResumo[];
 }) {
   const [numConvidados, setNumConvidados] = useState("");
   const [regiaoMetropolitana, setRegiaoMetropolitana] = useState(false);
   const [qtdGarcons, setQtdGarcons] = useState("");
   const [valorGarcom, setValorGarcom] = useState(String(VALOR_GARCOM_PADRAO));
   const [preparoIdsSelecionados, setPreparoIdsSelecionados] = useState<number[]>([]);
+
+  // "Começar de um Cardápio Pré-Montado": mesmo padrão do Criar Evento — só
+  // pré-popula o seletor (via remount, trocando a key), sem vínculo
+  // permanente. Ver formulario-evento-churrasco.tsx pro mesmo mecanismo.
+  const [cardapioBase, setCardapioBase] = useState<ValoresIniciaisCardapio | undefined>(
+    undefined
+  );
+  const [chaveSeletorCardapio, setChaveSeletorCardapio] = useState(0);
+  const [aplicandoTemplate, setAplicandoTemplate] = useState(false);
+  const [erroTemplate, setErroTemplate] = useState<string | null>(null);
+
+  // Preço por pessoa editável — pré-preenchido pelo cálculo dinâmico do
+  // servidor, ou pelo Preco_Fixo_Por_Pessoa do Cardápio Modelo selecionado,
+  // quando houver (docs/REGRAS_NEGOCIO.md, seção 4). Intencionalmente
+  // simples: sem lógica de tolerância/quebra de pacote ao editar itens
+  // depois — fora de escopo desta etapa.
+  const [precoPessoa, setPrecoPessoa] = useState("");
+  const [precoFixoSelecionado, setPrecoFixoSelecionado] = useState<number | null>(null);
+
+  async function aplicarTemplate(idTexto: string) {
+    const id = Number(idTexto);
+    if (!id) return;
+
+    setAplicandoTemplate(true);
+    setErroTemplate(null);
+    try {
+      const resposta = await obterItensCardapioModeloAction(id);
+      if ("erro" in resposta) {
+        setErroTemplate(resposta.erro);
+        return;
+      }
+      setCardapioBase(paraValoresIniciaisCardapio(resposta.preparoIds, preparosPorCategoria));
+      setChaveSeletorCardapio((k) => k + 1);
+
+      const cardapioSelecionado = cardapiosModelo.find((c) => c.id === id);
+      if (cardapioSelecionado?.precoFixoPorPessoa != null) {
+        setPrecoPessoa(String(cardapioSelecionado.precoFixoPorPessoa));
+        setPrecoFixoSelecionado(cardapioSelecionado.precoFixoPorPessoa);
+      } else {
+        setPrecoFixoSelecionado(null);
+      }
+    } catch {
+      setErroTemplate("Falha ao carregar o cardápio pré-montado.");
+    } finally {
+      setAplicandoTemplate(false);
+    }
+  }
 
   const [resultado, setResultado] = useState<PrecificacaoResultado | null>(null);
   const [calculando, setCalculando] = useState(false);
@@ -86,13 +142,26 @@ export function SimuladorCardapio({
           }
           setResultado(resposta.resultado);
           setItensExcluidos(resposta.itensExcluidos);
+          // Preço fixo do Cardápio Modelo prevalece sobre o valor dinâmico —
+          // pré-preenchido uma vez em aplicarTemplate, não sobrescrito aqui.
+          if (precoFixoSelecionado == null) {
+            setPrecoPessoa(String(resposta.resultado.valor_sugerido_por_pessoa));
+          }
         })
         .catch(() => setErro("Falha ao calcular o valor sugerido."))
         .finally(() => setCalculando(false));
     }, DEBOUNCE_MS);
 
     return () => clearTimeout(timer);
-  }, [simulacaoAtiva, preparoIdsSelecionados, numConvidadosNumero, regiaoMetropolitana, qtdGarcons, valorGarcom]);
+  }, [
+    simulacaoAtiva,
+    preparoIdsSelecionados,
+    numConvidadosNumero,
+    regiaoMetropolitana,
+    qtdGarcons,
+    valorGarcom,
+    precoFixoSelecionado,
+  ]);
 
   async function alternarCalculos() {
     if (mostrarCalculos) {
@@ -140,10 +209,40 @@ export function SimuladorCardapio({
       <section className="flex flex-col gap-5">
         <h3 className={secaoTituloClasse}>Cardápio</h3>
         <p className="text-sm text-paper-dim">
-          Puxando da base de fichas técnicas do NocoDB.
+          Puxando da base de fichas técnicas.
         </p>
+
+        {cardapiosModelo.length > 0 && (
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="cardapioModeloBase" className={rotuloClasse}>
+              Começar de um Cardápio Pré-Montado (opcional)
+            </label>
+            <select
+              id="cardapioModeloBase"
+              defaultValue=""
+              disabled={aplicandoTemplate}
+              onChange={(e) => aplicarTemplate(e.target.value)}
+              className={campoClasse}
+            >
+              <option value="">— Selecionar —</option>
+              {cardapiosModelo.map((cardapio) => (
+                <option key={cardapio.id} value={cardapio.id}>
+                  {cardapio.nome}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-paper-dim">
+              Só pré-preenche os itens abaixo — você ainda pode adicionar ou
+              remover livremente.
+            </p>
+            {erroTemplate && <Alerta tipo="perigo">{erroTemplate}</Alerta>}
+          </div>
+        )}
+
         <SeletorCardapio
+          key={chaveSeletorCardapio}
           preparosPorCategoria={preparosPorCategoria}
+          valoresIniciais={cardapioBase}
           onSelecaoIdsChange={setPreparoIdsSelecionados}
         />
       </section>
@@ -210,11 +309,11 @@ export function SimuladorCardapio({
           </p>
         )}
         {simulacaoAtiva && calculando && (
-          <p className="text-sm text-paper-dim">Calculando…</p>
+          <p role="status" aria-live="polite" className="text-sm text-paper-dim">Calculando…</p>
         )}
-        {erro && <p className="text-sm text-ember">{erro}</p>}
+        {erro && <Alerta tipo="perigo">{erro}</Alerta>}
         {simulacaoAtiva && itensExcluidos.length > 0 && (
-          <div className="rounded-[2px] border border-ember/40 bg-ember/10 p-3 text-sm text-ember">
+          <Alerta tipo="aviso">
             <p className="font-medium">
               Atenção: {itensExcluidos.length}{" "}
               {itensExcluidos.length === 1 ? "item selecionado não entrou" : "itens selecionados não entraram"}{" "}
@@ -227,7 +326,15 @@ export function SimuladorCardapio({
                 </li>
               ))}
             </ul>
-          </div>
+          </Alerta>
+        )}
+
+        {simulacaoAtiva && resultado && (
+          <p className="text-sm text-paper-dim">
+            {precoFixoSelecionado != null
+              ? "Preço por pessoa pré-preenchido com o preço fixo do Cardápio Pré-Montado selecionado — editável."
+              : "Preço por pessoa vem do custo real do cardápio selecionado (+ 40%) — pré-preenchido, mas editável."}
+          </p>
         )}
 
         {simulacaoAtiva && resultado && (
@@ -239,10 +346,18 @@ export function SimuladorCardapio({
               </p>
             </div>
             <div className="flex flex-col gap-1.5">
-              <p className={rotuloClasse}>Preço Sugerido por Pessoa</p>
-              <p className="font-display text-2xl italic text-paper">
-                {formatarMoeda(resultado.valor_sugerido_por_pessoa)}
-              </p>
+              <label htmlFor="precoPessoa" className={rotuloClasse}>
+                Preço por pessoa (R$)
+              </label>
+              <input
+                id="precoPessoa"
+                type="number"
+                min={0}
+                step="0.01"
+                value={precoPessoa}
+                onChange={(e) => setPrecoPessoa(e.target.value)}
+                className={campoClasse}
+              />
             </div>
             <div className="flex flex-col gap-1.5">
               <p className={rotuloClasse}>Criança (meia)</p>
@@ -287,7 +402,7 @@ function PainelCalculos({
   carregando: boolean;
 }) {
   if (carregando) {
-    return <p className="text-sm text-paper-dim">Calculando o passo a passo…</p>;
+    return <p role="status" aria-live="polite" className="text-sm text-paper-dim">Calculando o passo a passo…</p>;
   }
   if (!resultado) return null;
   if ("erro" in resultado) {
@@ -309,7 +424,7 @@ function PainelCalculos({
       <div className="overflow-x-auto rounded-[2px] bg-paper text-paper-ink shadow-[0_20px_40px_-20px_rgba(0,0,0,0.6)]">
         <table className="w-full min-w-[1100px] border-collapse text-sm">
           <thead>
-            <tr className="border-b border-paper-ink/15 text-left text-paper-ink/60">
+            <tr className="border-b border-paper-ink/15 text-left text-texto-suave-papel">
               <th className="px-3 py-2 font-normal">Preparo</th>
               <th className="px-3 py-2 font-normal">Macro (unidade)</th>
               <th className="px-3 py-2 font-normal">Unid. rendimento preparo</th>
@@ -343,13 +458,13 @@ function PainelCalculos({
                   )}
                 </td>
                 <td className="px-3 py-2">
-                  {linha.peso} <span className="text-paper-ink/60">({linha.origemPeso})</span>
+                  {linha.peso} <span className="text-texto-suave-papel">({linha.origemPeso})</span>
                 </td>
                 <td className="px-3 py-2">{linha.somaPesosGrupo}</td>
                 <td className="px-3 py-2">
                   {linha.porcaoCalculada} → {linha.porcaoFinal}
                   {linha.limitadaPorHardCap && (
-                    <span className="ml-1 text-paper-ink/60">
+                    <span className="ml-1 text-texto-suave-papel">
                       (Hard Cap {linha.porcaoMaximaIndividual})
                     </span>
                   )}
@@ -357,7 +472,7 @@ function PainelCalculos({
                 <td className="px-3 py-2">
                   {linha.volumeNecessarioTotal} {linha.unidadeMacro}
                   {linha.quantidadeParaCusto !== linha.volumeNecessarioTotal && (
-                    <span className="text-paper-ink/60">
+                    <span className="text-texto-suave-papel">
                       {" "}
                       → {linha.quantidadeParaCusto} un (convertido)
                     </span>

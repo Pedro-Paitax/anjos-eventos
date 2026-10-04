@@ -2,6 +2,16 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { obterUsuarioAtual } from "@/lib/usuario-atual";
 import { trocarUsuario } from "@/app/actions/usuario";
+import { listarEventosProximos } from "@/lib/eventos";
+import { itensPendenciaPorEvento } from "@/lib/decisoes-operacionais";
+import { listarColaboradoresAtivos } from "@/lib/colaboradores";
+import type { AtivosPorFuncao } from "@/lib/pendencias-evento";
+import { BotaoResolverPendencias } from "@/components/botao-resolver-pendencias";
+import { corEmpresa, formatarData, formatarHora } from "@/lib/formatacao";
+import { botaoClasse } from "@/components/botao";
+import { Alerta } from "@/components/alerta";
+
+const DIAS_PROXIMOS_EVENTOS = 15;
 
 const funcionalidades = [
   {
@@ -14,24 +24,20 @@ const funcionalidades = [
     descricao: "Preparos, Cardápios Feitos e Simulador de Cardápio.",
     href: "/senhor-churrasco",
   },
-  {
-    titulo: "Contratos e confirmação",
-    descricao:
-      "Envie o PDF, a extração preenche os dados e você só confirma. É a próxima etapa.",
-    href: null,
-  },
-  {
-    titulo: "Checklist de carregamento",
-    descricao:
-      "O que levar, onde está guardado e em qual veículo. Fica pra fase 2, depois que a central estiver rodando redondo.",
-    href: null,
-  },
 ];
 
 export default async function Home() {
   const usuarioAtual = await obterUsuarioAtual();
   if (!usuarioAtual) {
     redirect("/login");
+  }
+
+  const eventosProximos = await listarEventosProximos(DIAS_PROXIMOS_EVENTOS);
+  const pendencias = await itensPendenciaPorEvento(eventosProximos.map((e) => e.id));
+  const temPendencia = [...pendencias.values()].some((l) => l.length > 0);
+  const ativosPorFuncao: AtivosPorFuncao = { copeira: 0, assador: 0, garcom: 0 };
+  if (temPendencia) {
+    for (const c of await listarColaboradoresAtivos()) ativosPorFuncao[c.funcao] += 1;
   }
 
   return (
@@ -50,20 +56,83 @@ export default async function Home() {
           </p>
         </div>
 
+        <section className="flex w-full flex-col gap-3">
+          <h2 className="font-display text-xl italic text-paper">
+            Próximos {DIAS_PROXIMOS_EVENTOS} dias
+          </h2>
+          {eventosProximos.length === 0 ? (
+            <div className="flex flex-col items-start gap-1">
+              <p className="text-sm text-paper-dim">
+                Nenhum evento nos próximos {DIAS_PROXIMOS_EVENTOS} dias.
+              </p>
+              <Link href="/agenda" className={botaoClasse("link", "sm")}>
+                Ver agenda completa
+              </Link>
+            </div>
+          ) : (
+            <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              {eventosProximos.map((evento, i) => (
+                <li
+                  key={evento.id}
+                  className="card-enter"
+                  style={{ ["--enter-order" as string]: i }}
+                >
+                  <div className="relative flex h-full flex-col overflow-hidden rounded-[2px] bg-paper text-paper-ink border border-transparent shadow-[0_18px_28px_-16px_rgba(0,0,0,0.6)] transition hover:-translate-y-1 hover:border-brass/60 hover:shadow-[0_24px_34px_-16px_rgba(0,0,0,0.75)] focus-within:-translate-y-1 focus-within:border-brass/60">
+                    <span
+                      aria-hidden
+                      className={`absolute inset-x-0 top-0 h-1.5 ${corEmpresa(evento.empresa_nome)}`}
+                    />
+                    <Link
+                      href={`/agenda/${evento.id}`}
+                      className="flex flex-1 flex-col gap-1 p-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brass"
+                    >
+                      <p className="font-display text-lg italic">
+                        {evento.cliente}
+                      </p>
+                      <p className="text-sm text-texto-suave-papel">
+                        {formatarData(evento.data_evento)}, {formatarHora(evento.data_evento)}
+                      </p>
+                      <p className="text-xs text-texto-suave-papel">{evento.empresa_nome}</p>
+                    </Link>
+                    {(pendencias.get(evento.id)?.length ?? 0) > 0 && (
+                      <div className="flex flex-col items-start gap-3 px-4 pb-4">
+                        <Alerta tipo="aviso" sobre="papel" titulo="Pendências do evento" className="w-full">
+                          <ul className="list-disc pl-4">
+                            {(pendencias.get(evento.id) ?? []).map((item) => (
+                              <li key={item.texto}>{item.texto}</li>
+                            ))}
+                          </ul>
+                        </Alerta>
+                        <BotaoResolverPendencias
+                          eventoId={evento.id}
+                          itens={pendencias.get(evento.id) ?? []}
+                          ativosPorFuncao={ativosPorFuncao}
+                          className={botaoClasse("secundario", "sm")}
+                        />
+                      </div>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
         <div className="grid w-full grid-cols-1 gap-4 sm:grid-cols-2">
-          {funcionalidades.map((item) =>
+          {funcionalidades.map((item, i) =>
             item.href ? (
               <Link
                 key={item.titulo}
                 href={item.href}
-                className="group relative flex flex-col gap-2 overflow-hidden rounded-[2px] bg-paper p-5 text-paper-ink shadow-[0_18px_28px_-16px_rgba(0,0,0,0.6)] transition hover:-translate-y-1 focus-visible:-translate-y-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brass"
+                style={{ ["--enter-order" as string]: i }}
+                className="card-enter group relative flex flex-col gap-2 overflow-hidden rounded-[2px] border border-transparent bg-paper p-5 text-paper-ink shadow-[0_18px_28px_-16px_rgba(0,0,0,0.6)] transition hover:-translate-y-1 hover:border-brass/60 hover:shadow-[0_24px_34px_-16px_rgba(0,0,0,0.75)] focus-visible:-translate-y-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brass"
               >
                 <span
                   aria-hidden
-                  className="absolute inset-x-0 top-0 h-1.5 bg-ember"
+                  className="absolute inset-x-0 top-0 h-1.5 bg-paper-dim"
                 />
                 <p className="font-display text-lg italic">{item.titulo}</p>
-                <p className="text-sm text-paper-ink/70">{item.descricao}</p>
+                <p className="text-sm text-texto-suave-papel">{item.descricao}</p>
               </Link>
             ) : (
               <div
@@ -73,7 +142,7 @@ export default async function Home() {
                 <p className="font-display text-lg italic text-paper-dim">
                   {item.titulo}
                 </p>
-                <p className="text-sm text-paper-dim/60">{item.descricao}</p>
+                <p className="text-sm text-texto-suave-escuro">{item.descricao}</p>
               </div>
             )
           )}

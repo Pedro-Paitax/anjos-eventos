@@ -24,6 +24,7 @@ import { readFileSync, existsSync, mkdirSync, rmSync } from "node:fs";
 import { resolve } from "node:path";
 import { execSync, spawn, type ChildProcess } from "node:child_process";
 import { homedir } from "node:os";
+import { randomBytes } from "node:crypto";
 
 function carregarEnv(arquivo: string) {
   const caminho = resolve(process.cwd(), arquivo);
@@ -42,6 +43,12 @@ carregarEnv(".env");
 carregarEnv(".env.local");
 
 const IP_ORACLE = "100.121.229.81";
+
+// As rotas /api internas exigem sessão (src/lib/api-auth.ts). Este script não tem
+// cookie: gera um token de serviço descartável, entrega às duas instâncias que ele
+// mesmo sobe (env SMOKE_TOKEN) e o envia em x-smoke-token. Nunca é gravado.
+const SMOKE_TOKEN = randomBytes(24).toString("hex");
+const CABECALHOS = { "x-smoke-token": SMOKE_TOKEN };
 if (!process.env.DATABASE_URL?.includes(IP_ORACLE)) {
   console.error(`ABORTADO: DATABASE_URL não aponta pro Oracle (${IP_ORACLE}).`);
   process.exit(1);
@@ -90,6 +97,7 @@ function subir(fonte: "nocodb" | "oracle"): ChildProcess {
       DATA_SOURCE: fonte,
       DATABASE_URL: process.env.DATABASE_URL,
       NOCODB_API_TOKEN: process.env.NOCODB_API_TOKEN,
+      SMOKE_TOKEN,
     },
   });
   filhos.push(filho);
@@ -111,7 +119,7 @@ for (const s of ["SIGINT", "SIGTERM"] as const) process.on(s, () => { derrubar()
 async function aguardar(fonte: "nocodb" | "oracle") {
   for (let i = 0; i < 60; i++) {
     try {
-      const r = await fetch(`http://127.0.0.1:${PORTA[fonte]}/api/preparos/0/custo`, { signal: AbortSignal.timeout(3000) });
+      const r = await fetch(`http://127.0.0.1:${PORTA[fonte]}/api/preparos/0/custo`, { headers: CABECALHOS, signal: AbortSignal.timeout(3000) });
       if (r.status === 400) return;
     } catch {
       /* ainda subindo */
@@ -124,7 +132,7 @@ async function aguardar(fonte: "nocodb" | "oracle") {
 type Resp = { status: number; corpo: unknown };
 let repeticoesTimeout = 0;
 async function chamarUmaVez(fonte: "nocodb" | "oracle", caminho: string): Promise<Resp> {
-  const r = await fetch(`http://127.0.0.1:${PORTA[fonte]}${caminho}`, { signal: AbortSignal.timeout(60000) });
+  const r = await fetch(`http://127.0.0.1:${PORTA[fonte]}${caminho}`, { headers: CABECALHOS, signal: AbortSignal.timeout(60000) });
   const texto = await r.text();
   let corpo: unknown = texto;
   try {

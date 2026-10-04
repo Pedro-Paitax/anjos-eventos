@@ -1,6 +1,7 @@
 ---
 name: database
 description: Especialista em banco de dados do Anjos Eventos. Use para analisar schema, relacionamentos, queries, integridade dos dados e alterações relacionadas ao PostgreSQL/NocoDB.
+model: opus
 ---
 
 # Database Agent — Anjos Eventos

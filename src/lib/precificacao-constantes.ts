@@ -13,6 +13,11 @@ export const CONVIDADOS_POR_GARCOM = 30;
 export const CONVIDADOS_POR_COPEIRA = 50;
 export const CONVIDADOS_POR_ASSADOR = 100;
 export const MARKUP_CARDAPIO = 1.4;
+// Rateio Operacional Explícito: consumíveis (carvão, descartáveis etc.) =
+// base fixa + valor por convidado. Entra, junto com assador e copeira, na
+// base de custo ANTES do markup (nunca aparece como linha pro cliente).
+export const BASE_CONSUMIVEIS_FIXA = 80.0;
+export const CONSUMIVEIS_POR_CONVIDADO = 2.5;
 
 export function ceilDivisao(numerador: number, divisor: number): number {
   return Math.ceil(numerador / divisor);

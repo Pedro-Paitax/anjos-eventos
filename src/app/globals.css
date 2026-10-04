@@ -10,8 +10,51 @@
   --color-paper-ink: #2b2013;
   --color-sage: #6e7a5c;
 
+  /* ember/brass/sage = só identidade de empresa. Ação e estados têm tokens próprios. */
+  --color-acao: #a8431d;
+  --color-acao-forte: #9c3c19;
+  --color-acao-claro: #e8825a;
+  --color-perigo-claro: #f08294;
+  --color-perigo-escuro: #a3243a;
+  --color-aviso-claro: #e6b957;
+  --color-aviso-escuro: #7a5410;
+  --color-sucesso-claro: #9fae88;
+  --color-sucesso-escuro: #4f5b3f;
+  --color-info-claro: #8fb3cf;
+  --color-info-escuro: #2f5775;
+  --color-texto-suave-papel: #6b5b46;
+  --color-texto-suave-escuro: #a89c85;
+  --color-borda-campo: #8a7d68;
+
+  --shadow-elev-1: 0 12px 24px -16px rgb(0 0 0 / 0.55);
+  --shadow-elev-2: 0 20px 32px -16px rgb(0 0 0 / 0.7);
+  --shadow-elev-3: 0 30px 60px -20px rgb(0 0 0 / 0.8);
+
+  --container-pagina-estreita: 42rem;
+  --container-pagina-media: 56rem;
+  --container-pagina-documento: 48rem;
+
   --font-display: var(--font-fraunces);
   --font-sans: var(--font-archivo);
+
+  /* Tokens de animação: ajuste aqui e vale para o app inteiro. Os utilitários
+     `transition` do Tailwind também usam estes dois valores. */
+  --default-transition-duration: 150ms;
+  --default-transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+:root {
+  /* Camadas */
+  --z-header: 10;
+  --z-barra-acoes: 40;
+  --z-modal: 50;
+  --z-tooltip: 60;
+
+  --motion-fast: 150ms; /* cor, foco, pressionar */
+  --motion-base: 220ms; /* modal, itens de lista */
+  --motion-slow: 300ms; /* entrada de página e cards */
+  --motion-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --motion-stagger: 40ms; /* atraso entre itens escalonados */
 }
 
 body {
@@ -25,20 +68,174 @@ body {
     var(--color-ink);
 }
 
-@media (prefers-reduced-motion: no-preference) {
+/*
+ * Animações (somente tela, somente sem prefers-reduced-motion). Regras:
+ * - fill-mode `backwards`: depois de terminar não sobra transform/opacity no
+ *   elemento (transform residual prende position:fixed de filhos);
+ * - nunca em @media print nem na Ficha Técnica (.sem-animacao): ver o bloco
+ *   `@media print` e a regra `body:has(.sem-animacao)` abaixo;
+ * - listas: só os primeiros itens animam (limite no escalonamento).
+ */
+@media screen and (prefers-reduced-motion: no-preference) {
+  /* Conteúdo principal de cada página (o fundo .venue-glow não anima). */
+  main.venue-glow:not(.sem-enter) > * {
+    animation-name: entrada;
+    animation-duration: var(--motion-slow);
+    animation-timing-function: var(--motion-ease);
+    animation-fill-mode: backwards;
+  }
+
   .card-enter {
-    animation: card-enter 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
-    animation-delay: calc(var(--enter-order, 0) * 70ms);
+    animation-name: entrada-card;
+    animation-duration: var(--motion-slow);
+    animation-timing-function: var(--motion-ease);
+    animation-fill-mode: backwards;
+    animation-delay: calc(min(var(--enter-order, 0), 8) * var(--motion-stagger));
+  }
+
+  /* Listas: itens entram suavemente; do 13º em diante, sem animação. */
+  .lista-enter > li {
+    animation-name: entrada-item;
+    animation-duration: var(--motion-base);
+    animation-timing-function: var(--motion-ease);
+    animation-fill-mode: backwards;
+  }
+  .lista-enter > li:nth-child(n + 13) {
+    animation: none;
+  }
+  .lista-enter > li:nth-child(2) { animation-delay: calc(1 * var(--motion-stagger)); }
+  .lista-enter > li:nth-child(3) { animation-delay: calc(2 * var(--motion-stagger)); }
+  .lista-enter > li:nth-child(4) { animation-delay: calc(3 * var(--motion-stagger)); }
+  .lista-enter > li:nth-child(5) { animation-delay: calc(4 * var(--motion-stagger)); }
+  .lista-enter > li:nth-child(6) { animation-delay: calc(5 * var(--motion-stagger)); }
+  .lista-enter > li:nth-child(n + 7) { animation-delay: calc(6 * var(--motion-stagger)); }
+
+  /* Modal */
+  .modal-overlay {
+    animation-name: fade-in;
+    animation-duration: var(--motion-base);
+    animation-timing-function: var(--motion-ease);
+    animation-fill-mode: backwards;
+  }
+  .modal-caixa {
+    animation-name: modal-entra;
+    animation-duration: var(--motion-base);
+    animation-timing-function: var(--motion-ease);
+    animation-fill-mode: backwards;
+  }
+  .modal-overlay[data-saindo] {
+    animation-name: fade-out;
+    animation-duration: var(--motion-fast);
+    animation-timing-function: var(--motion-ease);
+    animation-fill-mode: forwards;
+  }
+  .modal-overlay[data-saindo] .modal-caixa {
+    animation-name: modal-sai;
+    animation-duration: var(--motion-fast);
+    animation-timing-function: var(--motion-ease);
+    animation-fill-mode: forwards;
+  }
+
+  .troca-suave {
+    animation-name: fade-in;
+    animation-duration: var(--motion-slow);
+    animation-timing-function: var(--motion-ease);
+    animation-fill-mode: backwards;
+  }
+
+  /* Pressionar: feedback imediato (propriedade `scale`, independente de transform). */
+  button:not(:disabled):active,
+  a[href].pressionavel:active {
+    scale: 0.97;
   }
 }
 
-@keyframes card-enter {
-  from {
-    opacity: 0;
-    transform: translateY(12px) scale(0.97);
+/* Transições de cor/foco (valem também sem animação de entrada). */
+@media screen and (prefers-reduced-motion: no-preference) {
+  button,
+  a[href] {
+    transition-property: color, background-color, border-color, text-decoration-color, opacity, scale, box-shadow, translate, filter;
+    transition-duration: var(--motion-fast);
+    transition-timing-function: var(--motion-ease);
   }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
+  input,
+  select,
+  textarea {
+    transition: border-color var(--motion-fast) var(--motion-ease),
+      box-shadow var(--motion-fast) var(--motion-ease),
+      background-color var(--motion-fast) var(--motion-ease);
+  }
+}
+
+/*
+ * Anel de foco: brass sobre escuro (5,5:1 sobre ink-soft), mas sobre papel brass
+ * tem só 2,52:1; nas superfícies de papel o anel é paper-ink (13,9:1). Sem
+ * camada, esta regra vence as utilidades `focus-visible:outline-brass`.
+ */
+.bg-paper :focus-visible,
+.bg-paper:focus-visible,
+.bg-paper-dim :focus-visible,
+.bg-paper-dim:focus-visible {
+  outline-color: var(--color-paper-ink);
+}
+.bg-paper .bg-ink-soft:focus-visible,
+.bg-paper .bg-ink:focus-visible {
+  outline-color: var(--color-brass);
+}
+
+@keyframes entrada {
+  from { opacity: 0; transform: translateY(8px); }
+}
+@keyframes entrada-card {
+  from { opacity: 0; transform: translateY(10px) scale(0.98); }
+}
+@keyframes entrada-item {
+  from { opacity: 0; transform: translateY(4px); }
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+}
+@keyframes fade-out {
+  to { opacity: 0; }
+}
+@keyframes modal-entra {
+  from { opacity: 0; transform: scale(0.97); }
+}
+@keyframes modal-sai {
+  to { opacity: 0; transform: scale(0.97); }
+}
+
+/* Ficha Técnica e qualquer tela marcada: nada de animação/transição. */
+body:has(.sem-animacao) *,
+body:has(.sem-animacao) *::before,
+body:has(.sem-animacao) *::after {
+  animation: none !important;
+  transition: none !important;
+}
+
+/* Ficha Técnica (docs/agenda/[id]/fichas-tecnicas): sem isso, o navegador
+   descarta fundos/zebra da tabela de Insumos ao imprimir por padrão
+   (economia de tinta), quebrando o requisito de "linhas alternadas". */
+@media print {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /*
+   * <body> (layout.tsx) é bg-ink (tema escuro do app inteiro) — na ÚLTIMA
+   * página impressa, se o conteúdo termina antes do fim da folha, a área
+   * em branco restante mostra o fundo do body por baixo, virando um bloco
+   * preto enorme (achado em produção, docs/PENDENCIAS_NOTURNAS.md). O
+   * bg-white do <main> da Ficha Técnica só cobre a altura do próprio
+   * conteúdo, não a página impressa inteira. Único lugar do app com
+   * estilo de impressão — forçar branco aqui não afeta as outras telas.
+   */
+  body {
+    background: white;
   }
 }

@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import type { Evento } from "@/lib/eventos";
 import { CATEGORIAS_CARDAPIO, type CategoriaCardapio, type Preparo } from "@/lib/cardapio";
 import { rotuloClasse } from "@/components/formulario-evento";
+import { Modal } from "@/components/modal";
+import { botaoClasse } from "@/components/botao";
 
 type SelecaoCardapio = Record<CategoriaCardapio, string[]>;
 
@@ -32,10 +34,29 @@ function dividir(valor: string | null | undefined): string[] {
 // Subconjunto de Evento que o seletor realmente usa — permite montar um
 // valoresIniciais sintético (ex.: a partir de um Cardápio Pré-Montado) sem
 // precisar de um Evento completo.
-type ValoresIniciaisCardapio = Pick<
+export type ValoresIniciaisCardapio = Pick<
   Evento,
   (typeof VALOR_SALVO)[CategoriaCardapio]
 >;
+
+/** Monta um valoresIniciais sintético (Nome, ", "-joined por categoria) a
+ * partir de uma lista de preparo_id — usado pra pré-popular o SeletorCardapio
+ * ao escolher um Cardápio Pré-Montado (Criar Evento e Simulador de
+ * Cardápio), sem criar nenhum vínculo permanente. */
+export function paraValoresIniciaisCardapio(
+  preparoIds: number[],
+  preparosPorCategoria: Record<CategoriaCardapio, Preparo[]>
+): ValoresIniciaisCardapio {
+  const idsSelecionados = new Set(preparoIds);
+  const resultado: Record<string, string | null> = {};
+  for (const categoria of Object.keys(VALOR_SALVO) as CategoriaCardapio[]) {
+    const nomes = preparosPorCategoria[categoria]
+      .filter((p) => idsSelecionados.has(p.id))
+      .map((p) => p.nome);
+    resultado[VALOR_SALVO[categoria]] = nomes.length > 0 ? nomes.join(", ") : null;
+  }
+  return resultado as ValoresIniciaisCardapio;
+}
 
 function selecaoInicial(valoresIniciais?: ValoresIniciaisCardapio): SelecaoCardapio {
   return Object.fromEntries(
@@ -116,12 +137,25 @@ export function SeletorCardapio({
         ))
       )}
 
+      {/* preparo_id de cada item selecionado — usado pelo fluxo de Orçamento
+          (src/lib/orcamentos.ts) pra gravar itens_orcamento. Os hidden inputs
+          acima (por nome) continuam existindo só pro fluxo antigo de edição
+          direta de Evento (campos de texto livre). */}
+      {CATEGORIAS_CARDAPIO.map((categoria) =>
+        selecao[categoria].map((nome) => {
+          const id = preparosPorCategoria[categoria].find((p) => p.nome === nome)?.id;
+          return id == null ? null : (
+            <input key={`id-${categoria}-${nome}`} type="hidden" name="preparoIds" value={id} />
+          );
+        })
+      )}
+
       <div className="flex items-center justify-between">
         <p className={rotuloClasse}>Itens selecionados</p>
         <button
           type="button"
           onClick={() => setModalAberto(true)}
-          className="rounded-[2px] bg-paper px-3 py-1.5 text-sm font-medium text-paper-ink transition hover:brightness-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brass"
+          className={botaoClasse("secundario", "sm")}
         >
           + Adicionar itens
         </button>
@@ -137,7 +171,7 @@ export function SeletorCardapio({
           (categoria) =>
             selecao[categoria].length > 0 && (
               <div key={categoria} className="flex flex-col gap-1.5">
-                <p className="text-xs font-medium uppercase tracking-wide text-paper-dim/70">
+                <p className="text-xs font-medium uppercase tracking-wide text-texto-suave-escuro">
                   {categoria}
                 </p>
                 <div className="flex flex-wrap gap-2">
@@ -151,7 +185,7 @@ export function SeletorCardapio({
                         type="button"
                         onClick={() => remover(categoria, nome)}
                         aria-label={`Remover ${nome}`}
-                        className="text-paper-ink/50 transition hover:text-ember"
+                        className="text-texto-suave-papel transition hover:text-perigo-escuro"
                       >
                         ×
                       </button>
@@ -164,75 +198,55 @@ export function SeletorCardapio({
       </div>
 
       {modalAberto && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
-          onClick={() => setModalAberto(false)}
-        >
-          <div
-            className="flex max-h-[80vh] w-full max-w-lg flex-col gap-4 rounded-[2px] bg-ink p-5 shadow-[0_30px_60px_-20px_rgba(0,0,0,0.8)]"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between">
-              <h4 className="font-display text-lg italic text-paper">
-                Adicionar ao cardápio
-              </h4>
-              <button
-                type="button"
-                onClick={() => setModalAberto(false)}
-                className="text-sm text-paper-dim underline decoration-paper-dim/40 underline-offset-4 transition hover:text-paper hover:decoration-paper"
-              >
-                Fechar
-              </button>
-            </div>
+        <Modal titulo="Adicionar ao cardápio" mostrarFechar onFechar={() => setModalAberto(false)} className="max-w-lg bg-ink">
 
-            <div className="flex flex-wrap gap-1 rounded-[2px] bg-ink-soft p-1">
-              {CATEGORIAS_CARDAPIO.map((categoria) => (
+          <div className="flex flex-wrap gap-1 rounded-[2px] bg-ink-soft p-1">
+            {CATEGORIAS_CARDAPIO.map((categoria) => (
+              <button
+                key={categoria}
+                type="button"
+                onClick={() => setCategoriaAtiva(categoria)}
+                className={`rounded-[2px] px-3 py-1.5 text-sm transition ${
+                  categoriaAtiva === categoria
+                    ? "bg-paper text-paper-ink"
+                    : "text-paper-dim hover:text-paper"
+                }`}
+              >
+                {categoria}
+                {selecao[categoria].length > 0 && ` (${selecao[categoria].length})`}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex flex-col gap-1 overflow-y-auto">
+            {preparosPorCategoria[categoriaAtiva].length === 0 && (
+              <p className="px-1 py-2 text-sm text-paper-dim">
+                Nenhum item cadastrado nessa categoria.
+              </p>
+            )}
+            {preparosPorCategoria[categoriaAtiva].map((item) => {
+              const jaSelecionado = selecao[categoriaAtiva].includes(item.nome);
+              return (
                 <button
-                  key={categoria}
+                  key={item.id}
                   type="button"
-                  onClick={() => setCategoriaAtiva(categoria)}
-                  className={`rounded-[2px] px-3 py-1.5 text-sm transition ${
-                    categoriaAtiva === categoria
-                      ? "bg-paper text-paper-ink"
-                      : "text-paper-dim hover:text-paper"
+                  disabled={jaSelecionado}
+                  onClick={() => adicionar(categoriaAtiva, item.nome)}
+                  className={`flex items-center justify-between rounded-[2px] px-3 py-2 text-left text-sm transition ${
+                    jaSelecionado
+                      ? "cursor-not-allowed bg-ink-soft/60 text-texto-suave-escuro"
+                      : "text-paper hover:bg-ink-soft"
                   }`}
                 >
-                  {categoria}
-                  {selecao[categoria].length > 0 && ` (${selecao[categoria].length})`}
+                  <span>{item.nome}</span>
+                  <span className="text-xs">
+                    {jaSelecionado ? "Adicionado" : "+ Adicionar"}
+                  </span>
                 </button>
-              ))}
-            </div>
-
-            <div className="flex flex-col gap-1 overflow-y-auto">
-              {preparosPorCategoria[categoriaAtiva].length === 0 && (
-                <p className="px-1 py-2 text-sm text-paper-dim">
-                  Nenhum item cadastrado nessa categoria.
-                </p>
-              )}
-              {preparosPorCategoria[categoriaAtiva].map((item) => {
-                const jaSelecionado = selecao[categoriaAtiva].includes(item.nome);
-                return (
-                  <button
-                    key={item.id}
-                    type="button"
-                    disabled={jaSelecionado}
-                    onClick={() => adicionar(categoriaAtiva, item.nome)}
-                    className={`flex items-center justify-between rounded-[2px] px-3 py-2 text-left text-sm transition ${
-                      jaSelecionado
-                        ? "cursor-not-allowed bg-ink-soft/60 text-paper-dim/50"
-                        : "text-paper hover:bg-ink-soft"
-                    }`}
-                  >
-                    <span>{item.nome}</span>
-                    <span className="text-xs">
-                      {jaSelecionado ? "Adicionado" : "+ Adicionar"}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
+              );
+            })}
           </div>
-        </div>
+        </Modal>
       )}
     </div>
   );

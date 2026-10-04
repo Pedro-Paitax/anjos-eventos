@@ -2,6 +2,7 @@ import "server-only";
 import { CATEGORIAS_CARDAPIO, type CategoriaCardapio, type Preparo } from "@/lib/cardapio";
 import { exigirToken, nocodbDelete, nocodbGet, nocodbPatch, nocodbPost } from "@/lib/nocodb";
 import { dataSource } from "@/lib/data-source";
+import { passosPreparoSchema, type PassosPreparo } from "@/lib/passos-preparo";
 
 const NOCODB_URL =
   "http://100.77.218.36:8090/api/v2/tables/m3yr136ykw6ju2w/records?limit=1000";
@@ -12,6 +13,13 @@ const RENOMEAR_CATEGORIA: Record<string, string> = {
 
 const CATEGORIAS_EXCLUIDAS = new Set(["Molhos"]);
 
+function ordenarPorNome(vazio: Record<CategoriaCardapio, Preparo[]>) {
+  for (const categoria of CATEGORIAS_CARDAPIO) {
+    vazio[categoria].sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+  }
+  return vazio;
+}
+
 export async function listarPreparosPorCategoria(): Promise<
   Record<CategoriaCardapio, Preparo[]>
 > {
@@ -20,7 +28,9 @@ export async function listarPreparosPorCategoria(): Promise<
   ) as Record<CategoriaCardapio, Preparo[]>;
 
   if (dataSource() === "oracle") {
-    // Mesma regra de renomear/excluir categorias, lendo via Drizzle (ordem por id, como a API do NocoDB).
+    // Mesma regra de renomear/excluir categorias, lendo via Drizzle. Ordem
+    // alfabética por nome (antes era por id, "mesma ordem do NocoDB") —
+    // facilita achar um item nos seletores de cardápio.
     try {
       const { db } = await import("@/db/client");
       const { asc } = await import("drizzle-orm");
@@ -28,7 +38,7 @@ export async function listarPreparosPorCategoria(): Promise<
       const linhas = await db
         .select({ id: preparos.id, nome: preparos.nomePreparo, categoria: preparos.categoria })
         .from(preparos)
-        .orderBy(asc(preparos.id));
+        .orderBy(asc(preparos.nomePreparo));
       for (const l of linhas) {
         if (CATEGORIAS_EXCLUIDAS.has(l.categoria)) continue;
         const categoria = (RENOMEAR_CATEGORIA[l.categoria] ?? l.categoria) as CategoriaCardapio;
@@ -77,7 +87,7 @@ export async function listarPreparosPorCategoria(): Promise<
     });
   }
 
-  return vazio;
+  return ordenarPorNome(vazio);
 }
 
 // --- CRUD de cadastro (tela de Preparos + Composição) ---
@@ -134,6 +144,8 @@ export type PreparoDetalhado = {
   unidadeRendimento: string | null;
   restricoes: string[];
   modoPreparo: string | null;
+  /** Estruturação de modoPreparo em passos (docs: Pedro, 2026-09-27) — fonte oficial ainda é modoPreparo até aprovação. Sempre [] no NocoDB (campo não existe lá). */
+  passos: PassosPreparo;
   tempoPreparoMinutos: number | null;
   pesoAtratividade: number | null;
   subcategoriaProteina: string | null;
@@ -149,6 +161,7 @@ export type DadosPreparoForm = {
   unidadeRendimento: string;
   restricoes: string[];
   modoPreparo: string | null;
+  passos: PassosPreparo;
   tempoPreparoMinutos: number | null;
   pesoAtratividade: number | null;
   subcategoriaProteina: string | null;
@@ -221,6 +234,7 @@ async function obterPreparoComComposicaoOracle(id: number): Promise<PreparoDetal
     unidadeRendimento: p.unidadeRendimento,
     restricoes: p.tags ?? [],
     modoPreparo: p.modoPreparo,
+    passos: passosPreparoSchema.parse(p.passos ?? []),
     tempoPreparoMinutos: p.tempoPreparoMinutos,
     pesoAtratividade: numOuNulo(p.pesoAtratividade),
     subcategoriaProteina: p.subcategoriaProteina,
@@ -257,6 +271,7 @@ async function paraLinhaOracle(dados: DadosPreparoForm) {
     unidadeRendimento: dados.unidadeRendimento as Novo["unidadeRendimento"],
     tags: dados.restricoes.length > 0 ? (dados.restricoes as Novo["tags"]) : null,
     modoPreparo: dados.modoPreparo,
+    passos: dados.passos as Novo["passos"],
     tempoPreparoMinutos: dados.tempoPreparoMinutos,
     pesoAtratividade: dados.pesoAtratividade == null ? null : String(dados.pesoAtratividade),
     subcategoriaProteina: (dados.categoria === "Carnes" ? dados.subcategoriaProteina : null) as Novo["subcategoriaProteina"],
@@ -387,6 +402,8 @@ export async function obterPreparoComComposicao(
     unidadeRendimento: preparo["UOM Rendimento"],
     restricoes: preparo["Restrições"] ? preparo["Restrições"].split(",") : [],
     modoPreparo: preparo["Modo de Preparo"],
+    // Campo não existe no NocoDB (estrutura só existe no Postgres) — nunca é fonte de verdade pra este ramo.
+    passos: [],
     tempoPreparoMinutos: preparo.Minutes,
     pesoAtratividade: preparo.Peso_Atratividade,
     subcategoriaProteina: preparo.Subcategoria_Proteina,

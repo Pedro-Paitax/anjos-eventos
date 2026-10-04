@@ -31,7 +31,18 @@ export type MargemResultado = {
   orcamento_id: number;
   receita_projetada: number;
   custo_projetado: number;
+  /**
+   * Rateio operacional (assador + copeira + consumíveis) já embutido na
+   * receita pelo preço por pessoa dinâmico — descontado aqui pra margem não
+   * ficar inflada. 0 no caminho legado NocoDB (Valor_Base_Por_Pessoa manual,
+   * sem rateio na receita). Ver docs/DECISOES.md, "Rateio Operacional".
+   */
+  custo_operacional_total: number;
+  /** Aviso fixo de escopo: este número NÃO é o lucro final do evento. */
+  escopo: string;
   margem_projetada: number;
+  /** Só caminho Oracle: preço congelado vs. tabela de hoje. null no legado NocoDB. */
+  auditoria_tabela_atual: AuditoriaTabelaAtual | null;
   detalhe: {
     valor_base: number;
     itens_adicionais: number;
@@ -40,7 +51,26 @@ export type MargemResultado = {
   avisos: string[];
 };
 
-export type MargemErro = { erro: string; status: number };
+export type AuditoriaTabelaAtual = {
+  preco_congelado_por_pessoa: number;
+  preco_sugerido_hoje_por_pessoa: number;
+  /** sugerido_hoje − congelado: positivo = contrato abaixo da tabela atual. */
+  defasagem_por_pessoa: number;
+};
+
+/** Compara o preço congelado no Orçamento com o que a tabela de preço sugere hoje (informativo, nunca entra na receita). */
+export function montarAuditoriaTabelaAtual(precoCongelado: number, precoSugeridoHoje: number): AuditoriaTabelaAtual {
+  return {
+    preco_congelado_por_pessoa: precoCongelado,
+    preco_sugerido_hoje_por_pessoa: precoSugeridoHoje,
+    defasagem_por_pessoa: arredondar(precoSugeridoHoje - precoCongelado),
+  };
+}
+
+const ESCOPO_MARGEM_PROJETADA =
+  "Margem sobre cardápio + equipe de cozinha (assador/copeira) + consumíveis. Exclui garçom e taxa de deslocamento. NÃO é a margem final do evento (Margem Real, ainda não implementada).";
+
+export type MargemErro ={ erro: string; status: number };
 
 function arredondar(valor: number): number {
   return Math.round(Number(valor.toFixed(8)) * 100) / 100;
@@ -55,6 +85,15 @@ function arredondar(valor: number): number {
  * o valor base sem itens adicionais — divergência conhecida do caminho
  * legado, não corrigida aqui.
  */
+/** Margem Projetada = Receita − Custo do cardápio − Custo operacional (rateio embutido na receita). */
+export function calcularMargem(
+  receitaProjetada: number,
+  custoProjetado: number,
+  custoOperacionalTotal: number
+): number {
+  return arredondar(receitaProjetada - custoProjetado - custoOperacionalTotal);
+}
+
 function calcularDescontoAplicado(
   valorBase: number,
   descontoTipo: string | null,
@@ -72,6 +111,8 @@ type ReceitaProjetada = {
   totalItensAdicionais: number;
   descontoAplicado: number;
   receitaProjetada: number;
+  custoOperacionalTotal: number;
+  auditoriaTabelaAtual: AuditoriaTabelaAtual | null;
 };
 
 async function calcularReceitaNocodb(orcamentoId: number): Promise<ReceitaProjetada | MargemErro> {
@@ -115,7 +156,7 @@ async function calcularReceitaNocodb(orcamentoId: number): Promise<ReceitaProjet
   );
   const receitaProjetada = arredondar(valorBase + totalItensAdicionais - descontoAplicado);
 
-  return { numConvidados, valorBase, totalItensAdicionais, descontoAplicado, receitaProjetada };
+  return { numConvidados, valorBase, totalItensAdicionais, descontoAplicado, receitaProjetada, custoOperacionalTotal: 0, auditoriaTabelaAtual: null };
 }
 
 /**
@@ -134,6 +175,7 @@ async function calcularReceitaOracle(orcamentoId: number): Promise<ReceitaProjet
   let totalItensAdicionais: number;
   let descontoTipo: string | null;
   let descontoValor: number | null;
+  let precoCongelado: number | null;
   try {
     const { db } = await import("@/db/client");
     const { eq } = await import("drizzle-orm");
@@ -145,6 +187,7 @@ async function calcularReceitaOracle(orcamentoId: number): Promise<ReceitaProjet
     numConvidados = orcamento.numConvidados;
     descontoTipo = orcamento.descontoTipo;
     descontoValor = orcamento.descontoValor == null ? null : Number(orcamento.descontoValor);
+    precoCongelado = orcamento.precoPessoa == null ? null : Number(orcamento.precoPessoa);
 
     const itens = await db
       .select({ preparoId: itensOrcamento.preparoId })
@@ -165,18 +208,37 @@ async function calcularReceitaOracle(orcamentoId: number): Promise<ReceitaProjet
     return { erro: "Orçamento está sem Num_Convidados válido cadastrado.", status: 422 };
   }
 
+  // Receita = preço CONGELADO no Orçamento (contrato real), nunca o dinâmico
+  // recalculado — ver docs/DECISOES.md, "Margem Projetada: preço congelado".
+  if (precoCongelado == null) {
+    return { erro: "Orçamento sem preco_pessoa congelado — não há receita contratada pra calcular a margem.", status: 422 };
+  }
+
+  // Ainda chama a precificação dinâmica só pra (a) custo operacional (depende
+  // só de Num_Convidados) e (b) o bloco informativo de auditoria.
   const precificacao = await calcularPrecificacaoParaPreparos(preparoIds, {
     numConvidados,
     regiaoMetropolitanaCuritiba: false,
   });
   if ("erro" in precificacao) return precificacao;
 
-  const valorBase = arredondar(precificacao.resultado.valor_sugerido_por_pessoa * numConvidados);
+  const valorBase = arredondar(precoCongelado * numConvidados);
   const totalAntesDoDesconto = arredondar(valorBase + totalItensAdicionais);
   const descontoAplicado = calcularDescontoAplicado(totalAntesDoDesconto, descontoTipo, descontoValor);
   const receitaProjetada = arredondar(totalAntesDoDesconto - descontoAplicado);
 
-  return { numConvidados, valorBase, totalItensAdicionais, descontoAplicado, receitaProjetada };
+  return {
+    numConvidados,
+    valorBase,
+    totalItensAdicionais,
+    descontoAplicado,
+    receitaProjetada,
+    custoOperacionalTotal: precificacao.resultado.custo_operacional_total,
+    auditoriaTabelaAtual: montarAuditoriaTabelaAtual(
+      precoCongelado,
+      precificacao.resultado.valor_sugerido_por_pessoa
+    ),
+  };
 }
 
 export async function calcularMargemProjetada(
@@ -187,7 +249,7 @@ export async function calcularMargemProjetada(
       ? await calcularReceitaOracle(orcamentoId)
       : await calcularReceitaNocodb(orcamentoId);
   if ("erro" in receita) return receita;
-  const { valorBase, totalItensAdicionais, descontoAplicado, receitaProjetada } = receita;
+  const { valorBase, totalItensAdicionais, descontoAplicado, receitaProjetada, custoOperacionalTotal, auditoriaTabelaAtual } = receita;
 
   const dimensionamento = await calcularDimensionamentoOrcamento(orcamentoId);
   if ("erro" in dimensionamento) {
@@ -207,18 +269,21 @@ export async function calcularMargemProjetada(
         continue;
       }
       const custoPorUnidade = custoPreparo.custo_total_preparo / custoPreparo.rendimento;
-      custoProjetado = arredondar(custoProjetado + custoPorUnidade * item.volume_necessario_total);
+      custoProjetado = arredondar(custoProjetado + custoPorUnidade * item.quantidade_para_custo);
     }
   }
   custoProjetado = arredondar(custoProjetado);
 
-  const margemProjetada = arredondar(receitaProjetada - custoProjetado);
+  const margemProjetada = calcularMargem(receitaProjetada, custoProjetado, custoOperacionalTotal);
 
   return {
     orcamento_id: orcamentoId,
     receita_projetada: receitaProjetada,
     custo_projetado: custoProjetado,
+    custo_operacional_total: custoOperacionalTotal,
+    escopo: ESCOPO_MARGEM_PROJETADA,
     margem_projetada: margemProjetada,
+    auditoria_tabela_atual: auditoriaTabelaAtual,
     detalhe: {
       valor_base: valorBase,
       itens_adicionais: totalItensAdicionais,
