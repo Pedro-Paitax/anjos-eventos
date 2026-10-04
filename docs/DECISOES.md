@@ -1138,3 +1138,16 @@ Escolhas:
 4. Fontes novas: só o título do `Modal` usa Bricolage (nenhuma tela a usa no primeiro carregamento), então o **preload segue desligado**; Instrument Sans ainda não é usada (o `body` continua em Archivo até o shell, Etapa 3). Ligar `preload` quando o `body` trocar de fonte.
 5. O anel de foco do `Botao` anima a cor (a classe `transition` inclui `outline-color`); fica em `foco` (#ffc089) em ~120 ms.
 6. Contraste do alerta a 10 %: menor razão 5,77:1 (§4.2 do DESIGN-SYSTEM).
+
+### Etapa 3 do Redesign 2: shell (2026-10-04)
+
+`src/components/shell.tsx` substitui `navegacao-principal.tsx` e envolve o conteúdo no layout raiz: menu lateral (>= 900 px, `rail`), topo + barra de abas (< 900 px), skip link e destino `#conteudo`. `trocarUsuario` e as rotas ativas são as mesmas de antes; o layout continua com `obterUsuarioAtual()` apenas (sem consulta nova), sem `<h1>` no shell, `/login` sem shell, sem `loading.tsx` novo.
+
+Escolhas:
+1. **A fonte do shell (Instrument Sans) é declarada só no menu, no topo e nas abas.** O conteúdo e a Ficha continuam em Archivo (o `body` não mudou). A primeira versão pôs a fonte no contêiner de tudo e trocou a fonte da Ficha; foi pega pela comparação de CSS computado e corrigida antes do commit final.
+2. `IndicadorWhatsapp` monta só no bloco visível (`matchMedia` via `useSyncExternalStore`; no servidor e na hidratação não monta em nenhum) e troca os emojis por ícone SVG com forma por estado; no menu lateral ganha o texto do estado. Polling, modal de QR e rótulos de acessibilidade não mudaram.
+3. `viewport-fit=cover` (export `viewport` no layout) para o `env(safe-area-inset-*)` valer em iOS. Não testado em aparelho.
+4. Com campo de texto, select ou textarea em foco, a barra de abas some por CSS (`:has`, só < 900 px).
+5. O conteúdo ganhou base de `4rem + safe-area` abaixo do breakpoint `rail`; cada `<main>` de página ainda tem o próprio `px/py` (mover o espaçamento para o shell fica para as etapas das telas).
+6. **Preload das fontes:** o shell usa Bricolage 700 e Instrument 500/600 em toda página, então o preload das duas famílias foi ligado. Custo conhecido: o Next pré-carrega todos os pesos declarados, inclusive Bricolage 600 e Instrument 400, que ainda não aparecem (~34 KB a mais por página); revisar quando o `body` trocar de fonte.
+7. O anel de foco do `Botao` passou a aparecer na hora (a transição não inclui `outline-color`).
