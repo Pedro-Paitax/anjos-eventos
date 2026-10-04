@@ -55,7 +55,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       lang="pt-BR"
       className={`${fraunces.variable} ${archivo.variable} ${bricolage.variable} ${instrument.variable} h-full`}
     >
-      <body className="flex min-h-full flex-col bg-ink text-paper antialiased">
+      <body className="flex min-h-full flex-col bg-fundo text-texto antialiased">
         <Shell nomeUsuario={usuario?.nome}>{children}</Shell>
       </body>
     </html>

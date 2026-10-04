@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Evento } from "@/lib/eventos";
-import { chaveAnoMes, corEmpresa, nomeMes } from "@/lib/formatacao";
+import { chaveAnoMes, nomeMes, varCorEmpresa } from "@/lib/formatacao";
 
 const diasSemana = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 const empresasLegenda = [
@@ -115,9 +115,8 @@ export function CalendarioEventos({
                     >
                       <span
                         aria-hidden
-                        className={`h-1.5 w-1.5 shrink-0 rounded-full ${corEmpresa(
-                          evento.empresa_nome
-                        )}`}
+                        className="h-1.5 w-1.5 shrink-0 rounded-full"
+                        style={{ backgroundColor: varCorEmpresa(evento.empresa_nome) }}
                       />
                       <span className="truncate">{evento.cliente}</span>
                     </Link>
@@ -139,7 +138,8 @@ export function CalendarioEventos({
           <div key={nome} className="flex items-center gap-2">
             <span
               aria-hidden
-              className={`h-2.5 w-2.5 rounded-full ${corEmpresa(nome)}`}
+              className="h-2.5 w-2.5 rounded-full"
+              style={{ backgroundColor: varCorEmpresa(nome) }}
             />
             <p className="text-sm text-texto-suave">{nome}</p>
           </div>

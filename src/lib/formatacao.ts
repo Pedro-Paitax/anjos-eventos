@@ -7,18 +7,8 @@ const rotulosStatus: Record<StatusEvento, string> = {
   cancelado: "Cancelado",
 };
 
-const coresEmpresa: Record<string, string> = {
-  "Buffet Senhor Churrasco": "bg-ember",
-  "Anjos Cerimonial": "bg-brass",
-  "Em Plena Natureza Chácara de Eventos": "bg-sage",
-};
-
 export function rotuloStatus(status: StatusEvento): string {
   return rotulosStatus[status];
-}
-
-export function corEmpresa(nomeEmpresa: string): string {
-  return coresEmpresa[nomeEmpresa] ?? "bg-paper-dim";
 }
 
 export function formatarData(dataEvento: string): string {
