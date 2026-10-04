@@ -36,6 +36,9 @@
 
   --font-display: var(--font-fraunces);
   --font-sans: var(--font-archivo);
+  /* Redesign (Brasa). --font-display/--font-sans acima ficam só para a Ficha Técnica. */
+  --font-titulo: var(--font-bricolage);
+  --font-texto: var(--font-instrument);
 
   /* Tokens de animação: ajuste aqui e vale para o app inteiro. Os utilitários
      `transition` do Tailwind também usam estes dois valores. */
