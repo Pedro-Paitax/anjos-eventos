@@ -1,9 +1,9 @@
 # Design System — Anjos Eventos (direção Brasa)
 
-Status: **direção Brasa escolhida pelo Pedro em 2026-10-04**. Este documento descreve o **alvo**; o código só passa a refletir cada parte quando a etapa correspondente do redesign 2 for implementada (tabela abaixo). Referência visual: `docs/design/prototipos/direcao-1/` (HTML+CSS estático) e `docs/design/REDESIGN-2-PROPOSTA.md` (auditoria, contrastes, riscos, plano). Base anterior: `docs/design/UX-AUDIT.md`.
+Status: **direção Brasa escolhida pelo Pedro em 2026-10-04 e implementada nas Etapas 0 a 6** (tabela abaixo). Este documento é a referência do que o código segue; as divergências conhecidas entre o texto e o código estão no fim (§21). Referência visual: `docs/design/prototipos/direcao-1/` (HTML+CSS estático) e `docs/design/REDESIGN-2-PROPOSTA.md` (auditoria, contrastes, riscos, plano). Base anterior: `docs/design/UX-AUDIT.md`.
 
 Convenções:
-- **[implementado]** = já está no código. **[alvo]** = definido aqui, ainda não implementado. **[confirmar]** = depende do Pedro ou de teste real.
+- **[implementado]** = está no código. **[alvo]** = definido aqui e ainda não implementado (hoje só o calendário no celular, §15). **[confirmar]** = depende do Pedro ou de teste real.
 - Razões de contraste foram **calculadas** (fórmula WCAG 2.x) com os hex indicados; não foram medidas em tela. **Toda cor nova precisa de contraste calculado antes de entrar.**
 - Nenhuma regra de negócio (`docs/REGRAS_NEGOCIO.md`) é alterada por este documento.
 
@@ -17,9 +17,9 @@ Convenções:
 | 3 | Shell: menu lateral, abas, topo mobile, skip link, "Trocar usuário", WhatsApp | feita (2026-10-04); ver `docs/DECISOES.md`, "Etapa 3" |
 | 4 | Home + formulário longo (orçamento) | feita (2026-10-04); ver `docs/DECISOES.md`, "Etapa 4" |
 | 5 | Listas, cartões, badges, tabelas, modais de seleção, demais telas | feita (2026-10-04), exceto a decisão sobre o calendário no celular; ver `docs/DECISOES.md`, "Etapa 5" |
-| 6 | Fechamento (limpeza dos tokens antigos, lista final "PRECISA DE LÓGICA") | pendente |
+| 6 | Fechamento (limpeza dos tokens antigos, login, lista final "PRECISA DE LÓGICA") | feita (2026-10-04); ver `docs/DECISOES.md`, "Etapa 6" |
 
-Até a Etapa 6, os tokens antigos (`ink`, `paper`, `ember`, `brass`, `sage`, `acao`…) continuam existindo ao lado dos novos; só saem quando nenhum arquivo os usar mais.
+Os tokens e classes do visual antigo (`ink`, `paper`, `ember`, `brass`, `sage`, `acao`, `venue-glow`, animações de entrada…) foram removidos na Etapa 6, depois de uma busca em `src/` mostrar que só o login (migrado na mesma etapa) e o layout os usavam. Ficam `--font-display`/`--font-sans` (Fraunces e Archivo), usados só pela Ficha Técnica.
 
 ---
 
@@ -120,7 +120,7 @@ Princípios (cada um com o porquê):
 
 ## 4. Paleta de cores
 
-### 4.1 Tokens **[alvo]** (nomes novos; os antigos ficam até a Etapa 6)
+### 4.1 Tokens **[implementado]**
 
 | Token (`--color-…`) | Hex | Papel |
 |---|---|---|
@@ -215,7 +215,7 @@ Regras: a cor da empresa só aparece onde há entidade daquela empresa; **sempre
 
 ## 6. Tipografia
 
-### 6.1 Famílias **[alvo]**
+### 6.1 Famílias **[implementado]**
 
 | Família | Token | Uso |
 |---|---|---|
@@ -229,7 +229,7 @@ Regras:
 3. Valores monetários e quantidades com `font-variant-numeric: tabular-nums`.
 4. Sem maiúsculas espaçadas como rótulo.
 
-### 6.2 Escala **[alvo]** (base 16 px; campos de 16 px evitam o zoom do iOS **[confirmar em aparelho]**)
+### 6.2 Escala **[implementado]** (base 16 px; campos de 16 px evitam o zoom do iOS **[confirmar em aparelho]**)
 
 | Token | Tamanho / linha | Peso | Fonte | Uso |
 |---|---|---|---|---|
@@ -265,7 +265,7 @@ Larguras: **`pagina` 1120 px** (Home, Agenda, formulário longo); **`pagina-curt
 
 ---
 
-## 8. Raio de borda **[alvo]**
+## 8. Raio de borda **[implementado]** (`--radius-chip|controle|tile|linha|cartao|modal`)
 
 | Token | Valor | Uso |
 |---|---|---|
@@ -334,7 +334,7 @@ Os valores atuais `--z-header: 10`, `--z-barra-acoes: 40`, `--z-modal: 50`, `--z
 | Erro | Borda `perigo` 2 px + mensagem abaixo com ícone, `aria-invalid`, `aria-describedby` |
 | Somente leitura/calculado | Sem borda de campo, texto rotulado (não `input disabled`) |
 
-### 10.3 Movimento **[alvo]**
+### 10.3 Movimento **[implementado]**
 
 | Token | Valor | Uso |
 |---|---|---|
@@ -506,10 +506,9 @@ Tela: folha branca `#fff`, texto preto, **intacta**. Impressão: **sem alteraç�
 Cores:    fundo, superficie, elevada, menu, borda, borda-forte, borda-controle,
           texto, texto-suave, brasa, brasa-hover, sobre-brasa, link, foco,
           perigo, sobre-perigo, aviso, sucesso, info,
-          emp-churrasco, emp-cerimonial, emp-chacara            [alvo]
-          ink, ink-soft, paper, paper-dim, paper-ink, ember, brass, sage, acao…  [existem; saem na Etapa 6]
-Fontes:   --font-titulo, --font-texto                           [alvo]
-          --font-display, --font-sans                           [existem; só Ficha]
+          emp-churrasco, emp-cerimonial, emp-chacara            [implementado]
+Fontes:   --font-titulo, --font-texto                           [implementado]
+          --font-display, --font-sans                           [só a Ficha Técnica]
 Raio:     raio-chip 8, raio-controle 12, raio-tile 14, raio-linha 16, raio-cartao 20, raio-modal 28
 Z:        conteudo 0, barra-acoes 20, shell 30, overlay 50, popover 60, toast 70, skip 100
 Movimento: --motion-micro 120ms, --motion-comp 200ms, --motion-overlay 260ms, --motion-ease
@@ -559,3 +558,16 @@ Paginação e ordenação de tabela; filtro por empresa ou status na Agenda; ati
 - `name=`, ordem e tipo dos campos dos formulários não mudam.
 - Smoke test do deploy: 307 ou 200 com `NEXT_REDIRECT` e sem `<h1>`; sem `loading.tsx` novo; `/login` sem shell.
 - Actions, `lib/` de regra, `api/`, `db/` e deploy não são tocados.
+
+## 21. Divergências conhecidas entre este documento e o código (fechamento da Etapa 6)
+
+- **Calendário da Agenda no celular (§15):** continua a grade de 7 colunas (nomes cortados); a lista agrupada por dia abaixo de 768 px **[alvo]**, aguardando decisão do Pedro. Só as cores dos pontos passaram para os tokens `emp-*`.
+- **Tokens `--z-*`:** existem em `globals.css`, mas o código usa as classes literais com os mesmos valores (`z-20`, `z-30`, `z-50`, `z-[100]`).
+- **Nomes de raio:** o código usa `--radius-chip|controle|tile|linha|cartao|modal` (classes `rounded-chip` etc.), não `raio-*`.
+- **Caixa de seleção:** é o próprio `input[type=checkbox]` estilizado por CSS global (sem o par input oculto + caixa do protótipo); mesma aparência, payload intacto.
+- **Tabelas (§11.4):** as telas de lista usam listas em cartão (não `<table>`); a tabela de cálculos do Simulador mantém o formato anterior.
+- **Estado de erro de formulário:** borda `perigo` e mensagem com ícone no `Campo`; a recuperação de valores digitados continua fora (§19).
+- **Sem Radix, shadcn/ui nem `cmdk`:** nenhuma dependência de UI foi adicionada.
+- **Login:** restilizado, sem shell, com `<h1>` próprio; o smoke do deploy trata `/login` como página pública (só exige 200).
+- **`Modal`:** o foco inicial é o primeiro focável (o "Fechar" nos seletores) ou o elemento com `data-foco-inicial` (Cancelar nas confirmações).
+- **Ainda não verificado em aparelho:** teclado virtual e barra de abas (E7), área segura do iOS, zoom em campo de 16 px, tema escuro ao sol.

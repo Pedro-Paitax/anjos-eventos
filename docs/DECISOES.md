@@ -1177,3 +1177,24 @@ Escolhas:
 5. A lista "Em sequência" e o Orçamento seguem mostrando o valor onde já mostravam (a regra "sem valor" vale só para a Home).
 6. **Calendário da Agenda no celular: não alterado** (continua a grade de 7 colunas, com nomes cortados). A proposta de abrir em "Em sequência" no celular muda comportamento e aguarda decisão do Pedro.
 7. A Ficha Técnica não importa `CabecalhoPagina`, `Botao`, `Campo`, `Alerta` nem `Vazio` (só `BotaoImprimir`, com classes próprias, e `formatarData`); renderização em mídia print idêntica ao fim da Etapa 4 (CSS computado e pixels).
+
+### Etapa 6 do Redesign 2: limpeza e fechamento (2026-10-04)
+
+1. **Tokens e animações antigas removidos de `globals.css`**, depois de uma busca em `src/**/*.ts(x)` por cada token e classe (`ink`, `ink-soft`, `paper*`, `ember`, `brass`, `sage`, `acao*`, os pares `-claro`/`-escuro`, `texto-suave-papel/escuro`, `borda-campo`, `shadow-elev-*`, `venue-glow`, `card-enter`, `lista-enter`, `sem-enter`, `enter-order`, `motion-fast/base/slow/stagger`, `container-pagina-estreita/media`): os únicos usuários restantes eram o login e `layout.tsx`, ambos migrados na mesma etapa. Sobram `--font-display` e `--font-sans` (Fraunces e Archivo), usados só pela Ficha Técnica. `corEmpresa` saiu de `formatacao.ts` (o calendário passou a usar `varCorEmpresa`, só a cor do ponto).
+2. **Fonte do `body`: Instrument Sans** (`--font-texto`); a Ficha mantém Archivo por `body:has(.sem-animacao)`. O `body` do layout passou a `bg-fundo text-texto`. A Ficha Técnica foi comparada de novo com o fim da Etapa 5 em mídia print (CSS computado de todos os elementos da folha, pixels e `printToPDF` do Chrome): idêntica; só mudam a cor do `body` e o fundo ao redor da folha na tela.
+3. **Login restilizado** (sem shell; `actions/usuario.ts`, o formulário por usuário e o campo `usuarioId` intactos; o texto "Quem esta usando?" foi mantido). Tem `<h1>`; o smoke do deploy (`scripts/deploy-oracle.sh`) só exige 200 em `/login` e aplica a regra "sem `<h1>`" apenas às páginas protegidas.
+4. **Calendário da Agenda: não alterado** (a grade de 7 colunas continua no celular). A condição "[sim/não]" do pedido da Etapa 6 veio sem resposta; mantida a instrução anterior de aguardar a decisão do Pedro. Proposta pronta para quando vier o "sim": lista agrupada por dia abaixo de 768 px e grade a partir daí, só apresentação, mesmos dados e links.
+5. **Teclado nos modais restilizados** (Resolver pendências, exclusão de evento, exclusão de preparo e os dois seletores de itens), em 1280 e 390 px: abre com Enter, foco inicial dentro, foco preso (12 Tab e 12 Shift+Tab), Esc fecha, clique dentro não fecha, clique fora fecha, foco volta ao botão que abriu. 10 de 10 combinações passaram. Nenhuma exclusão foi confirmada.
+
+#### Lista final "PRECISA DE LÓGICA, NÃO IMPLEMENTAR"
+Ficaram de fora porque exigem query, Server Action, JS novo ou decisão de comportamento (nada disso foi feito; cada item pede decisão e implementação à parte):
+- Calendário da Agenda como lista agrupada por dia no celular (decisão pendente do Pedro; é só apresentação, mas muda o padrão de uso).
+- Filtro por empresa ou status na Agenda; paginação e ordenação de tabela; agrupar a lista por semana ou mês.
+- Atividade recente e cartões de resumo com totais (query nova); valor do evento na Home.
+- Mensagem de "sucesso" após salvar, toast ou aviso após redirecionamento.
+- Recuperação de erro nos formulários (manter os valores digitados, foco no primeiro erro, erro por campo vindo da action).
+- Busca nos seletores de preparos e de insumos (Command/cmdk), a menos que o Pedro aprove em decisão separada.
+- Índice do formulário com item ativo por rolagem; total ao vivo na barra de salvar.
+- Avatar do usuário com inicial.
+- Aviso ao sair de um formulário com dados não salvos.
+- Qualquer query ou Server Action nova.
