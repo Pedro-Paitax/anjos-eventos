@@ -1,7 +1,7 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
-import { NavegacaoPrincipal } from "@/components/navegacao-principal";
+import { Shell } from "@/components/shell";
 import { obterUsuarioAtual } from "@/lib/usuario-atual";
 
 // Fontes locais (src/app/fonts/): o build não depende de rede. Fraunces e Archivo
@@ -20,10 +20,9 @@ const archivo = localFont({
   src: [{ path: "./fonts/archivo-latin-normal.woff2", weight: "100 900", style: "normal" }],
 });
 
-// Fontes do redesign (direção Brasa). Ainda sem uso: sem preload até a Etapa 2.
+// Fontes do redesign (direção Brasa). O shell (marca e menu) as usa em toda página, então com preload.
 const bricolage = localFont({
   variable: "--font-bricolage",
-  preload: false,
   src: [
     { path: "./fonts/bricolage-grotesque-600-normal.woff2", weight: "600", style: "normal" },
     { path: "./fonts/bricolage-grotesque-700-normal.woff2", weight: "700", style: "normal" },
@@ -32,13 +31,15 @@ const bricolage = localFont({
 
 const instrument = localFont({
   variable: "--font-instrument",
-  preload: false,
   src: [
     { path: "./fonts/instrument-sans-400-normal.woff2", weight: "400", style: "normal" },
     { path: "./fonts/instrument-sans-500-normal.woff2", weight: "500", style: "normal" },
     { path: "./fonts/instrument-sans-600-normal.woff2", weight: "600", style: "normal" },
   ],
 });
+
+// viewport-fit=cover: sem isso o env(safe-area-inset-*) da barra de abas vale sempre 0.
+export const viewport: Viewport = { viewportFit: "cover" };
 
 export const metadata: Metadata = {
   title: { default: "Anjos Eventos", template: "%s · Anjos Eventos" },
@@ -55,8 +56,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       className={`${fraunces.variable} ${archivo.variable} ${bricolage.variable} ${instrument.variable} h-full`}
     >
       <body className="flex min-h-full flex-col bg-ink text-paper antialiased">
-        <NavegacaoPrincipal nomeUsuario={usuario?.nome} />
-        {children}
+        <Shell nomeUsuario={usuario?.nome}>{children}</Shell>
       </body>
     </html>
   );

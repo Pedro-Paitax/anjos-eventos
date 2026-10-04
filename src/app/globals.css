@@ -155,6 +155,23 @@ body {
   }
 }
 
+/* Shell (components/shell.tsx). Transição só de cor e fundo: o anel de foco nunca anima. */
+.shell-item {
+  transition-property: background-color, color;
+}
+
+/* Celular: com campo de texto em foco (teclado virtual) a barra de abas sai de cena. */
+@media (max-width: 899.98px) {
+  body:has(
+      input:not([type="checkbox"], [type="radio"], [type="submit"], [type="button"]):focus,
+      select:focus,
+      textarea:focus
+    )
+    .barra-abas {
+    display: none;
+  }
+}
+
 .venue-glow {
   background:
     radial-gradient(60% 45% at 50% 0%, rgba(193, 85, 44, 0.18), transparent 70%),

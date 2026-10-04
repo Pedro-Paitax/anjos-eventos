@@ -13,13 +13,15 @@ type StatusWhatsapp = {
 const INTERVALO_NORMAL_MS = 15_000;
 const INTERVALO_MODAL_MS = 3_000; // QR muda a cada ~20s; acompanha de perto com o modal aberto
 
+// O estado nunca depende só da cor: cada um tem uma forma de ícone e um texto.
 const ROTULOS = {
-  connected: { icone: "🟢", texto: "WhatsApp conectado" },
-  connecting: { icone: "🟡", texto: "WhatsApp conectando…" },
-  disconnected: { icone: "🔴", texto: "WhatsApp desconectado" },
+  connected: { texto: "WhatsApp conectado", curto: "Conectado", cor: "text-sucesso", caminho: "M10 3a7 7 0 1 0 0 14 7 7 0 0 0 0-14z M7 10.5 9 12.5 13 8" },
+  connecting: { texto: "WhatsApp conectando…", curto: "Conectando…", cor: "text-aviso", caminho: "M10 3a7 7 0 1 0 0 14 7 7 0 0 0 0-14z M10 6.5V10l2.5 1.5" },
+  disconnected: { texto: "WhatsApp desconectado", curto: "Desconectado", cor: "text-perigo", caminho: "M10 3a7 7 0 1 0 0 14 7 7 0 0 0 0-14z M7.8 7.8l4.4 4.4 M12.2 7.8l-4.4 4.4" },
 } as const;
 
-export function IndicadorWhatsapp() {
+/** `comTexto`: mostra o estado por escrito ao lado do ícone (menu lateral). */
+export function IndicadorWhatsapp({ comTexto = false }: { comTexto?: boolean }) {
   const [dados, setDados] = useState<StatusWhatsapp | null>(null);
   const [modalAberto, setModalAberto] = useState(false);
 
@@ -47,7 +49,7 @@ export function IndicadorWhatsapp() {
   }, [modalAberto]);
 
   if (!dados) return null;
-  const { icone, texto } = ROTULOS[dados.status];
+  const { texto, curto, cor, caminho } = ROTULOS[dados.status];
   // Conectou com o modal aberto: ele some sozinho.
   const modalVisivel = modalAberto && dados.status !== "connected";
 
@@ -58,10 +60,23 @@ export function IndicadorWhatsapp() {
         onClick={() => dados.status !== "connected" && setModalAberto(true)}
         title={texto}
         aria-label={texto}
-        className="inline-flex min-h-11 min-w-11 items-center justify-center text-base leading-none"
+        className={`inline-flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-controle text-sm font-medium text-texto-suave focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foco ${comTexto ? "justify-start px-3" : ""}`}
       >
-        <span key={dados.status} className="troca-suave inline-block">
-          {icone}
+        <span key={dados.status} className={`troca-suave inline-flex items-center gap-2 ${cor}`}>
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 20 20"
+            width={20}
+            height={20}
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={1.75}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d={caminho} />
+          </svg>
+          {comTexto && <span className="text-texto-suave">{curto}</span>}
         </span>
       </button>
 
