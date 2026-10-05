@@ -83,9 +83,9 @@ export function CalendarioEventos({
                 const data = partesDataEvento(new Date(ano, mesIndice, dia));
                 return (
                   <section key={dia} className="flex flex-col gap-2">
-                    <h3 className="px-1 text-[17px] font-semibold">
+                    <h2 className="px-1 text-[17px] font-semibold">
                       {data.semana}, {data.dia} {data.mes}
-                    </h3>
+                    </h2>
                     <ul className="divide-y divide-borda overflow-hidden rounded-cartao border border-borda bg-superficie shadow-realce">
                       {eventosDoDia.map((evento) => (
                         <li key={evento.id}>
