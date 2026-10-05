@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { diasAteEvento, rotuloEmDias } from "@/lib/formatacao";
+import { chaveDiaEvento, diasAteEvento, rotuloEmDias } from "@/lib/formatacao";
 
 // 2026-10-04 12:00 em São Paulo (UTC-3) = 15:00 UTC.
 const MEIO_DIA_SP = new Date("2026-10-04T15:00:00Z");
@@ -40,5 +40,13 @@ describe("rotuloEmDias", () => {
     expect(rotuloEmDias(2)).toBe("em 2 dias");
     expect(rotuloEmDias(15)).toBe("em 15 dias");
     expect(rotuloEmDias(-1)).toBeNull();
+  });
+});
+
+describe("chaveDiaEvento", () => {
+  it("formata AAAA-MM-DD com zeros, pela data local do evento", () => {
+    expect(chaveDiaEvento(new Date(2026, 9, 7, 23, 30))).toBe("2026-10-07");
+    expect(chaveDiaEvento(new Date(2027, 0, 1, 0, 5))).toBe("2027-01-01");
+    expect(chaveDiaEvento(new Date(2026, 11, 31, 12, 0))).toBe("2026-12-31");
   });
 });

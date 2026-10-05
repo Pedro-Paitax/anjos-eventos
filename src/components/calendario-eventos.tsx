@@ -1,6 +1,13 @@
 import Link from "next/link";
 import type { Evento } from "@/lib/eventos";
-import { chaveAnoMes, formatarHora, nomeMes, partesDataEvento, varCorEmpresa } from "@/lib/formatacao";
+import {
+  chaveAnoMes,
+  chaveDiaEvento,
+  formatarHora,
+  nomeMes,
+  partesDataEvento,
+  varCorEmpresa,
+} from "@/lib/formatacao";
 import { ChipEmpresa, ChipStatus } from "@/components/chip-empresa";
 
 const diasSemana = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
@@ -165,9 +172,13 @@ export function CalendarioEventos({
                     </Link>
                   ))}
                   {eventosDoDia.length > 3 && (
-                    <p className="text-sm text-texto-suave">
+                    <Link
+                      href={`/agenda?visao=sequencia#dia-${chaveDiaEvento(new Date(ano, mesIndice, celula.dia))}`}
+                      aria-label={`Ver todos os ${eventosDoDia.length} eventos do dia ${celula.dia}, em sequência`}
+                      className="self-start rounded-chip py-1 text-sm text-link underline decoration-link/40 underline-offset-4 hover:decoration-link focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foco"
+                    >
                       +{eventosDoDia.length - 3} mais
-                    </p>
+                    </Link>
                   )}
                 </div>
               </div>

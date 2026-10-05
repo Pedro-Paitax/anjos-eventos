@@ -35,6 +35,12 @@ export function formatarValor(valor: string | null): string | null {
   }).format(Number(valor));
 }
 
+/** "AAAA-MM-DD" da data do evento (getters locais, como o calendário agrupa por dia); âncora da visão "Em sequência". */
+export function chaveDiaEvento(dataEvento: string | Date): string {
+  const d = new Date(dataEvento);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 export function chaveAnoMes(data: Date): string {
   return `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, "0")}`;
 }
