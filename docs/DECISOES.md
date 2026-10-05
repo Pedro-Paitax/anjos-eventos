@@ -1197,3 +1197,7 @@ Ficaram de fora porque exigem query, Server Action, JS novo ou decisão de compo
 - Avatar do usuário com inicial.
 - Aviso ao sair de um formulário com dados não salvos.
 - Qualquer query ou Server Action nova.
+
+### Calendário: "+N mais" da grade (2026-10-05)
+
+O "+N mais" da grade (768 px ou mais) agora é um link para `/agenda?visao=sequencia#dia-AAAA-MM-DD`: a visão "Em sequência" ancorada no dia. **Escolha: âncora, não modal**, por ser a mais simples: a lista "Em sequência" (`ListaEventos`) já traz todos os eventos, cada um com link, então só foi preciso dar o id `dia-AAAA-MM-DD` ao primeiro evento de cada dia (`chaveDiaEvento` em `formatacao.ts`, com teste) e trocar o `<p>` por um `<Link>`. Sem query nova, sem componente cliente novo, sem modal (portanto sem foco preso a tratar: é um link comum, focável por Tab e acionável com Enter, com `aria-label` "Ver todos os N eventos do dia D, em sequência"). Verificado na prévia (dados fictícios) em 768 e 1280 px: Enter no link leva à URL com o hash, a âncora existe e a página rola até ela, e os 4 eventos do dia (um além do limite da grade) aparecem em sequência, cada um com link. Limite: a lista "Em sequência" mostra todos os meses; o dia fica no meio da rolagem, não isolado.

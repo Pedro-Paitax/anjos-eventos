@@ -561,7 +561,7 @@ Paginação e ordenação de tabela; filtro por empresa ou status na Agenda; ati
 
 ## 21. Divergências conhecidas entre este documento e o código (fechamento da Etapa 6)
 
-- **Calendário da Agenda no celular (§15):** implementado (aprovado pelo Pedro): lista agrupada por dia abaixo de 768 px e a grade mensal a partir de 768 px. O padrão da Agenda continua sendo a visão "Agenda"; a visão "Em sequência" como padrão no celular não foi adotada. Limite conhecido: a grade (comportamento anterior, não alterado) mostra no máximo 3 eventos por dia e "+N mais" sem link; a lista do celular mostra todos. Com 4 ou mais eventos no mesmo dia, o evento além do terceiro só tem link na lista.
+- **Calendário da Agenda no celular (§15):** implementado (aprovado pelo Pedro): lista agrupada por dia abaixo de 768 px e a grade mensal a partir de 768 px. O padrão da Agenda continua sendo a visão "Agenda"; a visão "Em sequência" como padrão no celular não foi adotada. A grade mostra no máximo 3 eventos por dia; o "+N mais" é um link para `/agenda?visao=sequencia#dia-AAAA-MM-DD`, a visão "Em sequência" ancorada no primeiro evento do dia (a lista já traz todos os eventos do dia, com link; não é um modal).
 - **Tokens `--z-*`:** existem em `globals.css`, mas o código usa as classes literais com os mesmos valores (`z-20`, `z-30`, `z-50`, `z-[100]`).
 - **Nomes de raio:** o código usa `--radius-chip|controle|tile|linha|cartao|modal` (classes `rounded-chip` etc.), não `raio-*`.
 - **Caixa de seleção:** é o próprio `input[type=checkbox]` estilizado por CSS global (sem o par input oculto + caixa do protótipo); mesma aparência, payload intacto.
