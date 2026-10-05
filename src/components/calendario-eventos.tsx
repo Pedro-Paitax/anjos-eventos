@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Evento } from "@/lib/eventos";
-import { chaveAnoMes, nomeMes, varCorEmpresa } from "@/lib/formatacao";
+import { chaveAnoMes, formatarHora, nomeMes, partesDataEvento, varCorEmpresa } from "@/lib/formatacao";
+import { ChipEmpresa, ChipStatus } from "@/components/chip-empresa";
 
 const diasSemana = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 const empresasLegenda = [
@@ -68,7 +69,49 @@ export function CalendarioEventos({
         </Link>
       </div>
 
-      <div className="overflow-hidden rounded-controle bg-superficie text-texto">
+      {/* Abaixo de 768 px: lista agrupada por dia (mesmos eventos e links da grade). */}
+      <div className="md:hidden">
+        {eventosPorDia.size === 0 ? (
+          <p className="rounded-cartao border border-borda bg-superficie p-[18px] text-texto-suave">
+            Nenhum evento neste mês.
+          </p>
+        ) : (
+          <div className="flex flex-col gap-4">
+            {[...eventosPorDia.entries()]
+              .sort(([a], [b]) => a - b)
+              .map(([dia, eventosDoDia]) => {
+                const data = partesDataEvento(new Date(ano, mesIndice, dia));
+                return (
+                  <section key={dia} className="flex flex-col gap-2">
+                    <h3 className="px-1 text-[17px] font-semibold">
+                      {data.semana}, {data.dia} {data.mes}
+                    </h3>
+                    <ul className="divide-y divide-borda overflow-hidden rounded-cartao border border-borda bg-superficie shadow-realce">
+                      {eventosDoDia.map((evento) => (
+                        <li key={evento.id}>
+                          <Link
+                            href={`/agenda/${evento.id}`}
+                            className="flex flex-col gap-2 px-4 py-3 transition-colors hover:bg-elevada focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-foco"
+                          >
+                            <span className="font-semibold">{evento.cliente}</span>
+                            <span className="flex flex-wrap items-center gap-2">
+                              <ChipEmpresa nome={evento.empresa_nome} />
+                              <ChipStatus status={evento.status} />
+                              <span className="text-sm text-texto-suave">{formatarHora(evento.data_evento)}</span>
+                            </span>
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
+                );
+              })}
+          </div>
+        )}
+      </div>
+
+      {/* A partir de 768 px: a grade mensal. */}
+      <div className="hidden overflow-hidden rounded-cartao border border-borda bg-superficie text-texto md:block">
         <div className="grid grid-cols-7 border-b border-borda">
           {diasSemana.map((dia) => (
             <div
