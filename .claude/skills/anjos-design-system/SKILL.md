@@ -14,7 +14,7 @@ Fontes de verdade (ler antes de começar, só o que for relevante à tarefa):
 - `docs/REGRAS_NEGOCIO.md` e `docs/DECISOES.md` — quando a tela toca regra de negócio.
 - `AGENTS.md` — o Next.js instalado tem mudanças de API; consultar `node_modules/next/dist/docs/` antes de usar recurso do framework.
 
-O DESIGN-SYSTEM.md descreve o **alvo da direção Brasa** (escolhida pelo Pedro em 2026-10-04). A tabela "Estado da implementação" no início dele diz o que já está no código (Etapas 0 a 6 feitas); o que está **[alvo]** ainda não existe (hoje só o calendário no celular) e o que está marcado **[confirmar]** não está decidido: não trate como decidido; pergunte. O §21 lista as divergências conhecidas entre o documento e o código. O protótipo de referência está em `docs/design/prototipos/direcao-1/`; quando ele for ambíguo, escolha, registre a escolha no DESIGN-SYSTEM.md (§0) e siga. O redesign anterior ("caderno do maître": papel sobre moldura escura, Fraunces, raio de 2 px) **não vale mais**.
+O DESIGN-SYSTEM.md descreve o **alvo da direção Brasa** (escolhida pelo Pedro em 2026-10-04). A tabela "Estado da implementação" no início dele diz o que já está no código (Etapas 0 a 6 feitas); o que está **[alvo]** ainda não existe (hoje nada) e o que está marcado **[confirmar]** não está decidido: não trate como decidido; pergunte. O §21 lista as divergências conhecidas entre o documento e o código. O protótipo de referência está em `docs/design/prototipos/direcao-1/`; quando ele for ambíguo, escolha, registre a escolha no DESIGN-SYSTEM.md (§0) e siga. O redesign anterior ("caderno do maître": papel sobre moldura escura, Fraunces, raio de 2 px) **não vale mais**.
 
 ---
 

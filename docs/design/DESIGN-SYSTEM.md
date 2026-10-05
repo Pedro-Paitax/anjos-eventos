@@ -3,7 +3,7 @@
 Status: **direção Brasa escolhida pelo Pedro em 2026-10-04 e implementada nas Etapas 0 a 6** (tabela abaixo). Este documento é a referência do que o código segue; as divergências conhecidas entre o texto e o código estão no fim (§21). Referência visual: `docs/design/prototipos/direcao-1/` (HTML+CSS estático) e `docs/design/REDESIGN-2-PROPOSTA.md` (auditoria, contrastes, riscos, plano). Base anterior: `docs/design/UX-AUDIT.md`.
 
 Convenções:
-- **[implementado]** = está no código. **[alvo]** = definido aqui e ainda não implementado (hoje só o calendário no celular, §15). **[confirmar]** = depende do Pedro ou de teste real.
+- **[implementado]** = está no código. **[alvo]** = definido aqui e ainda não implementado (hoje nada). **[confirmar]** = depende do Pedro ou de teste real.
 - Razões de contraste foram **calculadas** (fórmula WCAG 2.x) com os hex indicados; não foram medidas em tela. **Toda cor nova precisa de contraste calculado antes de entrar.**
 - Nenhuma regra de negócio (`docs/REGRAS_NEGOCIO.md`) é alterada por este documento.
 
@@ -561,7 +561,7 @@ Paginação e ordenação de tabela; filtro por empresa ou status na Agenda; ati
 
 ## 21. Divergências conhecidas entre este documento e o código (fechamento da Etapa 6)
 
-- **Calendário da Agenda no celular (§15):** continua a grade de 7 colunas (nomes cortados); a lista agrupada por dia abaixo de 768 px **[alvo]**, aguardando decisão do Pedro. Só as cores dos pontos passaram para os tokens `emp-*`.
+- **Calendário da Agenda no celular (§15):** implementado (aprovado pelo Pedro): lista agrupada por dia abaixo de 768 px e a grade mensal a partir de 768 px. O padrão da Agenda continua sendo a visão "Agenda"; a visão "Em sequência" como padrão no celular não foi adotada.
 - **Tokens `--z-*`:** existem em `globals.css`, mas o código usa as classes literais com os mesmos valores (`z-20`, `z-30`, `z-50`, `z-[100]`).
 - **Nomes de raio:** o código usa `--radius-chip|controle|tile|linha|cartao|modal` (classes `rounded-chip` etc.), não `raio-*`.
 - **Caixa de seleção:** é o próprio `input[type=checkbox]` estilizado por CSS global (sem o par input oculto + caixa do protótipo); mesma aparência, payload intacto.
