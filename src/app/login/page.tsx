@@ -23,7 +23,7 @@ export default async function LoginPage() {
           Anjos Eventos
         </p>
         <h1 className="font-titulo text-[clamp(30px,4vw,42px)] font-bold leading-[1.05] tracking-[-0.025em]">
-          Quem esta usando?
+          Quem está usando?
         </h1>
         <p className="max-w-xs text-texto-suave">De preferência não selecione outro usuário.</p>
       </div>
