@@ -46,7 +46,11 @@ const TABULAVEIS =
 function vizinhoTabulavel(origem: HTMLElement, anterior: boolean): HTMLElement | null {
   const escopo = origem.closest('[role="dialog"]') ?? document;
   const lista = [...escopo.querySelectorAll<HTMLElement>(TABULAVEIS)].filter(
-    (el) => el.getClientRects().length > 0 && !el.closest("[inert]")
+    // Fora os selects nativos escondidos do Radix (tabindex -1, aria-hidden no próprio elemento).
+    (el) =>
+      el.getClientRects().length > 0 &&
+      el.getAttribute("tabindex") !== "-1" &&
+      el.getAttribute("aria-hidden") !== "true"
   );
   const i = lista.indexOf(origem);
   if (i < 0 || lista.length < 2) return null;
