@@ -11,6 +11,7 @@
     "deploy:oracle": "bash scripts/deploy-oracle.sh"
   },
   "dependencies": {
+    "@radix-ui/react-select": "2.3.8",
     "drizzle-orm": "^0.45.2",
     "next": "16.3.4",
     "pdf-lib": "1.17.1",
