@@ -194,8 +194,8 @@ export function FormularioDecisoesOperacionais({
                 <p className="text-sm text-texto-suave">
                   {doGrupo.length === 0
                     ? "Nenhum ativo cadastrado. "
-                    : `Só há ${doGrupo.length} ativo cadastrado; faltam ${minimo - doGrupo.length} para o mínimo. `}
-                  <Link href="/colaboradores" className={botaoClasse("link", "sm")}>
+                    : `Só há ${doGrupo.length} ${doGrupo.length === 1 ? "ativo cadastrado" : "ativos cadastrados"}; ${minimo - doGrupo.length === 1 ? "falta 1" : `faltam ${minimo - doGrupo.length}`} para o mínimo. `}
+                  <Link href="/colaboradores" className={`${botaoClasse("link", "sm")} min-h-11`}>
                     Cadastrar em Colaboradores
                   </Link>
                 </p>
