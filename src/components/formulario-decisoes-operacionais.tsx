@@ -5,7 +5,6 @@ import { useActionState, useState } from "react";
 import type { Colaborador } from "@/lib/colaboradores";
 import {
   FUNCOES_COLABORADOR,
-  ROTULOS_FUNCAO,
 } from "@/lib/colaboradores-opcoes";
 import { rotuloClasse, secaoTituloClasse } from "@/components/formulario-evento";
 import {
