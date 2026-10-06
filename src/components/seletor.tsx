@@ -38,6 +38,21 @@ type SeletorProps = {
 
 const VAZIO = "__vazio__";
 
+const TABULAVEIS =
+  'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+// Próximo (ou anterior) campo na ordem do Tab, como o select nativo faz ao fechar. Dentro de um
+// modal, a busca fica no modal e dá a volta, como o `Modal` faz.
+function vizinhoTabulavel(origem: HTMLElement, anterior: boolean): HTMLElement | null {
+  const escopo = origem.closest('[role="dialog"]') ?? document;
+  const lista = [...escopo.querySelectorAll<HTMLElement>(TABULAVEIS)].filter(
+    (el) => el.getClientRects().length > 0 && !el.closest("[inert]")
+  );
+  const i = lista.indexOf(origem);
+  if (i < 0 || lista.length < 2) return null;
+  return lista[(i + (anterior ? -1 : 1) + lista.length) % lista.length];
+}
+
 // O <select> nativo cai na primeira opção habilitada quando o valor não existe nas opções;
 // repetimos isso para o valor enviado ser o mesmo de antes.
 function normalizar(valor: string, opcoes: OpcaoSeletor[], placeholder?: string) {
@@ -60,7 +75,9 @@ export function Seletor({
   ...aria
 }: SeletorProps) {
   const [interno, setInterno] = useState(() => normalizar(defaultValue, opcoes, placeholder));
+  const [aberto, setAberto] = useState(false);
   const gatilhoRef = useRef<HTMLButtonElement>(null);
+  const focoSeguinteRef = useRef<HTMLElement | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const layout = (className ?? "").split(" ").filter((c) => c && c !== campoClasse).join(" ");
   const controlado = value !== undefined;
@@ -91,6 +108,8 @@ export function Seletor({
       <Select.Root
         value={valorRadix}
         onValueChange={aoMudar}
+        open={aberto}
+        onOpenChange={setAberto}
         disabled={disabled}
       >
         <Select.Trigger
@@ -127,6 +146,22 @@ export function Seletor({
             collisionPadding={8}
             // Dentro do Modal, o Esc do Radix fecha só a lista (o Modal escuta o `document`).
             onEscapeKeyDown={(e) => e.stopPropagation()}
+            // Tab fecha a lista e leva o foco ao campo seguinte (o Radix só impediria o Tab).
+            onKeyDown={(e) => {
+              if (e.key !== "Tab" || !gatilhoRef.current) return;
+              e.preventDefault();
+              e.stopPropagation();
+              focoSeguinteRef.current = vizinhoTabulavel(gatilhoRef.current, e.shiftKey);
+              setAberto(false);
+            }}
+            onCloseAutoFocus={(e) => {
+              const proximo = focoSeguinteRef.current;
+              focoSeguinteRef.current = null;
+              if (proximo) {
+                e.preventDefault();
+                proximo.focus();
+              }
+            }}
           >
             <Select.Viewport className="seletor-viewport">
               {opcoes.map((o) => (
