@@ -7,6 +7,7 @@ import { UNIDADES_INSUMO } from "@/lib/preparos-opcoes";
 import { campoClasse } from "@/components/campo";
 import { Vazio } from "@/components/vazio";
 import { botaoClasse } from "@/components/botao";
+import { Seletor } from "@/components/seletor";
 
 // Preço corrigido já vem calculado do servidor (calcularPrecoCorrigido em
 // src/lib/custo-preparo.ts, que depende de "server-only" — não pode ser
@@ -95,29 +96,27 @@ export function ListaInsumos({ insumos }: { insumos: InsumoComPrecoCorrigido[] }
           aria-label="Buscar insumo por nome"
           className={`${campoFiltroClasse} sm:min-w-48 sm:flex-1`}
         />
-        <select
+        <Seletor
           aria-label="Filtrar por unidade"
           value={unidadeFiltro}
-          onChange={(e) => setUnidadeFiltro(e.target.value)}
-          className={`${campoFiltroClasse} sm:w-56`}
-        >
-          <option value="">Todas as unidades</option>
-          {UNIDADES_INSUMO.map((unidade) => (
-            <option key={unidade} value={unidade}>
-              {unidade}
-            </option>
-          ))}
-        </select>
-        <select
+          onChange={setUnidadeFiltro}
+          className="sm:w-56"
+          opcoes={[
+            { valor: "", rotulo: "Todas as unidades" },
+            ...UNIDADES_INSUMO.map((unidade) => ({ valor: unidade, rotulo: unidade })),
+          ]}
+        />
+        <Seletor
           aria-label="Ordenação"
           value={ordenacao}
-          onChange={(e) => setOrdenacao(e.target.value as Ordenacao)}
-          className={`${campoFiltroClasse} sm:w-56`}
-        >
-          <option value="nome">Ordenar por Nome</option>
-          <option value="preco-asc">Preço crescente</option>
-          <option value="preco-desc">Preço decrescente</option>
-        </select>
+          onChange={(v) => setOrdenacao(v as Ordenacao)}
+          className="sm:w-56"
+          opcoes={[
+            { valor: "nome", rotulo: "Ordenar por Nome" },
+            { valor: "preco-asc", rotulo: "Preço crescente" },
+            { valor: "preco-desc", rotulo: "Preço decrescente" },
+          ]}
+        />
       </div>
 
       {insumosFiltrados.length === 0 ? (

@@ -1,7 +1,8 @@
 import type { Evento } from "@/lib/eventos";
 import { paraInputDatetimeLocal } from "@/lib/formatacao";
-import { campoClasse, rotuloClasse, secaoTituloClasse } from "@/components/formulario-evento";
+import { campoClasse, OPCOES_STATUS_EVENTO, rotuloClasse, secaoTituloClasse } from "@/components/formulario-evento";
 import { Campo } from "@/components/campo";
+import { Seletor } from "@/components/seletor";
 import { BotaoEnviar } from "@/components/botao-enviar";
 
 type FormularioEventoGenericoProps = {
@@ -135,15 +136,11 @@ export function FormularioEventoGenerico({
 
         <Campo rotulo="Status">
           {(p) => (
-            <select {...p}
+            <Seletor {...p}
               name="status"
               defaultValue={valoresIniciais?.status ?? "orcado"}
-            >
-              <option value="orcado">Orçado</option>
-              <option value="confirmado">Confirmado</option>
-              <option value="realizado">Realizado</option>
-              <option value="cancelado">Cancelado</option>
-            </select>
+              opcoes={OPCOES_STATUS_EVENTO}
+            />
           )}
         </Campo>
       </section>

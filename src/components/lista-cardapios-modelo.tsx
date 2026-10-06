@@ -6,8 +6,8 @@ import type { CardapioModeloResumo } from "@/lib/cardapios-modelo";
 import { excluirCardapioModeloAction } from "@/app/actions/cardapio-modelo";
 import { ModalConfirmacao } from "@/components/modal-confirmacao";
 import { Alerta } from "@/components/alerta";
-import { campoClasse } from "@/components/campo";
 import { botaoClasse } from "@/components/botao";
+import { Seletor } from "@/components/seletor";
 
 function formatarPreco(preco: number | null): string {
   if (preco == null) return "Sem preço fixo";
@@ -123,16 +123,16 @@ export function ListaCardapiosModelo({ cardapios }: { cardapios: CardapioModeloR
         <label htmlFor="filtroPreco" className="text-sm text-texto-suave">
           Filtrar:
         </label>
-        <select
+        <Seletor
           id="filtroPreco"
           value={filtro}
-          onChange={(e) => setFiltro(e.target.value as FiltroPreco)}
-          className={campoClasse}
-        >
-          <option value="todos">Todos</option>
-          <option value="com-preco-fixo">Com preço fixo</option>
-          <option value="sem-preco-fixo">Sem preço fixo</option>
-        </select>
+          onChange={(v) => setFiltro(v as FiltroPreco)}
+          opcoes={[
+            { valor: "todos", rotulo: "Todos" },
+            { valor: "com-preco-fixo", rotulo: "Com preço fixo" },
+            { valor: "sem-preco-fixo", rotulo: "Sem preço fixo" },
+          ]}
+        />
       </div>
 
       {cardapiosFiltrados.length === 0 ? (

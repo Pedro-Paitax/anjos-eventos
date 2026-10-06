@@ -5,6 +5,7 @@ import type { Colaborador } from "@/lib/colaboradores";
 import { FUNCOES_COLABORADOR, ROTULOS_FUNCAO } from "@/lib/colaboradores-opcoes";
 import { secaoTituloClasse } from "@/components/formulario-evento";
 import { Campo } from "@/components/campo";
+import { Seletor } from "@/components/seletor";
 import type { EstadoFormularioColaborador } from "@/app/actions/colaborador";
 import { BotaoEnviar } from "@/components/botao-enviar";
 import { Alerta } from "@/components/alerta";
@@ -42,16 +43,11 @@ export function FormularioColaborador({
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
         <Campo rotulo="Função">
           {(p) => (
-            <select {...p}
+            <Seletor {...p}
               name="funcao"
               defaultValue={estado.valores?.funcao ?? valoresIniciais?.funcao ?? "copeira"}
-            >
-              {FUNCOES_COLABORADOR.map((f) => (
-                <option key={f} value={f}>
-                  {ROTULOS_FUNCAO[f]}
-                </option>
-              ))}
-            </select>
+              opcoes={FUNCOES_COLABORADOR.map((f) => ({ valor: f, rotulo: ROTULOS_FUNCAO[f] }))}
+            />
           )}
         </Campo>
         <Campo rotulo="WhatsApp (com DDI)">

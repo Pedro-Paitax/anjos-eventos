@@ -14,6 +14,7 @@ import { obterItensCardapioModeloAction } from "@/app/actions/cardapio-modelo";
 import type { CardapioModeloResumo } from "@/lib/cardapios-modelo";
 import { calcularTaxaDeslocamento, sugerirQuantidadeGarcom, VALOR_GARCOM_PADRAO } from "@/lib/precificacao-constantes";
 import { Alerta } from "@/components/alerta";
+import { Seletor } from "@/components/seletor";
 
 type ResultadoDebug = Awaited<ReturnType<typeof calcularDebugCardapioAction>>;
 
@@ -217,20 +218,16 @@ export function SimuladorCardapio({
             <label htmlFor="cardapioModeloBase" className={rotuloClasse}>
               Começar de um Cardápio Pré-Montado (opcional)
             </label>
-            <select
+            <Seletor
               id="cardapioModeloBase"
               defaultValue=""
               disabled={aplicandoTemplate}
-              onChange={(e) => aplicarTemplate(e.target.value)}
-              className={campoClasse}
-            >
-              <option value="">— Selecionar —</option>
-              {cardapiosModelo.map((cardapio) => (
-                <option key={cardapio.id} value={cardapio.id}>
-                  {cardapio.nome}
-                </option>
-              ))}
-            </select>
+              onChange={aplicarTemplate}
+              opcoes={[
+                { valor: "", rotulo: "— Selecionar —" },
+                ...cardapiosModelo.map((c) => ({ valor: String(c.id), rotulo: c.nome })),
+              ]}
+            />
             <p className="text-xs text-texto-suave">
               Só pré-preenche os itens abaixo — você ainda pode adicionar ou
               remover livremente.

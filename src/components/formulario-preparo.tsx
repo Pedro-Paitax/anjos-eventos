@@ -11,6 +11,7 @@ import {
 } from "@/lib/preparos-opcoes";
 import { campoClasse, rotuloClasse, secaoTituloClasse } from "@/components/formulario-evento";
 import { Campo } from "@/components/campo";
+import { Seletor } from "@/components/seletor";
 import { ComposicaoPreparo } from "@/components/composicao-preparo";
 import {
   EditorPassosPreparo,
@@ -68,35 +69,27 @@ export function FormularioPreparo({
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
           <Campo rotulo="Categoria">
             {(p) => (
-              <select {...p}
+              <Seletor {...p}
                 name="categoria"
                 required
                 value={categoria ?? ""}
-                onChange={(e) => setCategoria(e.target.value)}
-              >
-                {CATEGORIAS_PREPARO.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
+                onChange={setCategoria}
+                opcoes={CATEGORIAS_PREPARO.map((c) => ({ valor: c, rotulo: c }))}
+              />
             )}
           </Campo>
 
           {categoria === "Carnes" && (
             <Campo rotulo="Subcategoria da proteína">
               {(p) => (
-                <select {...p}
+                <Seletor {...p}
                   name="subcategoriaProteina"
                   defaultValue={valoresIniciais?.subcategoriaProteina ?? ""}
-                >
-                  <option value="">Não definida</option>
-                  {SUBCATEGORIAS_PROTEINA.map((s) => (
-                    <option key={s} value={s}>
-                      {s}
-                    </option>
-                  ))}
-                </select>
+                  opcoes={[
+                    { valor: "", rotulo: "Não definida" },
+                    ...SUBCATEGORIAS_PROTEINA.map((s) => ({ valor: s, rotulo: s })),
+                  ]}
+                />
               )}
             </Campo>
           )}
@@ -117,18 +110,13 @@ export function FormularioPreparo({
           </Campo>
           <Campo rotulo="Unidade do rendimento">
             {(p) => (
-              <select {...p}
+              <Seletor {...p}
                 name="unidadeRendimento"
                 required
                 value={unidadeRendimento}
-                onChange={(e) => setUnidadeRendimento(e.target.value)}
-              >
-                {UNIDADES_RENDIMENTO_PREPARO.map((u) => (
-                  <option key={u} value={u}>
-                    {u}
-                  </option>
-                ))}
-              </select>
+                onChange={setUnidadeRendimento}
+                opcoes={UNIDADES_RENDIMENTO_PREPARO.map((u) => ({ valor: u, rotulo: u }))}
+              />
             )}
           </Campo>
         </div>

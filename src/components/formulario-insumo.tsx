@@ -5,6 +5,7 @@ import type { InsumoResumo } from "@/lib/insumos";
 import { UNIDADES_INSUMO } from "@/lib/preparos-opcoes";
 import { secaoTituloClasse } from "@/components/formulario-evento";
 import { Campo } from "@/components/campo";
+import { Seletor } from "@/components/seletor";
 import type { EstadoFormularioInsumo } from "@/app/actions/insumo";
 import { BotaoEnviar } from "@/components/botao-enviar";
 import { Alerta } from "@/components/alerta";
@@ -42,16 +43,11 @@ export function FormularioInsumo({
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
         <Campo rotulo="Unidade">
           {(p) => (
-            <select {...p}
+            <Seletor {...p}
               name="udm"
               defaultValue={estado.valores?.udm ?? valoresIniciais.udm}
-            >
-              {UNIDADES_INSUMO.map((u) => (
-                <option key={u} value={u}>
-                  {u}
-                </option>
-              ))}
-            </select>
+              opcoes={UNIDADES_INSUMO.map((u) => ({ valor: u, rotulo: u }))}
+            />
           )}
         </Campo>
         <Campo rotulo="Preço (R$)">

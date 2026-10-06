@@ -10,6 +10,7 @@ import { Alerta } from "@/components/alerta";
 import { campoClasse } from "@/components/campo";
 import { botaoClasse } from "@/components/botao";
 import { Vazio } from "@/components/vazio";
+import { Seletor } from "@/components/seletor";
 
 const campoFiltroClasse = campoClasse;
 
@@ -154,38 +155,37 @@ export function ListaPreparos({ preparos }: { preparos: PreparoResumo[] }) {
           aria-label="Buscar preparo por nome"
           className={`${campoFiltroClasse} sm:min-w-48 sm:flex-1`}
         />
-        <select
+        <Seletor
           aria-label="Filtrar por categoria"
           value={categoriaFiltro}
-          onChange={(e) => setCategoriaFiltro(e.target.value)}
-          className={`${campoFiltroClasse} sm:w-60`}
-        >
-          <option value="">Todas as categorias</option>
-          {CATEGORIAS_PREPARO.map((categoria) => (
-            <option key={categoria} value={categoria}>
-              {categoria}
-            </option>
-          ))}
-        </select>
-        <select
+          onChange={setCategoriaFiltro}
+          className="sm:w-60"
+          opcoes={[
+            { valor: "", rotulo: "Todas as categorias" },
+            ...CATEGORIAS_PREPARO.map((categoria) => ({ valor: categoria, rotulo: categoria })),
+          ]}
+        />
+        <Seletor
           aria-label="Agrupamento"
           value={agrupamento}
-          onChange={(e) => setAgrupamento(e.target.value as Agrupamento)}
-          className={`${campoFiltroClasse} sm:w-56`}
-        >
-          <option value="nenhum">Sem agrupamento</option>
-          <option value="categoria">Agrupar por Categoria</option>
-        </select>
-        <select
+          onChange={(v) => setAgrupamento(v as Agrupamento)}
+          className="sm:w-56"
+          opcoes={[
+            { valor: "nenhum", rotulo: "Sem agrupamento" },
+            { valor: "categoria", rotulo: "Agrupar por Categoria" },
+          ]}
+        />
+        <Seletor
           aria-label="Ordenação"
           value={ordenacao}
-          onChange={(e) => setOrdenacao(e.target.value as Ordenacao)}
-          className={`${campoFiltroClasse} sm:w-56`}
-        >
-          <option value="nome">Ordenar por Nome</option>
-          <option value="categoria">Ordenar por Categoria</option>
-          <option value="unidade">Ordenar por Unidade</option>
-        </select>
+          onChange={(v) => setOrdenacao(v as Ordenacao)}
+          className="sm:w-56"
+          opcoes={[
+            { valor: "nome", rotulo: "Ordenar por Nome" },
+            { valor: "categoria", rotulo: "Ordenar por Categoria" },
+            { valor: "unidade", rotulo: "Ordenar por Unidade" },
+          ]}
+        />
       </div>
 
       {preparosFiltrados.length === 0 ? (

@@ -8,8 +8,9 @@ import {
   paraInputDate,
   paraInputTime,
 } from "@/lib/formatacao";
-import { campoClasse, rotuloClasse, secaoTituloClasse } from "@/components/formulario-evento";
+import { campoClasse, OPCOES_STATUS_EVENTO, rotuloClasse, secaoTituloClasse } from "@/components/formulario-evento";
 import { Campo } from "@/components/campo";
+import { Seletor } from "@/components/seletor";
 import {
   SeletorCardapio,
   paraValoresIniciaisCardapio,
@@ -458,20 +459,16 @@ export function FormularioEventoChurrasco({
                 <label htmlFor="cardapioModeloBase" className={rotuloClasse}>
                   Começar de um Cardápio Pré-Montado (opcional)
                 </label>
-                <select
+                <Seletor
                   id="cardapioModeloBase"
                   defaultValue=""
                   disabled={aplicandoTemplate}
-                  onChange={(e) => aplicarTemplate(e.target.value)}
-                  className={campoClasse}
-                >
-                  <option value="">— Selecionar —</option>
-                  {cardapiosModelo.map((cardapio) => (
-                    <option key={cardapio.id} value={cardapio.id}>
-                      {cardapio.nome}
-                    </option>
-                  ))}
-                </select>
+                  onChange={aplicarTemplate}
+                  opcoes={[
+                    { valor: "", rotulo: "— Selecionar —" },
+                    ...cardapiosModelo.map((c) => ({ valor: String(c.id), rotulo: c.nome })),
+                  ]}
+                />
                 <p className="text-xs text-texto-suave">
                   Só pré-preenche os itens abaixo — você ainda pode adicionar ou
                   remover livremente.
@@ -708,15 +705,11 @@ export function FormularioEventoChurrasco({
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
           <Campo rotulo="Status">
             {(p) => (
-              <select {...p}
+              <Seletor {...p}
                 name="status"
                 defaultValue={valoresIniciais?.status ?? "orcado"}
-              >
-                <option value="orcado">Orçado</option>
-                <option value="confirmado">Confirmado</option>
-                <option value="realizado">Realizado</option>
-                <option value="cancelado">Cancelado</option>
-              </select>
+                opcoes={OPCOES_STATUS_EVENTO}
+              />
             )}
           </Campo>
         </div>

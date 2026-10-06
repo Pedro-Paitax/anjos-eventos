@@ -165,6 +165,84 @@ body:has(.sem-animacao) {
     background-position: right 0.75rem center;
     background-size: 1.25rem;
   }
+  /* Seletor (components/seletor.tsx, DESIGN-SYSTEM §11.3): gatilho = campo; painel em portal acima do
+     modal (--z-popover); item de 44 px; destaque em brasa a 16 % como o item de menu ativo. */
+  .seletor-gatilho {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    text-align: left;
+    cursor: pointer;
+  }
+  .seletor-gatilho > span:first-child {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .seletor-gatilho[data-placeholder] > span:first-child {
+    color: var(--color-texto-suave);
+  }
+  .seletor-seta {
+    flex: none;
+    color: var(--color-texto-suave);
+  }
+  .seletor-validacao {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .seletor-painel {
+    z-index: var(--z-popover);
+    min-width: var(--radix-select-trigger-width);
+    max-height: min(var(--radix-select-content-available-height), 20rem);
+    border: 1px solid var(--color-borda-forte);
+    border-radius: var(--radius-linha);
+    background-color: var(--color-elevada);
+    color: var(--color-texto);
+    box-shadow: var(--shadow-barra);
+    font-family: var(--font-texto), system-ui, sans-serif;
+  }
+  .seletor-viewport {
+    padding: 0.25rem;
+  }
+  .seletor-item {
+    display: flex;
+    min-height: 2.75rem;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    border-radius: var(--radius-controle);
+    padding: 0.5rem 0.75rem;
+    font-size: 1rem;
+    cursor: pointer;
+    user-select: none;
+    outline: none;
+  }
+  .seletor-item[data-highlighted] {
+    background-color: color-mix(in srgb, var(--color-brasa) 16%, transparent);
+  }
+  .seletor-item[data-highlighted]:focus-visible {
+    outline: 2px solid var(--color-foco);
+    outline-offset: -2px;
+  }
+  .seletor-item[data-state="checked"] {
+    font-weight: 600;
+  }
+  .seletor-item[data-disabled] {
+    opacity: 0.5;
+    pointer-events: none;
+  }
+  .seletor-marca {
+    display: inline-flex;
+    flex: none;
+    color: var(--color-link);
+  }
   textarea.campo-controle {
     min-height: 6rem;
     resize: vertical;
@@ -230,6 +308,13 @@ body:has(.sem-animacao) {
     animation-duration: var(--motion-micro);
     animation-timing-function: var(--motion-ease);
     animation-fill-mode: forwards;
+  }
+
+  .seletor-painel[data-state="open"] {
+    animation-name: fade-in;
+    animation-duration: var(--motion-micro);
+    animation-timing-function: var(--motion-ease);
+    animation-fill-mode: backwards;
   }
 
   .troca-suave {

@@ -6,7 +6,7 @@ import {
   FUNCOES_COLABORADOR,
   ROTULOS_FUNCAO,
 } from "@/lib/colaboradores-opcoes";
-import { campoClasse, rotuloClasse, secaoTituloClasse } from "@/components/formulario-evento";
+import { rotuloClasse, secaoTituloClasse } from "@/components/formulario-evento";
 import {
   OPCOES_POR_CAMPO,
   ROTULOS_CAMPO,
@@ -16,6 +16,7 @@ import {
 import type { EstadoFormularioDecisoes } from "@/app/actions/decisoes-operacionais";
 import { BotaoEnviar } from "@/components/botao-enviar";
 import { Alerta } from "@/components/alerta";
+import { Seletor } from "@/components/seletor";
 
 type ValoresDecisoes = {
   veiculo: string | null;
@@ -54,15 +55,16 @@ function CampoSelect({
       <label htmlFor={nome} className={rotuloClasse}>
         {ROTULOS_CAMPO[nome]}
       </label>
-      <select id={nome} name={nome} defaultValue={valor ?? ""} className={campoClasse}>
-        <option value="">Selecione…</option>
-        {OPCOES_POR_CAMPO[nome].map((opcao) => (
-          <option key={opcao} value={opcao}>
-            {opcao}
-          </option>
-        ))}
-        {legado && <option value={legado}>{legado} (valor antigo)</option>}
-      </select>
+      <Seletor
+        id={nome}
+        name={nome}
+        defaultValue={valor ?? ""}
+        opcoes={[
+          { valor: "", rotulo: "Selecione…" },
+          ...OPCOES_POR_CAMPO[nome].map((opcao) => ({ valor: opcao, rotulo: opcao })),
+          ...(legado ? [{ valor: legado, rotulo: `${legado} (valor antigo)` }] : []),
+        ]}
+      />
     </div>
   );
 }

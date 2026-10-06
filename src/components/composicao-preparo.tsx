@@ -7,6 +7,7 @@ import { criarInsumoInlineAction } from "@/app/actions/preparo";
 import { campoClasse, rotuloClasse, secaoTituloClasse } from "@/components/formulario-evento";
 import { Modal } from "@/components/modal";
 import { Alerta } from "@/components/alerta";
+import { Seletor } from "@/components/seletor";
 import { botaoClasse } from "@/components/botao";
 
 type LinhaComposicao = {
@@ -89,24 +90,21 @@ export function ComposicaoPreparo({
             <input type="hidden" name="composicaoId" value={linha.id ?? ""} />
             <div className="flex flex-1 flex-col gap-1.5">
               <label className={rotuloClasse}>Insumo</label>
-              <select
+              <Seletor
                 required
                 aria-label="Insumo"
                 name="composicaoInsumoId"
-                value={linha.insumoId}
-                onChange={(e) => aoMudarInsumo(linha.chave, e.target.value)}
-                className={campoClasse}
-              >
-                <option value="" disabled>
-                  Selecione…
-                </option>
-                {insumos.map((insumo) => (
-                  <option key={insumo.id} value={insumo.id}>
-                    {insumo.nome} ({insumo.udm})
-                  </option>
-                ))}
-                <option value={OPCAO_NOVO_INSUMO}>+ Criar novo insumo</option>
-              </select>
+                value={String(linha.insumoId)}
+                onChange={(v) => aoMudarInsumo(linha.chave, v)}
+                placeholder="Selecione…"
+                opcoes={[
+                  ...insumos.map((insumo) => ({
+                    valor: String(insumo.id),
+                    rotulo: `${insumo.nome} (${insumo.udm})`,
+                  })),
+                  { valor: OPCAO_NOVO_INSUMO, rotulo: "+ Criar novo insumo" },
+                ]}
+              />
             </div>
             <div className="flex flex-col gap-1.5 sm:w-32">
               <label className={rotuloClasse}>Quantidade</label>
@@ -197,18 +195,12 @@ function ModalNovoInsumo({
       </div>
       <div className="flex flex-col gap-1.5">
         <label className={rotuloClasse}>Unidade</label>
-        <select
+        <Seletor
           aria-label="Unidade"
           value={udm}
-          onChange={(e) => setUdm(e.target.value as UnidadeInsumo)}
-          className={campoClasse}
-        >
-          {UNIDADES_INSUMO.map((u) => (
-            <option key={u} value={u}>
-              {u}
-            </option>
-          ))}
-        </select>
+          onChange={(v) => setUdm(v as UnidadeInsumo)}
+          opcoes={UNIDADES_INSUMO.map((u) => ({ valor: u, rotulo: u }))}
+        />
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div className="flex flex-col gap-1.5">
