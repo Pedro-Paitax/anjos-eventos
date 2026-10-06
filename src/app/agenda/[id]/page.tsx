@@ -14,6 +14,7 @@ import {
 } from "@/lib/decisoes-operacionais";
 import { ANCORA_DECISOES_OPERACIONAIS, type AtivosPorFuncao } from "@/lib/pendencias-evento";
 import { BotaoResolverPendencias } from "@/components/botao-resolver-pendencias";
+import { FocoPorAncora } from "@/components/foco-por-ancora";
 import { formatarData, formatarHora } from "@/lib/formatacao";
 import { atualizarEventoAction } from "@/app/actions/evento";
 import { salvarDecisoesOperacionaisAction } from "@/app/actions/decisoes-operacionais";
@@ -69,6 +70,7 @@ export default async function EventoPage({ params }: PaginaEventoProps) {
 
   return (
     <main className="mx-auto flex w-full max-w-pagina-documento flex-col gap-8">
+      {ehChurrasco && <FocoPorAncora />}
       <CabecalhoPagina
         titulo={evento.cliente}
         subtitulo={evento.empresa_nome}
@@ -140,6 +142,7 @@ export default async function EventoPage({ params }: PaginaEventoProps) {
           <FormularioDecisoesOperacionais
             colaboradoresAtivos={colaboradoresAtivos}
             equipeIds={equipeIds}
+            garconsNecessarios={evento.qtd_garcons}
             valoresIniciais={decisoes}
             action={salvarDecisoesOperacionaisAction.bind(null, evento.id)}
           />
