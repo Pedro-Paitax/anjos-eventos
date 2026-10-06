@@ -18,6 +18,7 @@ Convenções:
 | 4 | Home + formulário longo (orçamento) | feita (2026-10-04); ver `docs/DECISOES.md`, "Etapa 4" |
 | 5 | Listas, cartões, badges, tabelas, modais de seleção, demais telas | feita (2026-10-04), exceto a decisão sobre o calendário no celular; ver `docs/DECISOES.md`, "Etapa 5" |
 | 6 | Fechamento (limpeza dos tokens antigos, login, lista final "PRECISA DE LÓGICA") | feita (2026-10-04); ver `docs/DECISOES.md`, "Etapa 6" |
+| 7 | `Seletor` (Radix) no lugar do `<select>` e Equipe nas Decisões Operacionais | feita na branch `redesign-ui-3` (2026-10-06); ver `docs/design/ETAPA-7.md` |
 
 Os tokens e classes do visual antigo (`ink`, `paper`, `ember`, `brass`, `sage`, `acao`, `venue-glow`, animações de entrada…) foram removidos na Etapa 6, depois de uma busca em `src/` mostrar que só o login (migrado na mesma etapa) e o layout os usavam. Ficam `--font-display`/`--font-sans` (Fraunces e Archivo), usados só pela Ficha Técnica.
 
@@ -369,7 +370,9 @@ Rótulo acima (`rotulo`), campo de 48 px com `fundo` e `borda-controle`, texto `
 
 ### 11.3 Selects e caixas de seleção
 
-`<select>` **nativo estilizado** igual ao campo, com seta SVG (`appearance: none`; `padding-right: 42px`). Caixa de seleção: input real visualmente oculto + caixa de 24 px (raio 8; marcada = `brasa` com ✓ `sobre-brasa`; foco no anel). Grupos em `fieldset/legend`. Combobox com busca (Command) só nos seletores de insumo e de itens de cardápio (§11.11).
+**Select: `Seletor` (`src/components/seletor.tsx`, Radix Select 2.3.8, Etapa 7).** Substitui o `<select>` nativo em todos os formulários e filtros. Gatilho = campo de 48 px (`campo-controle`) com seta; painel em portal (`--z-popover`, acima do modal e da barra de salvar), `elevada` + `borda-forte` + `shadow-barra`, raio `linha` (16) com itens de raio `controle` (12) e 44 px; item destacado = `brasa` a 16 %, marcado = ✓ `link` + peso 600; animação `fade-in` de 120 ms só com `no-preference`. Payload: o valor vai num `<input name>` próprio na mesma posição do DOM (Radix não recebe `name` nem `required`, porque o select nativo escondido dele não aceita `value=""`); `""` continua sendo "sem seleção" (opção com valor `""` vira item com sentinela interna). Com `required`, o input é de texto e cobre o gatilho (o aviso do navegador aparece nele e o foco vai ao gatilho). Valor fora das opções cai na primeira opção, como o nativo. Reset do formulário volta ao `defaultValue`. Não há `shadcn init`: o componente do shadcn é só um invólucro do Radix e traria `lucide-react`, `tw-animate-css` e tokens que não existem aqui.
+
+*(Texto anterior, do `<select>` nativo, para referência:)* `<select>` **nativo estilizado** igual ao campo, com seta SVG (`appearance: none`; `padding-right: 42px`). Caixa de seleção: input real visualmente oculto + caixa de 24 px (raio 8; marcada = `brasa` com ✓ `sobre-brasa`; foco no anel). Grupos em `fieldset/legend`. Combobox com busca (Command) só nos seletores de insumo e de itens de cardápio (§11.11).
 
 ### 11.4 Tabelas
 
@@ -567,7 +570,7 @@ Paginação e ordenação de tabela; filtro por empresa ou status na Agenda; ati
 - **Caixa de seleção:** é o próprio `input[type=checkbox]` estilizado por CSS global (sem o par input oculto + caixa do protótipo); mesma aparência, payload intacto.
 - **Tabelas (§11.4):** as telas de lista usam listas em cartão (não `<table>`); a tabela de cálculos do Simulador mantém o formato anterior.
 - **Estado de erro de formulário:** borda `perigo` e mensagem com ícone no `Campo`; a recuperação de valores digitados continua fora (§19).
-- **Sem Radix, shadcn/ui nem `cmdk`:** nenhuma dependência de UI foi adicionada.
+- **Radix:** só `@radix-ui/react-select` 2.3.8 (Etapa 7, §11.3). Sem shadcn/ui nem `cmdk`.
 - **Login:** restilizado, sem shell, com `<h1>` próprio; o smoke do deploy trata `/login` como página pública (só exige 200).
 - **`Modal`:** o foco inicial é o primeiro focável (o "Fechar" nos seletores) ou o elemento com `data-foco-inicial` (Cancelar nas confirmações).
 - **Ainda não verificado em aparelho:** teclado virtual e barra de abas (E7), área segura do iOS, zoom em campo de 16 px, tema escuro ao sol.
