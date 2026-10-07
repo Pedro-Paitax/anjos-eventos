@@ -43,6 +43,13 @@
       "when": 1790714590811,
       "tag": "0005_operacional_colaboradores_decisoes",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791359594525,
+      "tag": "0006_decisoes_qtd_tacas",
+      "breakpoints": true
     }
   ]
 }

@@ -1,0 +1,4 @@
+ALTER TABLE "decisoes_operacionais_evento" ADD COLUMN "qtd_taca_furta_cor" integer;--> statement-breakpoint
+ALTER TABLE "decisoes_operacionais_evento" ADD COLUMN "qtd_taca_champanhe" integer;--> statement-breakpoint
+ALTER TABLE "decisoes_operacionais_evento" ADD CONSTRAINT "decisoes_operacionais_evento_qtd_taca_furta_cor_check" CHECK ("decisoes_operacionais_evento"."qtd_taca_furta_cor" IS NULL OR "decisoes_operacionais_evento"."qtd_taca_furta_cor" > 0);--> statement-breakpoint
+ALTER TABLE "decisoes_operacionais_evento" ADD CONSTRAINT "decisoes_operacionais_evento_qtd_taca_champanhe_check" CHECK ("decisoes_operacionais_evento"."qtd_taca_champanhe" IS NULL OR "decisoes_operacionais_evento"."qtd_taca_champanhe" > 0);

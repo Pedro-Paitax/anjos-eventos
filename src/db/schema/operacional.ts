@@ -11,7 +11,9 @@ import {
   boolean,
   timestamp,
   primaryKey,
+  check,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { eventos } from "./nucleo-existente";
 
 export const funcaoColaboradorEnum = pgEnum("funcao_colaborador", [
@@ -43,19 +45,35 @@ export const eventoColaboradores = pgTable(
   (t) => [primaryKey({ columns: [t.eventoId, t.colaboradorId] })],
 );
 
-export const decisoesOperacionaisEvento = pgTable("decisoes_operacionais_evento", {
-  id: serial("id").primaryKey(),
-  eventoId: integer("evento_id")
-    .notNull()
-    .unique()
-    .references(() => eventos.id, { onDelete: "cascade" }),
-  veiculo: text("veiculo"),
-  modeloPrato: text("modelo_prato"),
-  sousplat: boolean("sousplat").default(false),
-  tipoBebidaRecipiente: text("tipo_bebida_recipiente"),
-  tacaFurtaCor: boolean("taca_furta_cor").default(false),
-  tacaChampanhe: boolean("taca_champanhe").default(false),
-  tipoTalher: text("tipo_talher"),
-  ordensDisparadasEm: timestamp("ordens_disparadas_em", { withTimezone: true }),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
-});
+export const decisoesOperacionaisEvento = pgTable(
+  "decisoes_operacionais_evento",
+  {
+    id: serial("id").primaryKey(),
+    eventoId: integer("evento_id")
+      .notNull()
+      .unique()
+      .references(() => eventos.id, { onDelete: "cascade" }),
+    veiculo: text("veiculo"),
+    modeloPrato: text("modelo_prato"),
+    sousplat: boolean("sousplat").default(false),
+    tipoBebidaRecipiente: text("tipo_bebida_recipiente"),
+    tacaFurtaCor: boolean("taca_furta_cor").default(false),
+    /** Nula = sem quantidade informada (registros antigos com a caixa marcada ficam assim). */
+    qtdTacaFurtaCor: integer("qtd_taca_furta_cor"),
+    tacaChampanhe: boolean("taca_champanhe").default(false),
+    qtdTacaChampanhe: integer("qtd_taca_champanhe"),
+    tipoTalher: text("tipo_talher"),
+    ordensDisparadasEm: timestamp("ordens_disparadas_em", { withTimezone: true }),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+  },
+  (t) => [
+    check(
+      "decisoes_operacionais_evento_qtd_taca_furta_cor_check",
+      sql`${t.qtdTacaFurtaCor} IS NULL OR ${t.qtdTacaFurtaCor} > 0`,
+    ),
+    check(
+      "decisoes_operacionais_evento_qtd_taca_champanhe_check",
+      sql`${t.qtdTacaChampanhe} IS NULL OR ${t.qtdTacaChampanhe} > 0`,
+    ),
+  ],
+);
