@@ -2510,3 +2510,9 @@ fontes versionados no repositório. Não implementada.
 **Geral (Etapas 1 a 5)**
 - Verificações visuais usaram iframes de 360/390/768/1280 px dentro de um Chrome desktop (não aparelhos reais).
 - Etapa 6 (Ficha Técnica e `@media print`) **não foi feita**; exige teste de PDF real (1 e N preparos) antes de qualquer mudança.
+
+## 2026-10-07 — Migration 0006 (quantidade de taças) aplicada em produção
+
+SQL revisado e aprovado explicitamente pelo Pedro antes de aplicar. Antes: `pg_dump -Fc` validado com `pg_restore --list` (`~/backups-anjos-eventos/pre-0006-20261007-051405.dump`, 82.098 bytes, 194 entradas, 22 tabelas com dados). Aplicada em uma transação única (4 statements, script pontual com `pg` lido de `drizzle/0006_decisoes_qtd_tacas.sql`, apagado depois; `drizzle-kit migrate` não serve: `__drizzle_migrations` está vazia). COMMIT sem erro.
+
+Contagens antes → depois: eventos 1 → 1, orcamentos 1 → 1, itens_evento_confirmados 12 → 12, decisoes_operacionais_evento 1 → 1, tabelas 21 → 21. `information_schema`: colunas de todo o schema `public` 152 → 154; as únicas novas são `decisoes_operacionais_evento.qtd_taca_furta_cor` e `qtd_taca_champanhe` (integer, nulas); constraints novas: `decisoes_operacionais_evento_qtd_taca_furta_cor_check` e `..._qtd_taca_champanhe_check`; as antigas (PK, FK com cascade, UNIQUE de `evento_id`) intactas. A linha existente ficou com as duas quantidades nulas. Nenhum dado de teste foi gravado. Falta o deploy (o Pedro roda `scripts/deploy-oracle.sh`).
