@@ -50,6 +50,13 @@
       "when": 1791359594525,
       "tag": "0006_decisoes_qtd_tacas",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1791362789057,
+      "tag": "0007_lista_compras_enviada_em",
+      "breakpoints": true
     }
   ]
 }

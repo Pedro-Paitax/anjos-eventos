@@ -64,6 +64,11 @@ export const decisoesOperacionaisEvento = pgTable(
     qtdTacaChampanhe: integer("qtd_taca_champanhe"),
     tipoTalher: text("tipo_talher"),
     ordensDisparadasEm: timestamp("ordens_disparadas_em", { withTimezone: true }),
+    /**
+     * Migração 0007 — NÃO APLICADA. Lida e gravada só por src/lib/lista-compras-envio.ts,
+     * fora das consultas de decisões (que não a incluem), com try/catch.
+     */
+    listaComprasEnviadaEm: timestamp("lista_compras_enviada_em", { withTimezone: true }),
     updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
   },
   (t) => [

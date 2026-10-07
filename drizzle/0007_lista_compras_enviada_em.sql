@@ -1,0 +1,1 @@
+ALTER TABLE "decisoes_operacionais_evento" ADD COLUMN "lista_compras_enviada_em" timestamp with time zone;
