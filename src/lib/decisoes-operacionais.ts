@@ -15,7 +15,10 @@ export type DecisoesOperacionais = {
   sousplat: boolean;
   tipo_bebida_recipiente: string | null;
   taca_furta_cor: boolean;
+  /** Null em registros antigos com a caixa marcada (a quantidade não existia). */
+  qtd_taca_furta_cor: number | null;
   taca_champanhe: boolean;
+  qtd_taca_champanhe: number | null;
   tipo_talher: string | null;
   ordens_disparadas_em: string | null;
 };
@@ -26,14 +29,18 @@ export type DadosDecisoes = {
   sousplat: boolean;
   tipoBebidaRecipiente: string | null;
   tacaFurtaCor: boolean;
+  /** Inteiro >= 1 com a caixa marcada; null sem a caixa. */
+  qtdTacaFurtaCor: number | null;
   tacaChampanhe: boolean;
+  qtdTacaChampanhe: number | null;
   tipoTalher: string | null;
 };
 
 export async function obterDecisoes(eventoId: number): Promise<DecisoesOperacionais | null> {
   const { rows } = await pool.query<DecisoesOperacionais>(
     `SELECT veiculo, modelo_prato, sousplat, tipo_bebida_recipiente,
-            taca_furta_cor, taca_champanhe, tipo_talher, ordens_disparadas_em
+            taca_furta_cor, qtd_taca_furta_cor, taca_champanhe, qtd_taca_champanhe,
+            tipo_talher, ordens_disparadas_em
        FROM decisoes_operacionais_evento WHERE evento_id = $1`,
     [eventoId]
   );
@@ -44,20 +51,23 @@ export async function salvarDecisoes(eventoId: number, d: DadosDecisoes): Promis
   await pool.query(
     `INSERT INTO decisoes_operacionais_evento
        (evento_id, veiculo, modelo_prato, sousplat, tipo_bebida_recipiente,
-        taca_furta_cor, taca_champanhe, tipo_talher)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        taca_furta_cor, qtd_taca_furta_cor, taca_champanhe, qtd_taca_champanhe, tipo_talher)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
      ON CONFLICT (evento_id) DO UPDATE SET
        veiculo = EXCLUDED.veiculo,
        modelo_prato = EXCLUDED.modelo_prato,
        sousplat = EXCLUDED.sousplat,
        tipo_bebida_recipiente = EXCLUDED.tipo_bebida_recipiente,
        taca_furta_cor = EXCLUDED.taca_furta_cor,
+       qtd_taca_furta_cor = EXCLUDED.qtd_taca_furta_cor,
        taca_champanhe = EXCLUDED.taca_champanhe,
+       qtd_taca_champanhe = EXCLUDED.qtd_taca_champanhe,
        tipo_talher = EXCLUDED.tipo_talher,
        updated_at = NOW()`,
     [
       eventoId, d.veiculo, d.modeloPrato, d.sousplat,
-      d.tipoBebidaRecipiente, d.tacaFurtaCor, d.tacaChampanhe, d.tipoTalher,
+      d.tipoBebidaRecipiente, d.tacaFurtaCor, d.qtdTacaFurtaCor,
+      d.tacaChampanhe, d.qtdTacaChampanhe, d.tipoTalher,
     ]
   );
 }

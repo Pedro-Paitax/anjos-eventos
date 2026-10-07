@@ -93,4 +93,21 @@ describe("gerarOrdemAcaoPdf", () => {
     expect(Buffer.from(pdf.subarray(0, 4)).toString("latin1")).toBe("%PDF");
     expect(pdf.length).toBeGreaterThan(500);
   });
+
+  it("mostra a quantidade ao lado da taça marcada; sem quantidade o texto não muda", () => {
+    const copeira = { ...base, papel: "copeira" as const };
+    // como hoje: sem os campos novos
+    const t0 = texto({ ...copeira, tacaFurtaCor: true });
+    expect(t0).toContain("Taça furta-cor: Sim");
+    expect(t0).not.toContain("taça)");
+    expect(t0).not.toContain("taças)");
+    expect(texto({ ...copeira, tacaFurtaCor: true, qtdTacaFurtaCor: null })).toBe(t0);
+    // com quantidade
+    const t = texto({ ...copeira, tacaFurtaCor: true, qtdTacaFurtaCor: 12, qtdTacaChampanhe: 1 });
+    expect(t).toContain("Taça furta-cor: Sim (12 taças)");
+    expect(t).toContain("Taça de champanhe: Sim (1 taça)");
+    // quantidade sem a caixa marcada não aparece
+    expect(texto({ ...copeira, tacaFurtaCor: false, qtdTacaFurtaCor: 5 })).toContain("Taça furta-cor: Não");
+    expect(texto({ ...copeira, tacaFurtaCor: false, qtdTacaFurtaCor: 5 })).not.toContain("(5");
+  });
 });

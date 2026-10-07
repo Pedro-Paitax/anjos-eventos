@@ -33,13 +33,22 @@ export type DadosOrdemAcao = {
   sousplat: boolean;
   tipoBebidaRecipiente: string | null;
   tacaFurtaCor: boolean;
+  /** Só aparece com a caixa marcada; ausente ou null = texto como antes. */
+  qtdTacaFurtaCor?: number | null;
   tacaChampanhe: boolean;
+  qtdTacaChampanhe?: number | null;
   tipoTalher: string | null;
 };
 
 export type SecaoOrdem = { titulo: string; linhas: string[] };
 
 const simNao = (v: boolean) => (v ? "Sim" : "Não");
+/** "Sim", ou "Sim (12 taças)" quando há quantidade; "Não" sem a caixa. */
+function simNaoComQuantidade(marcada: boolean, qtd: number | null | undefined): string {
+  if (!marcada) return simNao(false);
+  if (qtd == null) return simNao(true);
+  return `${simNao(true)} (${qtd} ${qtd === 1 ? "taça" : "taças"})`;
+}
 const hora = (h: string | null) => (h ? h.slice(0, 5) : null);
 
 function linha(rotulo: string, valor: string | null): string | null {
@@ -104,8 +113,8 @@ export function montarSecoesOrdemAcao(d: DadosOrdemAcao): SecaoOrdem[] {
         linha("Modelo de prato", d.modeloPrato),
         `Sousplat: ${simNao(d.sousplat)}`,
         linha("Copo / taça", d.tipoBebidaRecipiente),
-        `Taça furta-cor: ${simNao(d.tacaFurtaCor)}`,
-        `Taça de champanhe: ${simNao(d.tacaChampanhe)}`,
+        `Taça furta-cor: ${simNaoComQuantidade(d.tacaFurtaCor, d.qtdTacaFurtaCor)}`,
+        `Taça de champanhe: ${simNaoComQuantidade(d.tacaChampanhe, d.qtdTacaChampanhe)}`,
         linha("Talher", d.tipoTalher),
         d.papel === "copeira" ? linha("Bebidas", d.cardapioBebidas) : null,
       ]),

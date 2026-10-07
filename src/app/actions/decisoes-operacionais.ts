@@ -4,7 +4,12 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { salvarDecisoes, definirEquipeEvento, obterDecisoes } from "@/lib/decisoes-operacionais";
 import { valoresEnviados, type ValoresFormulario } from "@/lib/formulario-valores";
-import { valorValido, ROTULOS_CAMPO, type CampoOpcao } from "@/lib/decisoes-operacionais-opcoes";
+import {
+  valorValido,
+  validarQuantidadeTacas,
+  ROTULOS_CAMPO,
+  type CampoOpcao,
+} from "@/lib/decisoes-operacionais-opcoes";
 import { obterUsuarioAtual } from "@/lib/usuario-atual";
 
 export type EstadoFormularioDecisoes = {
@@ -62,6 +67,15 @@ export async function salvarDecisoesOperacionaisAction(
     }
   }
 
+  const tacaFurtaCor = formData.get("tacaFurtaCor") === "on";
+  const tacaChampanhe = formData.get("tacaChampanhe") === "on";
+  const furtaCor = validarQuantidadeTacas(
+    tacaFurtaCor, String(formData.get("qtdTacaFurtaCor") ?? ""), "taças furta-cor");
+  if (furtaCor.erro) return devolver(furtaCor.erro);
+  const champanhe = validarQuantidadeTacas(
+    tacaChampanhe, String(formData.get("qtdTacaChampanhe") ?? ""), "taças de champanhe");
+  if (champanhe.erro) return devolver(champanhe.erro);
+
   try {
     await definirEquipeEvento(eventoId, colaboradorIds);
     await salvarDecisoes(eventoId, {
@@ -69,8 +83,10 @@ export async function salvarDecisoesOperacionaisAction(
       modeloPrato,
       sousplat: formData.get("sousplat") === "on",
       tipoBebidaRecipiente,
-      tacaFurtaCor: formData.get("tacaFurtaCor") === "on",
-      tacaChampanhe: formData.get("tacaChampanhe") === "on",
+      tacaFurtaCor,
+      qtdTacaFurtaCor: furtaCor.valor,
+      tacaChampanhe,
+      qtdTacaChampanhe: champanhe.valor,
       tipoTalher,
     });
   } catch (erro) {

@@ -160,7 +160,9 @@ export async function executarOrdemAcao(): Promise<ResultadoOrdemAcao> {
           sousplat: decisoes!.sousplat,
           tipoBebidaRecipiente: decisoes!.tipo_bebida_recipiente,
           tacaFurtaCor: decisoes!.taca_furta_cor,
+          qtdTacaFurtaCor: decisoes!.qtd_taca_furta_cor,
           tacaChampanhe: decisoes!.taca_champanhe,
+          qtdTacaChampanhe: decisoes!.qtd_taca_champanhe,
           tipoTalher: decisoes!.tipo_talher,
         });
         await enviarDocumento(

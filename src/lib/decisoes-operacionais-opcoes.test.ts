@@ -6,6 +6,7 @@ import {
   OPCOES_VEICULO,
   ehValorLegado,
   valorValido,
+  validarQuantidadeTacas,
 } from "@/lib/decisoes-operacionais-opcoes";
 import { calcularPendencias } from "@/lib/pendencias-evento";
 
@@ -45,5 +46,23 @@ describe("pendência com valor legado", () => {
         },
       })
     ).toEqual([]);
+  });
+});
+
+describe("validarQuantidadeTacas", () => {
+  it("sem a caixa marcada a quantidade é nula, mesmo se enviada", () => {
+    expect(validarQuantidadeTacas(false, "", "taças")).toEqual({ valor: null });
+    expect(validarQuantidadeTacas(false, "12", "taças")).toEqual({ valor: null });
+  });
+  it("com a caixa marcada aceita inteiro >= 1", () => {
+    expect(validarQuantidadeTacas(true, "1", "taças")).toEqual({ valor: 1 });
+    expect(validarQuantidadeTacas(true, " 48 ", "taças")).toEqual({ valor: 48 });
+  });
+  it("com a caixa marcada rejeita vazio, zero, negativo, decimal, texto e estouro", () => {
+    for (const t of ["", "  ", "0", "-3", "2.5", "2,5", "abc", "1e3", "2147483648"]) {
+      const r = validarQuantidadeTacas(true, t, "taças");
+      expect(r.valor).toBeNull();
+      expect(r.erro).toBeTruthy();
+    }
   });
 });

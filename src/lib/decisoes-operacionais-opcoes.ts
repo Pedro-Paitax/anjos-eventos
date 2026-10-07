@@ -38,3 +38,28 @@ export function valorValido(campo: CampoOpcao, valor: string): boolean {
 export function ehValorLegado(campo: CampoOpcao, valor: string | null | undefined): boolean {
   return !!valor && valor.trim() !== "" && !valorValido(campo, valor);
 }
+
+const INTEIRO_MAXIMO = 2147483647; // limite da coluna integer
+
+/**
+ * Quantidade de taças (furta-cor ou champanhe): nula sem a caixa marcada; com a caixa,
+ * inteiro >= 1. Registros antigos (caixa marcada, sem quantidade) continuam como estão
+ * no banco; só um novo salvamento exige a quantidade.
+ */
+export function validarQuantidadeTacas(
+  marcada: boolean,
+  texto: string,
+  rotulo: string
+): { valor: number | null; erro?: string } {
+  if (!marcada) return { valor: null };
+  const t = texto.trim();
+  if (!t) return { valor: null, erro: `Informe a quantidade de ${rotulo}.` };
+  const numero = Number(t);
+  if (!/^\d+$/.test(t) || numero < 1 || numero > INTEIRO_MAXIMO) {
+    return {
+      valor: null,
+      erro: `Quantidade de ${rotulo} inválida: use um número inteiro a partir de 1.`,
+    };
+  }
+  return { valor: numero };
+}
