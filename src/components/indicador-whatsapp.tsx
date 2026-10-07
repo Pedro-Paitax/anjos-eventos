@@ -80,6 +80,12 @@ export function IndicadorWhatsapp({ comTexto = false }: { comTexto?: boolean }) 
         </span>
       </button>
 
+      {dados.status === "disconnected" && (
+        <Botao variante="secundario" tamanho="sm" onClick={() => setModalAberto(true)} aria-label="Conectar WhatsApp">
+          {comTexto ? "Conectar WhatsApp" : "Conectar"}
+        </Botao>
+      )}
+
       {modalVisivel && (
         <Modal titulo="Reconectar WhatsApp" onFechar={() => setModalAberto(false)} className="max-w-sm">
           {dados.worker_offline ? (
