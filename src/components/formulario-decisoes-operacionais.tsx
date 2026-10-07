@@ -165,7 +165,7 @@ export function FormularioDecisoesOperacionais({
   function aoMudar(e: React.ChangeEvent<HTMLFormElement>) {
     const form = e.currentTarget;
     recontar(form);
-    const alvo = e.target as HTMLInputElement;
+    const alvo = e.target as unknown as HTMLInputElement;
     const campoQtd =
       alvo.name === "tacaFurtaCor" ? "qtdTacaFurtaCor" : alvo.name === "tacaChampanhe" ? "qtdTacaChampanhe" : null;
     if (campoQtd && alvo.checked) {
