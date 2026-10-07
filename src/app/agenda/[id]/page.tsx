@@ -23,7 +23,13 @@ import { CabecalhoPagina } from "@/components/cabecalho-pagina";
 import { FormularioEventoChurrasco } from "@/components/formulario-evento-churrasco";
 import { FormularioEventoGenerico } from "@/components/formulario-evento-generico";
 import { BotaoExcluirEvento } from "@/components/botao-excluir-evento";
+import { BotaoEnviarListaCompras } from "@/components/botao-enviar-lista-compras";
 import { botaoClasse } from "@/components/botao";
+import {
+  destinoListaCompras,
+  mascararDestino,
+  obterUltimoEnvioListaCompras,
+} from "@/lib/lista-compras-envio";
 import { Painel } from "@/components/painel";
 import { Alerta } from "@/components/alerta";
 import type { Metadata } from "next";
@@ -58,6 +64,10 @@ export default async function EventoPage({ params }: PaginaEventoProps) {
     ? await listarPreparosConfirmadosEvento(evento.id)
     : null;
 
+  // Consulta própria (coluna da migração 0007): se falhar, volta null e a tela abre igual.
+  const ultimoEnvioLista = await obterUltimoEnvioListaCompras(evento.id);
+  const destinoLista = destinoListaCompras();
+
   const ehChurrasco = evento.empresa_nome === EMPRESA_SENHOR_CHURRASCO;
   const decisoes = ehChurrasco ? await obterDecisoes(evento.id) : null;
   const equipeIds = ehChurrasco ? await listarEquipeEvento(evento.id) : [];
@@ -76,7 +86,16 @@ export default async function EventoPage({ params }: PaginaEventoProps) {
         subtitulo={evento.empresa_nome}
         voltarPara={{ href: "/agenda", rotulo: "← Agenda" }}
         acao={
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <Link href={`/agenda/${evento.id}/lista-compras`} className={botaoClasse("secundario")}>
+              Lista de compras
+            </Link>
+            <BotaoEnviarListaCompras
+              eventoId={evento.id}
+              temCardapioConfirmado={temCardapioConfirmado}
+              destinoMascarado={destinoLista ? mascararDestino(destinoLista) : null}
+              ultimoEnvio={ultimoEnvioLista}
+            />
             {temCardapioConfirmado && (
               <Link
                 href={`/agenda/${evento.id}/fichas-tecnicas`}
