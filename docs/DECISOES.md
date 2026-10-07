@@ -1213,3 +1213,7 @@ PDF é o entregável principal; uma mensagem curta de texto acompanha. Cálculo 
 Consumíveis operacionais (carvão, gelo, sal grosso, papel toalha, sacos de lixo, papel alumínio) aparecem no PDF só com o nome e um campo de quantidade em branco: não há ficha técnica nem fórmula de volume (a fórmula R$80 + R$2,50 é custo, não volume).
 
 Envio: Server Action `enviarListaComprasAction` (usuário logado), destino na variável `LISTA_COMPRAS_WHATSAPP` (mascarado na tela; nunca em log/erro). PDF primeiro, depois o texto, sequencialmente pelo worker. `lista_compras_enviada_em` (migração 0007, **não aplicada**) só é gravada se o PDF for aceito pelo worker; lida/gravada fora das consultas de decisões, com try/catch. Efeito colateral: o upsert cria a linha de decisões se ela não existir; com a linha criada, a pendência "Preencher as decisões operacionais" é trocada pelas pendências de campo (veículo, prato, copo, talher). `/api/whatsapp/status` já exigia login (`obterUsuarioAtual`, sem o helper de `api-auth` de propósito: o helper aceita `SMOKE_TOKEN`, que não deve liberar o QR).
+
+### Migração 0007 aplicada em produção (2026-10-07)
+
+`decisoes_operacionais_evento.lista_compras_enviada_em` (`timestamp with time zone`, nula, sem default) — `drizzle/0007_lista_compras_enviada_em.sql`, um único `ADD COLUMN`. Aplicada em transação única, autorizada pelo Pedro.

@@ -2552,3 +2552,9 @@ Validação no `ender` (git archive do HEAD `0b6fe6e`, sem rede para o app): `ne
 - Quantidade de **carvão e gelo por número de convidados** (e dos demais consumíveis) para o bloco deixar de ficar em branco.
 - Regra de arredondamento para unidades fora de KG/Litro/Unidade/Maço/Pacote/Lata (hoje sobe a 0,01).
 - Decidir se `deploy-oracle.sh` deve passar a provar as rotas novas (401 sem sessão) no smoke.
+
+## 2026-10-07 — Migração 0007 (lista_compras_enviada_em) aplicada em produção
+
+Antes (somente leitura): a 0006 estava presente (`qtd_taca_furta_cor`, `qtd_taca_champanhe` e os dois CHECK). `pg_dump -Fc` validado: `~/backups-anjos-eventos/pre-0007-20261007-093540.dump`, 82.510 bytes, 22 tabelas com dados (`pg_restore --list`). Aplicada em transação única com o único `ADD COLUMN` (script pontual com `pg`, apagado depois); COMMIT sem erro.
+
+Contagens antes → depois: eventos 1 → 1, orcamentos 1 → 1, itens_evento_confirmados 12 → 12, decisoes_operacionais_evento 1 → 1, tabelas 21 → 21. Colunas do schema `public` 154 → 155; a única nova é `lista_compras_enviada_em` (`timestamp with time zone`, nula, sem default). Constraints da tabela inalteradas (5). Nenhum dado gravado, sem deploy, worker não subido. Passo 2 da ativação concluído; falta o deploy do app.
