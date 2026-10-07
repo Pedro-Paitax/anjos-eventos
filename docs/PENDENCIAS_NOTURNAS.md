@@ -2516,3 +2516,39 @@ fontes versionados no repositório. Não implementada.
 SQL revisado e aprovado explicitamente pelo Pedro antes de aplicar. Antes: `pg_dump -Fc` validado com `pg_restore --list` (`~/backups-anjos-eventos/pre-0006-20261007-051405.dump`, 82.098 bytes, 194 entradas, 22 tabelas com dados). Aplicada em uma transação única (4 statements, script pontual com `pg` lido de `drizzle/0006_decisoes_qtd_tacas.sql`, apagado depois; `drizzle-kit migrate` não serve: `__drizzle_migrations` está vazia). COMMIT sem erro.
 
 Contagens antes → depois: eventos 1 → 1, orcamentos 1 → 1, itens_evento_confirmados 12 → 12, decisoes_operacionais_evento 1 → 1, tabelas 21 → 21. `information_schema`: colunas de todo o schema `public` 152 → 154; as únicas novas são `decisoes_operacionais_evento.qtd_taca_furta_cor` e `qtd_taca_champanhe` (integer, nulas); constraints novas: `decisoes_operacionais_evento_qtd_taca_furta_cor_check` e `..._qtd_taca_champanhe_check`; as antigas (PK, FK com cascade, UNIQUE de `evento_id`) intactas. A linha existente ficou com as duas quantidades nulas. Nenhum dado de teste foi gravado. Falta o deploy (o Pedro roda `scripts/deploy-oracle.sh`).
+
+## 2026-10-07 — Lista de compras em PDF + botão do QR (branch `lista-compras`, sessão sem supervisão)
+
+### 1. O que foi feito
+- **A** `0029db9`: botão visível "Conectar WhatsApp" (mostrado com o worker desconectado; abre o mesmo modal do QR; 44 px, foco visível; no topo do celular o rótulo é "Conectar"). `/api/whatsapp/status` já exigia login: teste novo prova 401 sem sessão, sem `qr_code` e sem falar com o worker. Worker e contrato da rota intactos.
+- **B** `182a327`: `src/lib/lista-compras-evento.ts` + testes (Tomate fator 0,95, sem preço, fator nulo/0/negativo, Unidade e KG, mesmo insumo em dois preparos, sem itens, prova do buffer único).
+- **C** `2dab869`: `src/lib/lista-compras-pdf.ts` (pdf-lib, várias páginas, cabeçalho da tabela repetido, linha nunca cortada, caixa com `drawRectangle`, consumíveis em branco, rodapé com data), rota `GET /agenda/[id]/lista-compras/pdf` (401 sem sessão) e página `/agenda/[id]/lista-compras` (sem `<h1>` sem sessão; nenhuma regra de print nova; Ficha e CSS global intocados).
+- **D** `8bb8b63`: `drizzle/0007_lista_compras_enviada_em.sql` (um único `ADD COLUMN`, nula) — **NÃO APLICADA**. Leitura/gravação defensivas em `src/lib/lista-compras-envio.ts` (try/catch, erro só no log, upsert por `evento_id`).
+- **E** `1346a34`: botão "Enviar lista de compras" na tela do evento (modal com destino mascarado, "Último envio", confirmação explícita de reenvio, resultado de PDF e de texto separados), Server Action com login, `LISTA_COMPRAS_WHATSAPP` só como chave no `.env.example`. Worker desconectado ou sem resposta: mostra e não envia.
+- **F** `0b6fe6e`: `scripts/deploy-whatsapp-worker.sh` (**não executado**; só `bash -n`: OK) e bloco `env`/`max_memory_restart` no `whatsapp-worker/ecosystem.config.cjs`. Porta do worker 3100 (`config.ts`), app 3001: sem colisão. Sessão em `~/baileys_auth` (700, fora do pacote, nunca apagada). Rollback: `ROLLBACK=1 scripts/deploy-whatsapp-worker.sh`.
+
+Validação no `ender` (git archive do HEAD `0b6fe6e`, sem rede para o app): `next typegen`, `tsc`, `eslint .` limpos; `vitest` 160 passaram / 12 ignorados (os 12 já eram ignorados); `next build` OK com as rotas novas. Smoke de leitura com `next start` (sem banco, sem sessão): `/agenda/1/lista-compras` e `/agenda/1` → 200 com `NEXT_REDIRECT;replace;/login` e zero `<h1>`; `/agenda/1/lista-compras/pdf` → 401; `/api/whatsapp/status` → 401. Ender limpo (processo por PID, pasta por caminho exato).
+
+### 2. NÃO verificado
+- Envio real (PDF e texto) e o worker rodando; nenhum QR escaneado.
+- O PDF **em leitor real**: só os testes unitários (começa com `%PDF`, reabre com pdf-lib, várias páginas, acentos "ç ã é" aceitos pela codificação WinAnsi). Não há render visual: conferir alinhamento, quebra de página e as marcas "sem preço"/"sem fator" abrindo um PDF de verdade.
+- Leitura/gravação da coluna nova **com banco** (só com mock). Banco nunca foi consultado nesta sessão.
+- Botão "Conectar WhatsApp" e modal de envio no navegador (nem desktop nem celular; só tsc/eslint/build). Largura do topo em 360 px não foi medida.
+- Cálculo com dados reais (só fixtures). Se `unidade_insumo` ganhar Pacote/Lata, o arredondamento já os trata (hoje o enum só tem KG, Litro, Unidade, Maço).
+- `scripts/deploy-oracle.sh` não foi tocado: o smoke dele **não** cobre as rotas novas.
+
+### 3. Passos de ativação (nesta ordem)
+1. Conferir a migração 0006 (já aplicada em 2026-10-07).
+2. Revisar e aplicar a migração **0007** (`drizzle/0007_lista_compras_enviada_em.sql`) **ANTES do deploy** do app, com `pg_dump` antes e contagens antes/depois, como na 0006. (Sem ela o app abre, mas não grava nem mostra o "Último envio", e o envio avisa que o registro não foi gravado.)
+3. Deploy do app (`scripts/deploy-oracle.sh`).
+4. Variáveis no `ecosystem.config.js` do Oracle: `CRON_TOKEN`, `FAMILIA_WHATSAPP_NUMEROS`, `WHATSAPP_WORKER_TOKEN`, `WHATSAPP_WORKER_URL`, `LISTA_COMPRAS_WHATSAPP`. No worker: `~/anjos-whatsapp-worker/.env` com `WORKER_TOKEN` (mesmo valor de `WHATSAPP_WORKER_TOKEN`, >= 16 caracteres).
+5. Deploy do worker (`scripts/deploy-whatsapp-worker.sh`, revisar antes de rodar).
+6. QR com o número do Pedro (botão "Conectar WhatsApp").
+7. Teste de envio para o próprio Pedro (`LISTA_COMPRAS_WHATSAPP` apontando para ele).
+8. Conversa prévia do destinatário com o bot (salvar o número do chip e trocar uma mensagem) antes do primeiro envio real.
+9. Crontab por último.
+
+### 4. Pendências que dependem do Pedro
+- Quantidade de **carvão e gelo por número de convidados** (e dos demais consumíveis) para o bloco deixar de ficar em branco.
+- Regra de arredondamento para unidades fora de KG/Litro/Unidade/Maço/Pacote/Lata (hoje sobe a 0,01).
+- Decidir se `deploy-oracle.sh` deve passar a provar as rotas novas (401 sem sessão) no smoke.
