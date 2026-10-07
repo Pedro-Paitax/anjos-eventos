@@ -213,6 +213,7 @@ export function FormularioDecisoesOperacionais({
         <CampoSelect nome="tipoTalher" valor={valoresIniciais?.tipo_talher} enviado={estado.valores?.tipoTalher} />
       </div>
 
+      <h3 className={secaoTituloClasse}>Adicionais</h3>
       <div className="flex flex-col gap-2 text-sm">
         <label className="flex items-center gap-2">
           <input type="checkbox" name="sousplat" defaultChecked={estado.valores ? "sousplat" in estado.valores : (valoresIniciais?.sousplat ?? false)} />
