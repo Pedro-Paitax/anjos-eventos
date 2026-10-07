@@ -18,6 +18,7 @@ import { BotaoEnviar } from "@/components/botao-enviar";
 import { botaoClasse } from "@/components/botao";
 import { Alerta } from "@/components/alerta";
 import { Seletor } from "@/components/seletor";
+import { Campo } from "@/components/campo";
 
 type ValoresDecisoes = {
   veiculo: string | null;
@@ -25,7 +26,9 @@ type ValoresDecisoes = {
   sousplat: boolean;
   tipo_bebida_recipiente: string | null;
   taca_furta_cor: boolean;
+  qtd_taca_furta_cor?: number | null;
   taca_champanhe: boolean;
+  qtd_taca_champanhe?: number | null;
   tipo_talher: string | null;
 };
 
@@ -132,6 +135,14 @@ export function FormularioDecisoesOperacionais({
   const [alocados, setAlocados] = useState(() =>
     contarPorFuncao(equipeIds, colaboradoresAtivos)
   );
+  const furtaCorInicial = estado.valores
+    ? "tacaFurtaCor" in estado.valores
+    : (valoresIniciais?.taca_furta_cor ?? false);
+  const champanheInicial = estado.valores
+    ? "tacaChampanhe" in estado.valores
+    : (valoresIniciais?.taca_champanhe ?? false);
+  // Quantidade de taças: o campo só existe com a caixa marcada (some ao desmarcar → gravada nula).
+  const [tacas, setTacas] = useState({ furtaCor: furtaCorInicial, champanhe: champanheInicial });
   const minimos: Record<Funcao, number> = {
     copeira: 1,
     assador: 1,
@@ -144,12 +155,28 @@ export function FormularioDecisoesOperacionais({
       ...form.querySelectorAll<HTMLInputElement>('input[name="colaboradorIds"]:checked'),
     ].map((i) => Number(i.value));
     setAlocados(contarPorFuncao(marcados, colaboradoresAtivos));
+    setTacas({
+      furtaCor: form.querySelector<HTMLInputElement>('input[name="tacaFurtaCor"]')?.checked ?? false,
+      champanhe: form.querySelector<HTMLInputElement>('input[name="tacaChampanhe"]')?.checked ?? false,
+    });
+  }
+
+  // Ao marcar uma taça o campo da quantidade aparece e recebe o foco (anuncia o rótulo).
+  function aoMudar(e: React.ChangeEvent<HTMLFormElement>) {
+    const form = e.currentTarget;
+    recontar(form);
+    const alvo = e.target as HTMLInputElement;
+    const campoQtd =
+      alvo.name === "tacaFurtaCor" ? "qtdTacaFurtaCor" : alvo.name === "tacaChampanhe" ? "qtdTacaChampanhe" : null;
+    if (campoQtd && alvo.checked) {
+      setTimeout(() => form.querySelector<HTMLInputElement>(`input[name="${campoQtd}"]`)?.focus(), 0);
+    }
   }
 
   return (
     <form
       action={formAction}
-      onChange={(e) => recontar(e.currentTarget)}
+      onChange={aoMudar}
       onReset={(e) => {
         const form = e.currentTarget;
         setTimeout(() => recontar(form), 0);
@@ -223,10 +250,44 @@ export function FormularioDecisoesOperacionais({
           <input type="checkbox" name="tacaFurtaCor" defaultChecked={estado.valores ? "tacaFurtaCor" in estado.valores : (valoresIniciais?.taca_furta_cor ?? false)} />
           Taça furta-cor
         </label>
+        {tacas.furtaCor && (
+          <div className="ml-8 max-w-xs">
+            <Campo rotulo="Quantidade de taças furta-cor">
+              {(p) => (
+                <input {...p}
+                  name="qtdTacaFurtaCor"
+                  type="number"
+                  inputMode="numeric"
+                  min={1}
+                  step={1}
+                  required
+                  defaultValue={estado.valores?.qtdTacaFurtaCor ?? valoresIniciais?.qtd_taca_furta_cor ?? ""}
+                />
+              )}
+            </Campo>
+          </div>
+        )}
         <label className="flex items-center gap-2">
           <input type="checkbox" name="tacaChampanhe" defaultChecked={estado.valores ? "tacaChampanhe" in estado.valores : (valoresIniciais?.taca_champanhe ?? false)} />
           Taça de champanhe
         </label>
+        {tacas.champanhe && (
+          <div className="ml-8 max-w-xs">
+            <Campo rotulo="Quantidade de taças de champanhe">
+              {(p) => (
+                <input {...p}
+                  name="qtdTacaChampanhe"
+                  type="number"
+                  inputMode="numeric"
+                  min={1}
+                  step={1}
+                  required
+                  defaultValue={estado.valores?.qtdTacaChampanhe ?? valoresIniciais?.qtd_taca_champanhe ?? ""}
+                />
+              )}
+            </Campo>
+          </div>
+        )}
       </div>
 
       {estado.erro && <Alerta tipo="perigo">{estado.erro}</Alerta>}
