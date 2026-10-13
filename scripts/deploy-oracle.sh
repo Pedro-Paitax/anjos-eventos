@@ -80,6 +80,39 @@ if [ "${SOMENTE_PROTECAO:-0}" = "1" ]; then
   exit 0
 fi
 
+log "Carregando SMOKE_TOKEN (ambiente ou ~/.anjos/smoke-token; o valor nunca é impresso)"
+# Falha ANTES do build se não houver token válido: sem ele o smoke não prova o acesso autenticado.
+if [ -z "${SMOKE_TOKEN:-}" ]; then
+  ARQ_SMOKE_TOKEN="$HOME/.anjos/smoke-token"
+  [ -f "$ARQ_SMOKE_TOKEN" ] || { echo "ERRO: SMOKE_TOKEN ausente do ambiente e $ARQ_SMOKE_TOKEN não existe — deploy abortado."; exit 1; }
+  case "$(uname -s)" in
+    MINGW*|MSYS*|CYGWIN*)
+      # Git Bash (noacl): chmod/stat não refletem permissão real. Checa a ACL do NTFS:
+      # falha se Todos (S-1-1-0), Usuários (S-1-5-32-545) ou Usuários Autenticados (S-1-5-11) têm acesso.
+      # /findsid imprime o caminho do arquivo só quando a SID está na ACL (independe do idioma).
+      ARQ_WIN=$(cygpath -w "$ARQ_SMOKE_TOKEN")
+      for SID_ABERTA in '*S-1-1-0' '*S-1-5-32-545' '*S-1-5-11'; do
+        ACHOU=$(MSYS_NO_PATHCONV=1 icacls "$ARQ_WIN" /findsid "$SID_ABERTA") || { echo "ERRO: não foi possível ler a ACL de $ARQ_SMOKE_TOKEN — deploy abortado."; exit 1; }
+        if echo "$ACHOU" | grep -q -F "smoke-token"; then
+          echo "ERRO: $ARQ_SMOKE_TOKEN legível por outros usuários (ACL). Rode: icacls \"$ARQ_WIN\" /inheritance:r /grant:r \"\$USERNAME:F\" — deploy abortado."; exit 1
+        fi
+      done ;;
+    *)
+      PERM_SMOKE_TOKEN=$(stat -c %a "$ARQ_SMOKE_TOKEN")
+      # Aceita só 600 ou mais restrito (nenhum bit de grupo/outros, nenhum de execução).
+      case "$PERM_SMOKE_TOKEN" in
+        [0-6]00|[0-6]) ;;
+        *) echo "ERRO: $ARQ_SMOKE_TOKEN com permissão $PERM_SMOKE_TOKEN (máximo 600). Rode: chmod 600 $ARQ_SMOKE_TOKEN — deploy abortado."; exit 1 ;;
+      esac ;;
+  esac
+  SMOKE_TOKEN="$(tr -d '
+
+' < "$ARQ_SMOKE_TOKEN")"
+  export SMOKE_TOKEN
+fi
+[ "${#SMOKE_TOKEN}" -ge 32 ] || { echo "ERRO: SMOKE_TOKEN com menos de 32 caracteres — deploy abortado."; exit 1; }
+echo "SMOKE_TOKEN carregado (${#SMOKE_TOKEN} caracteres)."
+
 log "1/5 — Build isolado no $ENDER_HOST (git archive HEAD, npm ci, npm run build)"
 ssh "${SSH_OPTS[@]}" "$ENDER_HOST" bash -s <<EOF
 set -euo pipefail
@@ -106,10 +139,11 @@ scp "${SSH_OPTS[@]}" "$LOCAL_TMP/anjos-standalone.tgz" "$ORACLE_HOST:~/anjos-sta
 ssh "${SSH_OPTS[@]}" "$ENDER_HOST" "rm -f /tmp/anjos-standalone.tgz"
 
 log "3/5 — Backup do bundle atual no Oracle (rollback) + extração do novo"
+BACKUP_NOME="anjos-eventos-app-backup-$(date +%Y%m%d-%H%M%S).tgz"
 ssh "${SSH_OPTS[@]}" "$ORACLE_HOST" bash -s <<EOF
 set -euo pipefail
 cd ~/$ORACLE_APP_DIR
-BACKUP=~/anjos-eventos-app-backup-\$(date +%Y%m%d-%H%M%S).tgz
+BACKUP=~/$BACKUP_NOME
 tar czf "\$BACKUP" .next node_modules public package.json server.js
 echo "Backup salvo em: \$BACKUP"
 rm -rf .next node_modules public server.js package.json
@@ -209,7 +243,7 @@ CODE=$(curl -s -o /dev/null --max-time 10 -w '%{http_code}' http://100.121.229.8
 echo "HTTP $CODE"
 [ "$CODE" = "200" ] || falha "/login pelo IP Tailscale devolveu $CODE (esperado 200)"
 
-for rota in /simulador-cardapio /agenda/novo /orcamentos/1; do
+for rota in /simulador-cardapio /agenda/novo /orcamentos/1 /agenda/1/lista-compras; do
   echo "--- $rota (sem sessão: 307, ou 200 com NEXT_REDIRECT para /login e sem conteúdo) ---"
   CORPO=$(curl -s -w '\n%{http_code}' "http://localhost:3001$rota")
   CODE="${CORPO##*$'\n'}"
@@ -223,6 +257,24 @@ for rota in /simulador-cardapio /agenda/novo /orcamentos/1; do
     falha "$rota devolveu $CODE (esperado 307, ou 200 com marcador)"
   fi
 done
+
+echo "--- /agenda/1/lista-compras/pdf sem sessão (deve ser 401, sem PDF) ---"
+CORPO=$(curl -s -D - -w '\n%{http_code}' http://localhost:3001/agenda/1/lista-compras/pdf)
+CODE="${CORPO##*$'\n'}"
+echo "HTTP $CODE"
+[ "$CODE" = "401" ] || falha "/agenda/1/lista-compras/pdf sem sessão devolveu $CODE (esperado 401)"
+echo "$CORPO" | grep -q -i -E 'application/pdf|^%PDF' && falha "/agenda/1/lista-compras/pdf sem sessão devolveu PDF"
+
+echo "--- HOSTNAME=0.0.0.0 (env do processo PM2 e socket de escuta na 3001) ---"
+HOST_PM2=$(pm2 env 0 | grep -E '^HOSTNAME:' | tr -d ' ')
+echo "pm2 env: $HOST_PM2"
+[ "$HOST_PM2" = "HOSTNAME:0.0.0.0" ] || falha "HOSTNAME do processo PM2 é '${HOST_PM2:-ausente}' (esperado HOSTNAME:0.0.0.0)"
+ESCUTA=$(ss -ltnH 'sport = :3001' | awk '{print $4}' | head -1)
+echo "socket em escuta: ${ESCUTA:-<nenhum>}"
+case "$ESCUTA" in
+  0.0.0.0:3001|\*:3001) ;;
+  *) falha "porta 3001 escutando em '${ESCUTA:-nenhum}' (esperado 0.0.0.0:3001)" ;;
+esac
 
 pm2 list
 if [ "$FALHAS" -ne 0 ]; then echo "SMOKE TEST: $FALHAS falha(s)"; exit 1; fi
@@ -239,9 +291,33 @@ if [ "$CONTAGEM_ANTES" != "$CONTAGEM_DEPOIS" ]; then
 fi
 
 if [ "${SMOKE_RC:-0}" -ne 0 ] || [ "${SMOKE_PRE_FALHA:-0}" -ne 0 ]; then
-  log "DEPLOY APLICADO, MAS O SMOKE TEST FALHOU (commit $COMMIT_SHORT) — ver FALHAs acima"
+  log "SMOKE TEST FALHOU (commit $COMMIT_SHORT) — rollback automático do bundle"
   echo "Dump do banco pré-deploy: $DUMP"
-  echo "Rollback: extrair o backup do bundle (acima) por cima de ~/$ORACLE_APP_DIR e rodar pm2 restart anjos-eventos-app."
+  echo "Restaurando ~/$BACKUP_NOME e reiniciando via pm2 startOrRestart (sem --update-env)..."
+  # Restaura o bundle e confirma /login 200 por localhost e pelo IP Tailscale.
+  # Migrações de banco NÃO são revertidas aqui (são aditivas; o app antigo as ignora).
+  if ssh "${SSH_OPTS[@]}" "$ORACLE_HOST" bash -s <<EOF
+set -euo pipefail
+cd ~/$ORACLE_APP_DIR
+test -s ~/$BACKUP_NOME
+rm -rf .next node_modules public server.js package.json
+tar xzf ~/$BACKUP_NOME -C ~/$ORACLE_APP_DIR
+pm2 startOrRestart ecosystem.config.js
+pm2 save
+for alvo in http://localhost:3001/login http://$IP_ORACLE_DB:3001/login; do
+  T0=\$(date +%s)
+  until [ "\$(curl -s -o /dev/null --max-time 2 -w '%{http_code}' \$alvo)" = "200" ]; do
+    if [ \$(( \$(date +%s) - T0 )) -ge 60 ]; then echo "ERRO: \$alvo não respondeu 200 após o rollback."; exit 1; fi
+    sleep 1
+  done
+  echo "Rollback confirmado: \$alvo = 200"
+done
+EOF
+  then
+    echo "ROLLBACK CONCLUÍDO: versão anterior restaurada e respondendo (localhost e $IP_ORACLE_DB). O commit $COMMIT_SHORT NÃO está no ar."
+  else
+    echo "ERRO CRÍTICO: o rollback automático falhou. Intervenção manual: no Oracle, extrair ~/$BACKUP_NOME em ~/$ORACLE_APP_DIR e rodar 'pm2 startOrRestart ecosystem.config.js'."
+  fi
   exit 1
 fi
 
