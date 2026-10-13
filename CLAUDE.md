@@ -14,6 +14,7 @@ Antes de realizar alterações significativas, consulte os documentos relevantes
 - `docs/ARQUITETURA.MD`
 - `docs/BANCO.md`
 - `docs/REGRAS_NEGOCIO.md`
+- `docs/AUTONOMIA.md` (o que fazer sozinho e o que exige confirmação do Pedro; deploy e migração)
 
 Esses documentos contêm contexto do negócio, arquitetura, banco e regras já validadas.
 
