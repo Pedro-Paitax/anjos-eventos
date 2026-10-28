@@ -63,6 +63,11 @@ precisa estar no `ecosystem.config.js` do Oracle (o script nunca o toca).
    localhost e IP Tailscale e sai com erro. O Claude Code informa o que fez.
    Migrações aditivas não são revertidas (o app anterior as ignora).
 5. `SOMENTE_PROTECAO=1 scripts/deploy-oracle.sh` roda só dump + contagens.
+6. `SEM_SMOKE=1 scripts/deploy-oracle.sh` (autorizado pelo Pedro em 2026-10-28,
+   enquanto `~/.anjos/smoke-token` não existe): não carrega o token e troca o
+   smoke completo por `/login` 200 (localhost e IP Tailscale) + socket em
+   `0.0.0.0:3001`, com o mesmo rollback automático. Não prova APIs nem páginas
+   protegidas; usar só com autorização do Pedro.
 
 ## Procedimento padrão: migração aditiva
 

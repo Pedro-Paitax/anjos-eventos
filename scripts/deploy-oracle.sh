@@ -18,8 +18,12 @@
 # SOMENTE LEITURA de eventos/orçamentos antes e depois, impressa no log. Se o
 # dump falhar, o deploy aborta. A contagem nunca bloqueia, só deixa rastro.
 # SOMENTE_PROTECAO=1 roda só essa etapa (dump + contagens) e sai, sem deploy.
+# SEM_SMOKE=1 dispensa o SMOKE_TOKEN e troca o smoke completo por uma checagem
+# mínima sem token (/login 200 por localhost e IP Tailscale + HOSTNAME=0.0.0.0);
+# se ela falhar, o rollback automático é o mesmo. Autorizado pelo Pedro em
+# 2026-10-28 (o arquivo ~/.anjos/smoke-token ainda não existe).
 #
-# Uso: scripts/deploy-oracle.sh
+# Uso: scripts/deploy-oracle.sh   |   SEM_SMOKE=1 scripts/deploy-oracle.sh
 #
 # Não sobe segredos novos, não muda DATA_SOURCE/DATABASE_URL/NOCODB_API_TOKEN
 # — isso já está fixado em ~/anjos-eventos-app/ecosystem.config.js no
@@ -80,6 +84,9 @@ if [ "${SOMENTE_PROTECAO:-0}" = "1" ]; then
   exit 0
 fi
 
+if [ "${SEM_SMOKE:-0}" = "1" ]; then
+log "SEM_SMOKE=1: sem SMOKE_TOKEN; ao final, só a checagem mínima de /login e HOSTNAME (com rollback)"
+else
 log "Carregando SMOKE_TOKEN (ambiente ou ~/.anjos/smoke-token; o valor nunca é impresso)"
 # Falha ANTES do build se não houver token válido: sem ele o smoke não prova o acesso autenticado.
 if [ -z "${SMOKE_TOKEN:-}" ]; then
@@ -112,6 +119,7 @@ if [ -z "${SMOKE_TOKEN:-}" ]; then
 fi
 [ "${#SMOKE_TOKEN}" -ge 32 ] || { echo "ERRO: SMOKE_TOKEN com menos de 32 caracteres — deploy abortado."; exit 1; }
 echo "SMOKE_TOKEN carregado (${#SMOKE_TOKEN} caracteres)."
+fi
 
 log "1/5 — Build isolado no $ENDER_HOST (git archive HEAD, npm ci, npm run build)"
 ssh "${SSH_OPTS[@]}" "$ENDER_HOST" bash -s <<EOF
@@ -160,6 +168,31 @@ HOST_FINAL=$(ssh "${SSH_OPTS[@]}" "$ORACLE_HOST" "pm2 env 0 | grep -E '^HOSTNAME
 echo "Processo PM2: $HOST_FINAL (esperado HOSTNAME:0.0.0.0)"
 [ "$HOST_FINAL" = "HOSTNAME:0.0.0.0" ] || { echo "ERRO: HOSTNAME do processo não é 0.0.0.0 — app pode estar inacessível pelo IP Tailscale."; SMOKE_PRE_FALHA=1; }
 
+if [ "${SEM_SMOKE:-0}" = "1" ]; then
+log "5/5 — Checagem mínima (SEM_SMOKE=1): /login 200 por localhost e IP Tailscale, HOSTNAME=0.0.0.0"
+{
+  printf 'IP=%q\n' "$IP_ORACLE_DB"
+  cat <<'EOF'
+set -uo pipefail
+for alvo in http://localhost:3001/login "http://$IP:3001/login"; do
+  T0=$(date +%s)
+  until [ "$(curl -s -o /dev/null --max-time 2 -w '%{http_code}' "$alvo")" = "200" ]; do
+    if [ $(( $(date +%s) - T0 )) -ge 60 ]; then echo "FALHA: $alvo não respondeu 200 em 60 s"; exit 1; fi
+    sleep 1
+  done
+  echo "$alvo = 200 ($(( $(date +%s) - T0 )) s)"
+done
+ESCUTA=$(ss -ltnH 'sport = :3001' | awk '{print $4}' | head -1)
+echo "socket em escuta: ${ESCUTA:-<nenhum>}"
+case "$ESCUTA" in
+  0.0.0.0:3001|\*:3001) ;;
+  *) echo "FALHA: porta 3001 escutando em '${ESCUTA:-nenhum}' (esperado 0.0.0.0:3001)"; exit 1 ;;
+esac
+pm2 list
+echo "CHECAGEM MÍNIMA: ok (smoke completo NÃO executado)"
+EOF
+} | ssh "${SSH_OPTS[@]}" "$ORACLE_HOST" bash -s || SMOKE_RC=$?
+else
 log "5/5 — Smoke test"
 # Smoke test. curl SEM -L (não seguir redirect: o status real é o que importa).
 # Páginas protegidas sem sessão aceitam 307 OU 200 com o marcador
@@ -281,6 +314,7 @@ if [ "$FALHAS" -ne 0 ]; then echo "SMOKE TEST: $FALHAS falha(s)"; exit 1; fi
 echo "SMOKE TEST: ok"
 EOF
 } | ssh "${SSH_OPTS[@]}" "$ORACLE_HOST" bash -s || SMOKE_RC=$?
+fi
 
 log "Contagem DEPOIS (somente leitura)"
 CONTAGEM_DEPOIS=$(contagem_banco) || CONTAGEM_DEPOIS="(falha ao contar)"
