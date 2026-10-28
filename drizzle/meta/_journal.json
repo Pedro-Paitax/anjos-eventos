@@ -57,6 +57,13 @@
       "when": 1791362789057,
       "tag": "0007_lista_compras_enviada_em",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1793200116207,
+      "tag": "0008_prospeccao",
+      "breakpoints": true
     }
   ]
 }

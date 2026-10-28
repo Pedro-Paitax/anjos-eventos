@@ -35,6 +35,12 @@ const links = [
     prefixos: ["/colaboradores"],
     icone: "M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M3 20c0-3.3 2.7-5 6-5s6 1.7 6 5 M16 5.5a3 3 0 0 1 0 5.5 M18 15c2 .6 3 2.2 3 5",
   },
+  {
+    href: "/prospeccao",
+    rotulo: "Prospecção",
+    prefixos: ["/prospeccao"],
+    icone: "M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14z M21 21l-5-5 M11 8v6 M8 11h6",
+  },
 ];
 
 // O shell dá o espaçamento e o fundo do conteúdo (o <main> da página não tem px/py).

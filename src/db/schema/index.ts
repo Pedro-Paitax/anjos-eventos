@@ -6,3 +6,4 @@ export * from "./cardapio-referencia";
 export * from "./orcamentos";
 export * from "./catalogo-complementar";
 export * from "./operacional";
+export * from "./prospeccao";
