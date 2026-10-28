@@ -1,0 +1,2 @@
+ALTER TABLE "lead_mensagens" DROP CONSTRAINT "lead_mensagens_gerador_check";--> statement-breakpoint
+ALTER TABLE "lead_mensagens" ADD CONSTRAINT "lead_mensagens_gerador_check" CHECK ("lead_mensagens"."gerador" IN ('modelo_local', 'manual', 'anthropic', 'gemini'));

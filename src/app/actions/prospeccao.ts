@@ -10,6 +10,7 @@ import { analisarCsv, linhaImportavel, type LinhaImportacao } from "@/lib/prospe
 import { DIMENSOES, calcularQualificacao, validarDimensao, type DimensaoAvaliada } from "@/lib/prospeccao-pontuacao";
 import { gerarMensagemModelo, fatosPersonalizaveis, type FatoUsado } from "@/lib/prospeccao-mensagem";
 import { canaisDisponiveis } from "@/lib/prospeccao-canais";
+import { configuracaoGemini, gerarMensagemGemini } from "@/lib/prospeccao-ia";
 import {
   CAMPOS_EVIDENCIA,
   CANAIS,
@@ -284,14 +285,49 @@ export async function gerarMensagemAction(leadId: number, _e: EstadoAcao, fd: Fo
     return { erro: "Este lead não tem contato para esse canal. Pesquise e cadastre o contato antes." };
   }
 
-  const gerada = gerarMensagemModelo({
-    canal,
-    categoria: lead.categoria,
-    nomeLead: lead.nomeComercial,
-    nomeRemetente: usuario.nome,
-  });
-  return resultadoParaEstado(
-    await criarMensagem({
+  let nova: Parameters<typeof criarMensagem>[0];
+  if (fd.get("gerador") === "gemini") {
+    const config = configuracaoGemini();
+    if (!config) return { erro: "IA não configurada no servidor (GEMINI_API_KEY). Gere sem IA.", valores: valoresEnviados(fd) };
+
+    const fatos = fatosPersonalizaveis(await listarEvidencias(leadId));
+    const ia = await gerarMensagemGemini(
+      {
+        canal,
+        categoria: lead.categoria,
+        nomeLead: lead.nomeComercial,
+        segmento: lead.segmento,
+        municipio: lead.municipio,
+        objetivo,
+        fatos: fatos.map((f) => ({ id: f.id, fato: f.fato })),
+      },
+      usuario.nome,
+      config,
+    );
+    if ("erro" in ia) return { erro: ia.erro, valores: valoresEnviados(fd) };
+
+    nova = {
+      leadId,
+      canal,
+      objetivo,
+      assunto: ia.assunto,
+      conteudo: ia.conteudo,
+      // Cópia dos fatos que a IA declarou usar (o revisor confere no texto).
+      fatosUsados: fatos
+        .filter((f) => ia.evidenciaIds.includes(f.id))
+        .map((f) => ({ evidenciaId: f.id, fato: f.fato, url: f.url })),
+      gerador: "gemini",
+      modelo: ia.modelo,
+      usuarioId: usuario.id,
+    };
+  } else {
+    const gerada = gerarMensagemModelo({
+      canal,
+      categoria: lead.categoria,
+      nomeLead: lead.nomeComercial,
+      nomeRemetente: usuario.nome,
+    });
+    nova = {
       leadId,
       canal,
       objetivo,
@@ -301,10 +337,20 @@ export async function gerarMensagemAction(leadId: number, _e: EstadoAcao, fd: Fo
       gerador: "modelo_local",
       modelo: null,
       usuarioId: usuario.id,
-    }),
-    leadId,
-    "Nova versão criada. Revise, personalize e aprove.",
-  );
+    };
+  }
+
+  let resultado: Resultado;
+  try {
+    resultado = await criarMensagem(nova);
+  } catch (erro) {
+    // 23514 = CHECK: banco sem a migração 0009 recusa gerador = 'gemini'.
+    if ((erro as { code?: string }).code === "23514" && nova.gerador === "gemini") {
+      return { erro: "Banco sem a migração 0009: mensagens do Gemini ainda não podem ser gravadas. Gere sem IA." };
+    }
+    return { erro: `Falha ao salvar a mensagem: ${(erro as Error).message}` };
+  }
+  return resultadoParaEstado(resultado, leadId, "Nova versão criada. Revise, personalize e aprove.");
 }
 
 export async function editarMensagemAction(

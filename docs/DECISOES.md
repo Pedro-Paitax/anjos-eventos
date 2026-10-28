@@ -1226,10 +1226,25 @@ Pedido do Pedro: transformar o sistema em ferramenta de prospecção assistida (
 - **Sem tabela de supressão separada**: "não contatar" é flag no lead. Como a importação e o cadastro deduplicam contra a base inteira (inclusive bloqueados), o bloqueio vale para reimportações do mesmo estabelecimento.
 - **Status `contatado`** acrescentado à lista sugerida: envio confirmado sem resposta é um estado real do funil e não cabia em "pronto para contato" nem em "em conversa".
 - **Estado de mensagem "rascunho" omitido**: toda mensagem nasce "aguardando revisão"; "não contatar" é do lead, não da mensagem (pendentes são descartadas).
-- **IA: PENDENTE.** Não havia provedor no projeto; adicionar exige `@anthropic-ai/sdk` e chave paga — decisão do Pedro (opção e custo em `docs/PROSPECCAO.md`). Até lá, modelo local honesto, sem afirmações sobre o lead.
+- **IA: PENDENTE.** Não havia provedor no projeto; adicionar exige `@anthropic-ai/sdk` e chave paga — decisão do Pedro (opção e custo em `docs/PROSPECCAO.md`). Até lá, modelo local honesto, sem afirmações sobre o lead. *(Resolvida em 2026-10-28: Gemini Free Tier — ver "Geração de mensagens com Gemini" abaixo.)*
 - **Pesos da pontuação no código** (`src/lib/prospeccao-pontuacao.ts`), não em `configuracoes_globais`: mudar peso é raro e cada avaliação guarda o máximo usado.
 - **Pesquisa dos 50 leads reais (fase piloto): PENDENTE** — depende da migração aplicada e de decisão sobre quem/como pesquisa.
 
 ### Migração 0008 (prospecção) aplicada em produção (2026-10-28)
 
 `drizzle/0008_prospeccao.sql`: 5 `CREATE TABLE`, 13 FKs (só nas tabelas novas, para `leads`, `lead_mensagens` e `usuarios`) e 11 `CREATE INDEX` — 29 comandos, nenhum DROP/DELETE/UPDATE/ALTER em tabela existente. Autorizada pelo Pedro ("Faça a migração"). Aplicada em transação única; `__drizzle_migrations` continua vazia (padrão do projeto, ver 0006/0007).
+
+### Geração de mensagens com Gemini (2026-10-28) — IMPLEMENTADA, migração 0009 NÃO APLICADA, sem deploy
+
+Decisão do Pedro: Gemini API em projeto **Free Tier, sem faturamento pago**, no lugar da opção Anthropic apresentada antes (que fica registrada em `docs/PROSPECCAO.md`). Envio continua **manual**: a IA só gera texto, que nasce "aguardando revisão".
+
+- Integração em `gerarMensagemAction` (`src/app/actions/prospeccao.ts`), o mesmo ponto do modelo local; módulo `src/lib/prospeccao-ia.ts` (`server-only`). Sem `GEMINI_API_KEY` no servidor o comportamento é idêntico ao anterior.
+- Modelo `gemini-3.5-flash-lite` (critério: estável + Free Tier + sem data de desligamento; detalhes e fontes em `docs/PROSPECCAO.md`). `fetch` direto na Interactions API, sem SDK (sem dependência nova), `store: false`.
+- Dados enviados minimizados (Free Tier usa o conteúdo para melhorar produtos do Google): sem contatos, sem responsável, sem notas internas, sem nome do remetente.
+- Migração `drizzle/0009_lead_mensagens_gerador_gemini.sql`: troca o CHECK de `lead_mensagens.gerador` para aceitar `'gemini'` (DROP + ADD CONSTRAINT, mais permissivo; nenhum dado alterado; `'anthropic'` mantido). **Não é só aditiva** (`docs/AUTONOMIA.md`): exige aprovação do Pedro antes de aplicar.
+
+**Ativação do Gemini** (nesta ordem):
+1. Pedro aprova e o SQL da 0009 é aplicado (dump validado antes, transação única, como 0005–0008).
+2. Pedro põe `GEMINI_API_KEY` (e, se quiser, `GEMINI_MODEL`) no `env` do `ecosystem.config.js` no Oracle — nunca no Git.
+3. Deploy (`SEM_SMOKE=1 scripts/deploy-oracle.sh` enquanto não houver `~/.anjos/smoke-token`); o `pm2 startOrRestart` relê o ecosystem.
+4. Conferir os limites do projeto em AI Studio → Rate limit e gerar uma mensagem de teste num lead real.

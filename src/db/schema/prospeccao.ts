@@ -176,7 +176,8 @@ export const leadMensagens = pgTable(
       "lead_mensagens_estado_check",
       sql`${t.estado} IN ('aguardando_revisao', 'aprovada', 'envio_iniciado', 'enviada', 'respondida', 'descartada')`,
     ),
-    check("lead_mensagens_gerador_check", sql`${t.gerador} IN ('modelo_local', 'manual', 'anthropic')`),
+    // 'gemini' entra na migração 0009; 'anthropic' fica (já está em produção, sem uso).
+    check("lead_mensagens_gerador_check", sql`${t.gerador} IN ('modelo_local', 'manual', 'anthropic', 'gemini')`),
   ],
 );
 

@@ -23,6 +23,7 @@ const ROTULO_GERADOR: Record<Mensagem["gerador"], string> = {
   modelo_local: "modelo sem IA",
   manual: "escrita à mão",
   anthropic: "IA",
+  gemini: "IA (Gemini)",
 };
 
 const dataHora = (d: Date | string) =>
@@ -174,10 +175,13 @@ export function MensagensLead({
   lead,
   mensagens,
   evidencias,
+  modeloIa,
 }: {
   lead: Lead;
   mensagens: Mensagem[];
   evidencias: Evidencia[];
+  /** Modelo do Gemini se a IA estiver configurada no servidor; null = só modelo sem IA. */
+  modeloIa: string | null;
 }) {
   const canais = canaisDisponiveis(lead);
   const fatos = fatosPersonalizaveis(evidencias) as Evidencia[];
@@ -202,9 +206,26 @@ export function MensagensLead({
               {(p) => <input {...p} name="objetivo" required defaultValue={OBJETIVO_PADRAO[lead.categoria]} />}
             </Campo>
           </div>
+          {modeloIa && (
+            <Campo rotulo="Gerar com">
+              {(p) => (
+                <Seletor
+                  {...p}
+                  name="gerador"
+                  defaultValue="gemini"
+                  opcoes={[
+                    { valor: "gemini", rotulo: `IA (Gemini — ${modeloIa})` },
+                    { valor: "modelo_local", rotulo: "Modelo sem IA" },
+                  ]}
+                />
+              )}
+            </Campo>
+          )}
           <p className="text-[13px] text-texto-suave">
-            Sem provedor de IA configurado: o texto sai de um modelo honesto e genérico. Personalize à mão usando os fatos
-            verificados e marque quais usou. Gerar não aprova; aprovar não envia.
+            {modeloIa
+              ? "A IA recebe só o nome, a categoria, o segmento, o município e os fatos verificados do lead (nada de contatos ou notas internas) e pode errar: confira o texto contra as fontes antes de aprovar."
+              : "IA não configurada: o texto sai de um modelo honesto e genérico. Personalize à mão usando os fatos verificados e marque quais usou."}{" "}
+            Gerar não aprova; aprovar não envia.
           </p>
         </FormularioAcao>
       )}

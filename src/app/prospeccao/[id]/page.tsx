@@ -14,6 +14,7 @@ import {
 } from "@/lib/prospeccao-opcoes";
 import { DIMENSOES, pendenciasCadastro } from "@/lib/prospeccao-pontuacao";
 import { linkInstagram } from "@/lib/prospeccao-canais";
+import { configuracaoGemini } from "@/lib/prospeccao-ia";
 import { CabecalhoPagina } from "@/components/cabecalho-pagina";
 import { Painel } from "@/components/painel";
 import { Alerta } from "@/components/alerta";
@@ -230,7 +231,12 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
 
       <Painel como="section" className="flex flex-col gap-4">
         <h2 className={secaoTituloClasse}>Mensagens</h2>
-        <MensagensLead lead={lead} mensagens={mensagens} evidencias={evidencias} />
+        <MensagensLead
+          lead={lead}
+          mensagens={mensagens}
+          evidencias={evidencias}
+          modeloIa={configuracaoGemini()?.modelo ?? null}
+        />
       </Painel>
 
       <Painel como="section" className="flex flex-col gap-4">

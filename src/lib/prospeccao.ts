@@ -375,7 +375,7 @@ export type Mensagem = {
   versao: number;
   evidenciaIds: number[];
   fatosUsados: FatoUsado[];
-  gerador: "modelo_local" | "manual" | "anthropic";
+  gerador: "modelo_local" | "manual" | "anthropic" | "gemini";
   modelo: string | null;
   criadaPorNome: string | null;
   editadaPorNome: string | null;

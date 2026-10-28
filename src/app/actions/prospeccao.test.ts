@@ -11,6 +11,8 @@ const m = vi.hoisted(() => ({
   listarEvidencias: vi.fn(),
   registrarQualificacao: vi.fn(),
   criarEvidencia: vi.fn(),
+  configuracaoGemini: vi.fn(),
+  gerarMensagemGemini: vi.fn(),
   redirect: vi.fn((url: string) => {
     throw new Error(`NEXT_REDIRECT ${url}`);
   }),
@@ -28,6 +30,10 @@ vi.mock("@/lib/prospeccao", () => ({
   listarEvidencias: m.listarEvidencias,
   registrarQualificacao: m.registrarQualificacao,
   criarEvidencia: m.criarEvidencia,
+}));
+vi.mock("@/lib/prospeccao-ia", () => ({
+  configuracaoGemini: m.configuracaoGemini,
+  gerarMensagemGemini: m.gerarMensagemGemini,
 }));
 
 import {
@@ -67,6 +73,7 @@ beforeEach(() => {
   m.criarMensagem.mockResolvedValue({ ok: true });
   m.confirmarEnvio.mockResolvedValue({ ok: true });
   m.listarEvidencias.mockResolvedValue([]);
+  m.configuracaoGemini.mockReturnValue(null);
 });
 
 describe("sessão", () => {
@@ -120,6 +127,70 @@ describe("gerarMensagemAction", () => {
     const msg = m.criarMensagem.mock.calls[0][0];
     expect(msg).toMatchObject({ leadId: 5, canal: "whatsapp", gerador: "modelo_local", fatosUsados: [], usuarioId: 1 });
     expect(msg.conteudo).toContain("Aqui é Pedro, da Anjos Eventos.");
+  });
+});
+
+describe("gerarMensagemAction com Gemini", () => {
+  const evidencias = [
+    { id: 1, fato: "Festival de inverno anual", url: "https://x.com.br/eventos", natureza: "fato", verificacao: "verificado" },
+    { id: 2, fato: "Deve ter espaço externo", url: null, natureza: "inferencia", verificacao: "a_verificar" },
+    { id: 3, fato: "Área externa com mesas", url: "https://x.com.br", natureza: "fato", verificacao: "verificado" },
+  ];
+  const pedirIa = () => gerarMensagemAction(5, {}, fd({ canal: "whatsapp", objetivo: "Parceria", gerador: "gemini" }));
+
+  beforeEach(() => {
+    m.configuracaoGemini.mockReturnValue({ chave: "teste", modelo: "gemini-3.5-flash-lite" });
+    m.listarEvidencias.mockResolvedValue(evidencias);
+  });
+
+  it("sem chave no servidor: não chama a IA nem grava", async () => {
+    m.configuracaoGemini.mockReturnValue(null);
+    expect((await pedirIa()).erro).toMatch(/IA não configurada/);
+    expect(m.gerarMensagemGemini).not.toHaveBeenCalled();
+    expect(m.criarMensagem).not.toHaveBeenCalled();
+  });
+
+  it("envia só fatos verificados e dados públicos; grava em revisão com modelo e fatos usados", async () => {
+    m.gerarMensagemGemini.mockResolvedValue({
+      assunto: null,
+      conteudo: "Oi! Aqui é Pedro, da Anjos Eventos.",
+      evidenciaIds: [1],
+      modelo: "gemini-3.5-flash-lite",
+    });
+    expect((await pedirIa()).sucesso).toBeDefined();
+
+    const [entrada, remetente] = m.gerarMensagemGemini.mock.calls[0];
+    expect(remetente).toBe("Pedro");
+    expect(entrada.fatos).toEqual([
+      { id: 1, fato: "Festival de inverno anual" },
+      { id: 3, fato: "Área externa com mesas" },
+    ]);
+    expect(JSON.stringify(entrada)).not.toContain("5541999998888"); // telefone do lead fica fora
+
+    expect(m.criarMensagem.mock.calls[0][0]).toMatchObject({
+      gerador: "gemini",
+      modelo: "gemini-3.5-flash-lite",
+      conteudo: "Oi! Aqui é Pedro, da Anjos Eventos.",
+      fatosUsados: [{ evidenciaId: 1, fato: "Festival de inverno anual", url: "https://x.com.br/eventos" }],
+    });
+  });
+
+  it("erro da IA (ex.: limite gratuito): devolve a mensagem e não grava", async () => {
+    m.gerarMensagemGemini.mockResolvedValue({ erro: "Limite gratuito do Gemini atingido" });
+    expect((await pedirIa()).erro).toMatch(/Limite gratuito/);
+    expect(m.criarMensagem).not.toHaveBeenCalled();
+  });
+
+  it("banco sem a migração 0009 (CHECK 23514): erro claro", async () => {
+    m.gerarMensagemGemini.mockResolvedValue({ assunto: null, conteudo: "Oi", evidenciaIds: [], modelo: "x" });
+    m.criarMensagem.mockRejectedValue(Object.assign(new Error("violates check constraint"), { code: "23514" }));
+    expect((await pedirIa()).erro).toMatch(/migração 0009/);
+  });
+
+  it("escolhendo 'modelo sem IA' não chama o Gemini mesmo configurado", async () => {
+    await gerarMensagemAction(5, {}, fd({ canal: "whatsapp", objetivo: "x", gerador: "modelo_local" }));
+    expect(m.gerarMensagemGemini).not.toHaveBeenCalled();
+    expect(m.criarMensagem.mock.calls[0][0]).toMatchObject({ gerador: "modelo_local" });
   });
 });
 

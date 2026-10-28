@@ -108,14 +108,43 @@ Colunas `fonte_*` viram evidência (verificada só com `fonte_verificada=sim`).
 
 Exportação: `Exportar CSV` (`;` + BOM, abre no Excel em pt-BR).
 
-## Geração por IA — pendente de decisão
+## Geração por IA — Gemini (Free Tier)
 
-Não há provedor de IA no projeto. Hoje a mensagem sai de um modelo local
-honesto (`src/lib/prospeccao-mensagem.ts`, `gerador = modelo_local`) que não
-afirma nada sobre o lead além do nome; o usuário personaliza à mão com os fatos
-verificados exibidos ao lado.
+Decisão do Pedro em 2026-10-28: Gemini API em projeto **Free Tier, sem
+faturamento**. Código em `src/lib/prospeccao-ia.ts`; ativo só quando
+`GEMINI_API_KEY` existe no servidor. Sem a chave, tudo funciona como antes
+(modelo local honesto, `src/lib/prospeccao-mensagem.ts`, `gerador = modelo_local`).
 
-Opção mínima para IA: SDK oficial `@anthropic-ai/sdk` (dependência nova) +
+Como funciona:
+- Na página do lead → Mensagens, "Gerar com: IA (Gemini)" ou "Modelo sem IA".
+  A mensagem gerada nasce **aguardando revisão**, como qualquer outra: nada é
+  enviado; aprovar e confirmar o envio continuam manuais.
+- Modelo padrão `gemini-3.5-flash-lite` (estável, "Free of charge" no Free Tier,
+  sem data de desligamento; a família 2.5 está com acesso restrito a quem já
+  usava e os *preview* têm limites menores — docs do Gemini consultadas em
+  2026-10-28). Trocável por `GEMINI_MODEL`, sem mexer no código.
+- Interactions API (`POST /v1beta/interactions`, recomendada pelo Google desde
+  06/2026), chamada com `fetch` (sem dependência nova), chave só no header
+  `x-goog-api-key`, `store: false`, timeout de 30 s.
+- **Privacidade (Free Tier: o Google usa o conteúdo para melhorar produtos):**
+  o pedido leva só nome, categoria, segmento e município do estabelecimento,
+  o objetivo e os **fatos verificados**. Não vão: telefone, e-mail, Instagram,
+  responsável comercial, observações/limitações internas nem o nome de quem
+  envia (o modelo escreve `[REMETENTE]`, trocado no servidor).
+- Proteções: resposta em JSON com esquema; mensagem que cita fato não enviado é
+  **descartada** (pode conter invenção); tamanho máximo por canal; e-mail exige
+  assunto. Os fatos que a IA declara usar ficam em `fatos_usados` — o revisor
+  confere no texto antes de aprovar.
+- Limites: por **projeto** (não por chave), visíveis em AI Studio → Rate limit;
+  o diário zera à meia-noite do Pacífico. Estourou → HTTP 429 → aviso na tela
+  ("gere sem IA ou tente mais tarde"); nada é gravado. No Free Tier, sem
+  faturamento, não há cobrança.
+- Gravar `gerador = 'gemini'` exige a migração `drizzle/0009_lead_mensagens_gerador_gemini.sql`.
+  Sem ela, a tela avisa e nada é gravado.
+
+Ativação: ver "Ativação do Gemini" em `docs/DECISOES.md` (seção de 2026-10-28).
+
+Registro da opção apresentada antes (não escolhida): SDK oficial `@anthropic-ai/sdk` (dependência nova) +
 chave `ANTHROPIC_API_KEY` só no servidor (`ecosystem.config.js`), chamada numa
 Server Action, recebendo apenas fatos verificados e gravando `gerador =
 anthropic` e o modelo. Custo estimado por mensagem (~1.500 tokens de entrada,
