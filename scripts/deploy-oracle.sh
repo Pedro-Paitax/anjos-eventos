@@ -182,7 +182,7 @@ for alvo in http://localhost:3001/login "http://$IP:3001/login"; do
   done
   echo "$alvo = 200 ($(( $(date +%s) - T0 )) s)"
 done
-ESCUTA=$(ss -ltnH 'sport = :3001' | awk '{print $4}' | head -1)
+ESCUTA=$(/usr/sbin/ss -ltnH 'sport = :3001' | awk '{print $4}' | head -1)  # /usr/sbin fora do PATH do ssh não interativo
 echo "socket em escuta: ${ESCUTA:-<nenhum>}"
 case "$ESCUTA" in
   0.0.0.0:3001|\*:3001) ;;
@@ -302,7 +302,7 @@ echo "--- HOSTNAME=0.0.0.0 (env do processo PM2 e socket de escuta na 3001) ---"
 HOST_PM2=$(pm2 env 0 | grep -E '^HOSTNAME:' | tr -d ' ')
 echo "pm2 env: $HOST_PM2"
 [ "$HOST_PM2" = "HOSTNAME:0.0.0.0" ] || falha "HOSTNAME do processo PM2 é '${HOST_PM2:-ausente}' (esperado HOSTNAME:0.0.0.0)"
-ESCUTA=$(ss -ltnH 'sport = :3001' | awk '{print $4}' | head -1)
+ESCUTA=$(/usr/sbin/ss -ltnH 'sport = :3001' | awk '{print $4}' | head -1)  # /usr/sbin fora do PATH do ssh não interativo
 echo "socket em escuta: ${ESCUTA:-<nenhum>}"
 case "$ESCUTA" in
   0.0.0.0:3001|\*:3001) ;;
