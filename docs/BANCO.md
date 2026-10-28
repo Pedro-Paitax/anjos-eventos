@@ -263,9 +263,9 @@ Representa receita adicional cobrada do cliente — ver `docs/REGRAS_NEGOCIO.md`
 
 # Prospecção comercial (`src/db/schema/prospeccao.ts`)
 
-> Migração `drizzle/0008_prospeccao.sql` — **NÃO APLICADA** em produção
-> (2026-10-28). Só aditiva: 5 tabelas novas, índices e FKs entre elas e para
-> `usuarios`. Uso e regras: `docs/PROSPECCAO.md`.
+> Migração `drizzle/0008_prospeccao.sql` — aplicada em produção em
+> 2026-10-28. Só aditiva: 5 tabelas novas, 11 índices e 13 FKs entre elas e
+> para `usuarios`. Uso e regras: `docs/PROSPECCAO.md`.
 
 Domínios em `text` + `CHECK` (listas em `src/lib/prospeccao-opcoes.ts`).
 

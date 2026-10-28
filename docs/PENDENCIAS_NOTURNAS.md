@@ -2558,3 +2558,11 @@ Validação no `ender` (git archive do HEAD `0b6fe6e`, sem rede para o app): `ne
 Antes (somente leitura): a 0006 estava presente (`qtd_taca_furta_cor`, `qtd_taca_champanhe` e os dois CHECK). `pg_dump -Fc` validado: `~/backups-anjos-eventos/pre-0007-20261007-093540.dump`, 82.510 bytes, 22 tabelas com dados (`pg_restore --list`). Aplicada em transação única com o único `ADD COLUMN` (script pontual com `pg`, apagado depois); COMMIT sem erro.
 
 Contagens antes → depois: eventos 1 → 1, orcamentos 1 → 1, itens_evento_confirmados 12 → 12, decisoes_operacionais_evento 1 → 1, tabelas 21 → 21. Colunas do schema `public` 154 → 155; a única nova é `lista_compras_enviada_em` (`timestamp with time zone`, nula, sem default). Constraints da tabela inalteradas (5). Nenhum dado gravado, sem deploy, worker não subido. Passo 2 da ativação concluído; falta o deploy do app.
+
+## 2026-10-28 — Migração 0008 (prospecção) aplicada em produção
+
+Antes (somente leitura): nenhuma das 5 tabelas existia; 0007 presente (`lista_compras_enviada_em`); 21 tabelas em `public`. `pg_dump -Fc` validado: `~/backups-anjos-eventos/pre-0008-20261028-181834.dump` (máquina do Pedro), 82.594 bytes, 189 entradas, 22 tabelas com dados (`pg_restore --list`). Aplicada em transação única (29 comandos lidos de `drizzle/0008_prospeccao.sql`, script pontual com `pg` e trava contra comandos fora de CREATE TABLE/INDEX e ADD CONSTRAINT FK das tabelas novas; apagado depois). COMMIT sem erro. Primeira execução abortada pela própria trava antes de conectar (falso positivo com `ON DELETE cascade`); nada aplicado nela.
+
+Depois: tabelas 21 → 26; colunas leads 28, lead_evidencias 14, lead_qualificacoes 12, lead_mensagens 21, lead_interacoes 9; 11 índices, 13 FKs e 13 CHECKs novos. Contagens antes → depois iguais: usuarios 5, eventos 1, orcamentos 1, itens_evento_confirmados 12, decisoes_operacionais_evento 1, colaboradores 10, preparos 54, insumos 122; leads 0. Sem deploy.
+
+Pendente: deploy do app (`scripts/deploy-oracle.sh`); decisão sobre IA; pesquisa dos 50 leads do piloto.

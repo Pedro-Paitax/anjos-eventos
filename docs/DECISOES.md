@@ -1218,7 +1218,7 @@ Envio: Server Action `enviarListaComprasAction` (usuário logado), destino na va
 
 `decisoes_operacionais_evento.lista_compras_enviada_em` (`timestamp with time zone`, nula, sem default) — `drizzle/0007_lista_compras_enviada_em.sql`, um único `ADD COLUMN`. Aplicada em transação única, autorizada pelo Pedro.
 
-### Módulo de prospecção comercial (branch `automacao-deploy`, 2026-10-28) — IMPLEMENTADA, migração 0008 NÃO APLICADA
+### Módulo de prospecção comercial (branch `automacao-deploy`, 2026-10-28) — IMPLEMENTADA, migração 0008 aplicada, deploy pendente
 
 Pedido do Pedro: transformar o sistema em ferramenta de prospecção assistida (leads, fontes, qualificação, mensagens, contato manual, indicadores). Uso e regras em `docs/PROSPECCAO.md`.
 
@@ -1229,3 +1229,7 @@ Pedido do Pedro: transformar o sistema em ferramenta de prospecção assistida (
 - **IA: PENDENTE.** Não havia provedor no projeto; adicionar exige `@anthropic-ai/sdk` e chave paga — decisão do Pedro (opção e custo em `docs/PROSPECCAO.md`). Até lá, modelo local honesto, sem afirmações sobre o lead.
 - **Pesos da pontuação no código** (`src/lib/prospeccao-pontuacao.ts`), não em `configuracoes_globais`: mudar peso é raro e cada avaliação guarda o máximo usado.
 - **Pesquisa dos 50 leads reais (fase piloto): PENDENTE** — depende da migração aplicada e de decisão sobre quem/como pesquisa.
+
+### Migração 0008 (prospecção) aplicada em produção (2026-10-28)
+
+`drizzle/0008_prospeccao.sql`: 5 `CREATE TABLE`, 13 FKs (só nas tabelas novas, para `leads`, `lead_mensagens` e `usuarios`) e 11 `CREATE INDEX` — 29 comandos, nenhum DROP/DELETE/UPDATE/ALTER em tabela existente. Autorizada pelo Pedro ("Faça a migração"). Aplicada em transação única; `__drizzle_migrations` continua vazia (padrão do projeto, ver 0006/0007).

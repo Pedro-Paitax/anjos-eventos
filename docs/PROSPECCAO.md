@@ -5,8 +5,8 @@ parceiros (cervejarias, bares/restaurantes, espaços de eventos e outros) para
 experiências com parrilla e fogo ao vivo. Mercado inicial: Curitiba e RMC.
 
 **Estado (2026-10-28):** código pronto e testado na branch `automacao-deploy`.
-A migração `drizzle/0008_prospeccao.sql` **NÃO foi aplicada** em produção:
-até ser aplicada, as telas `/prospeccao` dão erro (as tabelas não existem).
+Migração `drizzle/0008_prospeccao.sql` **aplicada em produção** em 2026-10-28
+(tabelas vazias). O app em produção ainda não tem as telas: falta o deploy.
 
 ---
 
