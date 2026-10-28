@@ -31,6 +31,11 @@ Este documento é a fonte única para saber qual documentação em `docs/` é v�
 - **Quando consultar:** antes de implementar ou alterar qualquer lógica de negócio. É a referência oficial para regras já aprovadas.
 - **Status:** CANÔNICO.
 
+### `docs/PROSPECCAO.md`
+- **Finalidade:** uso e regras do módulo de prospecção comercial (`/prospeccao`): fluxo, pontuação, status, indicadores, CSV e a decisão pendente sobre IA.
+- **Quando consultar:** antes de mexer em leads, mensagens de abordagem ou indicadores comerciais.
+- **Status:** CANÔNICO para o módulo (regras-resumo também em `docs/REGRAS_NEGOCIO.md` §20).
+
 ### `docs/DECISOES.md`
 - **Finalidade:** registro de decisões técnicas e de negócio, com status individual (`APROVADA`, `PENDENTE`, `IMPLEMENTADA`, `VALIDADA`, `DESCARTADA`), incluindo pendências conhecidas e divergências identificadas entre documentação e código/schema.
 - **Quando consultar:** para verificar se uma decisão específica já foi tomada, está pendente, ou foi descartada — e para checar se uma divergência já é conhecida antes de reportá-la como nova.

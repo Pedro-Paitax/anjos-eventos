@@ -1217,3 +1217,15 @@ Envio: Server Action `enviarListaComprasAction` (usuário logado), destino na va
 ### Migração 0007 aplicada em produção (2026-10-07)
 
 `decisoes_operacionais_evento.lista_compras_enviada_em` (`timestamp with time zone`, nula, sem default) — `drizzle/0007_lista_compras_enviada_em.sql`, um único `ADD COLUMN`. Aplicada em transação única, autorizada pelo Pedro.
+
+### Módulo de prospecção comercial (branch `automacao-deploy`, 2026-10-28) — IMPLEMENTADA, migração 0008 NÃO APLICADA
+
+Pedido do Pedro: transformar o sistema em ferramenta de prospecção assistida (leads, fontes, qualificação, mensagens, contato manual, indicadores). Uso e regras em `docs/PROSPECCAO.md`.
+
+- **Dentro do sistema existente**: mesmo Postgres, mesmo login, mesmo padrão (`pool.query` em `src/lib`, Server Actions, Brasa). Nenhum serviço novo. Diagnóstico: o banco não tinha nenhuma tabela de lead/CRM (só `orcamentos.cliente_nome`, texto livre), então foram criadas 5 tabelas (`docs/BANCO.md`).
+- **Sem tabela de supressão separada**: "não contatar" é flag no lead. Como a importação e o cadastro deduplicam contra a base inteira (inclusive bloqueados), o bloqueio vale para reimportações do mesmo estabelecimento.
+- **Status `contatado`** acrescentado à lista sugerida: envio confirmado sem resposta é um estado real do funil e não cabia em "pronto para contato" nem em "em conversa".
+- **Estado de mensagem "rascunho" omitido**: toda mensagem nasce "aguardando revisão"; "não contatar" é do lead, não da mensagem (pendentes são descartadas).
+- **IA: PENDENTE.** Não havia provedor no projeto; adicionar exige `@anthropic-ai/sdk` e chave paga — decisão do Pedro (opção e custo em `docs/PROSPECCAO.md`). Até lá, modelo local honesto, sem afirmações sobre o lead.
+- **Pesos da pontuação no código** (`src/lib/prospeccao-pontuacao.ts`), não em `configuracoes_globais`: mudar peso é raro e cada avaliação guarda o máximo usado.
+- **Pesquisa dos 50 leads reais (fase piloto): PENDENTE** — depende da migração aplicada e de decisão sobre quem/como pesquisa.

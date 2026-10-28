@@ -261,6 +261,26 @@ Representa receita adicional cobrada do cliente — ver `docs/REGRAS_NEGOCIO.md`
 
 ---
 
+# Prospecção comercial (`src/db/schema/prospeccao.ts`)
+
+> Migração `drizzle/0008_prospeccao.sql` — **NÃO APLICADA** em produção
+> (2026-10-28). Só aditiva: 5 tabelas novas, índices e FKs entre elas e para
+> `usuarios`. Uso e regras: `docs/PROSPECCAO.md`.
+
+Domínios em `text` + `CHECK` (listas em `src/lib/prospeccao-opcoes.ts`).
+
+| Tabela | Conteúdo |
+|---|---|
+| `leads` | estabelecimento: identificação, contatos públicos (telefone com DDI, Instagram sem @), resumo comercial, `status`, `nao_contatar` + motivo, próxima ação, responsável (`usuarios`), `nome_normalizado` e `dominio` (deduplicação) |
+| `lead_evidencias` | fonte, URL, data da consulta, tipo, `natureza` (fato/inferência), `campo` do cadastro sustentado, fato, trecho, confiança, verificação |
+| `lead_qualificacoes` | uma linha por avaliação (vigente = mais recente): `dimensoes` jsonb, pontuação, máximo possível, completude, prioridade, provisória, confiança |
+| `lead_mensagens` | versão por lead, canal, objetivo, assunto, conteúdo, estado, `evidencia_ids` + `fatos_usados` (cópia), gerador/modelo, quem criou/editou/aprovou/enviou e quando |
+| `lead_interacoes` | envio confirmado, resposta, reunião, proposta, conversão, sem interesse, não contatar, reativação, nota — com usuário e data |
+
+Sem DELETE pela aplicação: o histórico comercial é preservado.
+
+---
+
 # Regras de ON DELETE (resumo)
 
 | Tabela filha | FK | Regra |
@@ -275,6 +295,9 @@ Representa receita adicional cobrada do cliente — ver `docs/REGRAS_NEGOCIO.md`
 | `cardapio_modelo_itens.cardapio_modelo_id` | → `cardapios_modelo` | CASCADE |
 | `orcamento_itens_adicionais.orcamento_id` | → `orcamentos` | NO ACTION (não formalizado) |
 | `eventos.empresa_id` | → `empresas` | NO ACTION |
+| `lead_evidencias` / `lead_qualificacoes` / `lead_mensagens` / `lead_interacoes` `.lead_id` | → `leads` | CASCADE (a aplicação não apaga leads) |
+| `lead_interacoes.mensagem_id` | → `lead_mensagens` | NO ACTION |
+| colunas de usuário da prospecção (`*_por`, `usuario_id`, `responsavel_usuario_id`) | → `usuarios` | NO ACTION |
 
 `eventos` (hard delete via `src/lib/eventos.ts`, `DELETE FROM eventos`) hoje não tem restrição por status — ver `docs/REGRAS_NEGOCIO.md` seção 3.
 

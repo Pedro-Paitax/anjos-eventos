@@ -328,3 +328,16 @@ O sistema deve privilegiar:
 - histórico consistente.
 
 Não introduzir complexidade apenas porque existe uma solução tecnicamente mais sofisticada.
+
+---
+
+# 20. Prospecção comercial
+
+Regras completas em `docs/PROSPECCAO.md`. As que não podem ser quebradas:
+
+- nenhuma mensagem é enviada automaticamente; gerar, aprovar e abrir o canal não contam como envio — só a confirmação explícita do usuário;
+- lead marcado como "não contatar" não recebe nova mensagem (geração, aprovação, abertura de canal e confirmação bloqueadas);
+- deduplicação nunca une registros sozinha;
+- personalização só com fato verificado; inferência nunca é apresentada como fato;
+- dimensão sem dado é "desconhecida" (não vale zero) e deixa a pontuação provisória;
+- taxa de resposta = leads que responderam ÷ leads com envio confirmado.
