@@ -2566,3 +2566,9 @@ Antes (somente leitura): nenhuma das 5 tabelas existia; 0007 presente (`lista_co
 Depois: tabelas 21 → 26; colunas leads 28, lead_evidencias 14, lead_qualificacoes 12, lead_mensagens 21, lead_interacoes 9; 11 índices, 13 FKs e 13 CHECKs novos. Contagens antes → depois iguais: usuarios 5, eventos 1, orcamentos 1, itens_evento_confirmados 12, decisoes_operacionais_evento 1, colaboradores 10, preparos 54, insumos 122; leads 0. Sem deploy.
 
 Pendente: deploy do app (`scripts/deploy-oracle.sh`); decisão sobre IA; pesquisa dos 50 leads do piloto.
+
+## 2026-10-28 — Migração 0009 (gerador 'gemini') aplicada em produção
+
+Antes (somente leitura): CHECK `gerador IN ('modelo_local','manual','anthropic')`; 9 constraints em `lead_mensagens`; 0 mensagens, 0 leads; 26 tabelas. `pg_dump -Fc` validado: `~/backups-anjos-eventos/pre-0009-20261028-232255.dump` (máquina do Pedro), 107.401 bytes, 248 entradas, 27 tabelas com dados. Aplicada em transação única (2 comandos lidos de `drizzle/0009_lead_mensagens_gerador_gemini.sql`, script pontual com `pg` e trava exigindo o SQL idêntico ao aprovado; apagado depois). COMMIT sem erro.
+
+Depois: CHECK com `'gemini'`; 9 constraints em `lead_mensagens` (mesma quantidade); contagens iguais (usuarios 5, eventos 1, orcamentos 1, itens_evento_confirmados 12, preparos 54, insumos 122, leads 0, lead_mensagens 0); 26 tabelas.

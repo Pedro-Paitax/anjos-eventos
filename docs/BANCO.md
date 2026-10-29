@@ -280,8 +280,8 @@ Domínios em `text` + `CHECK` (listas em `src/lib/prospeccao-opcoes.ts`).
 Sem DELETE pela aplicação: o histórico comercial é preservado.
 
 `lead_mensagens.gerador`: `modelo_local`, `manual`, `anthropic` (0008) e `gemini`
-— este só com `drizzle/0009_lead_mensagens_gerador_gemini.sql`, **NÃO APLICADA**
-(2026-10-28; troca o CHECK, ver `docs/DECISOES.md`).
+— este pela `drizzle/0009_lead_mensagens_gerador_gemini.sql`, aplicada em
+produção em 2026-10-28 (troca o CHECK, ver `docs/DECISOES.md`).
 
 ---
 

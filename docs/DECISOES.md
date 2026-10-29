@@ -1234,7 +1234,7 @@ Pedido do Pedro: transformar o sistema em ferramenta de prospecção assistida (
 
 `drizzle/0008_prospeccao.sql`: 5 `CREATE TABLE`, 13 FKs (só nas tabelas novas, para `leads`, `lead_mensagens` e `usuarios`) e 11 `CREATE INDEX` — 29 comandos, nenhum DROP/DELETE/UPDATE/ALTER em tabela existente. Autorizada pelo Pedro ("Faça a migração"). Aplicada em transação única; `__drizzle_migrations` continua vazia (padrão do projeto, ver 0006/0007).
 
-### Geração de mensagens com Gemini (2026-10-28) — IMPLEMENTADA, migração 0009 NÃO APLICADA, sem deploy
+### Geração de mensagens com Gemini (2026-10-28) — IMPLEMENTADA, migração 0009 aplicada
 
 Decisão do Pedro: Gemini API em projeto **Free Tier, sem faturamento pago**, no lugar da opção Anthropic apresentada antes (que fica registrada em `docs/PROSPECCAO.md`). Envio continua **manual**: a IA só gera texto, que nasce "aguardando revisão".
 
@@ -1248,3 +1248,7 @@ Decisão do Pedro: Gemini API em projeto **Free Tier, sem faturamento pago**, no
 2. Pedro põe `GEMINI_API_KEY` (e, se quiser, `GEMINI_MODEL`) no `env` do `ecosystem.config.js` no Oracle — nunca no Git.
 3. Deploy (`SEM_SMOKE=1 scripts/deploy-oracle.sh` enquanto não houver `~/.anjos/smoke-token`); o `pm2 startOrRestart` relê o ecosystem.
 4. Conferir os limites do projeto em AI Studio → Rate limit e gerar uma mensagem de teste num lead real.
+
+### Migração 0009 (gerador 'gemini') aplicada em produção (2026-10-28)
+
+SQL mostrado e aprovado pelo Pedro ("aprovado a migração"). Dois comandos: `DROP CONSTRAINT` + `ADD CONSTRAINT` de `lead_mensagens_gerador_check`, agora com `'gemini'`. Transação única, conferência do CHECK novo antes do COMMIT; `__drizzle_migrations` segue vazia (padrão do projeto). Pedro informou que `GEMINI_API_KEY` já está no `ecosystem.config.js` do Oracle (valor não lido nem registrado aqui).
