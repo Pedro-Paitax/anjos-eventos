@@ -3,6 +3,7 @@ import type http from "node:http";
 import { afterEach, describe, expect, it } from "vitest";
 import { FilaEnvio } from "./fila-envio.js";
 import { criarServidor } from "./servidor.js";
+import { NumeroSemWhatsappError } from "./telefone.js";
 import { NaoConectadoError, type ClienteWhatsapp, type Status } from "./whatsapp.js";
 
 const TOKEN = "token-de-teste-1234567890";
@@ -91,6 +92,21 @@ describe("API do worker", () => {
       body: JSON.stringify({ to: "5500900000000", text: "oi" }),
     });
     expect(r.status).toBe(503);
+  });
+
+  it("devolve 422 quando o número não tem WhatsApp", async () => {
+    const { cliente } = clienteFalso();
+    cliente.enviarTexto = async () => {
+      throw new NumeroSemWhatsappError();
+    };
+    const url = await subir(cliente);
+    const r = await fetch(`${url}/send-message`, {
+      method: "POST",
+      headers: auth,
+      body: JSON.stringify({ to: "5500900000000", text: "oi" }),
+    });
+    expect(r.status).toBe(422);
+    expect(await r.json()).toEqual({ ok: false, error: "Número sem WhatsApp." });
   });
 
   it("/send-document aceita PDF em base64 e rejeita não-PDF", async () => {

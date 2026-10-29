@@ -1,7 +1,7 @@
 import { timingSafeEqual } from "node:crypto";
 import http from "node:http";
 import { FilaEnvio } from "./fila-envio.js";
-import { paraJid } from "./telefone.js";
+import { NumeroSemWhatsappError, paraJid } from "./telefone.js";
 import { NaoConectadoError, type ClienteWhatsapp } from "./whatsapp.js";
 
 // PDF em base64 dentro de JSON: 20 MB cobre com folga uma ficha técnica.
@@ -133,6 +133,9 @@ export function criarServidor({ token, cliente, fila }: OpcoesServidor): http.Se
       }
       if (erro instanceof NaoConectadoError) {
         return responder(res, 503, { ok: false, error: erro.message });
+      }
+      if (erro instanceof NumeroSemWhatsappError) {
+        return responder(res, 422, { ok: false, error: erro.message });
       }
       return responder(res, 502, { ok: false, error: "Falha ao enviar pelo WhatsApp." });
     }
