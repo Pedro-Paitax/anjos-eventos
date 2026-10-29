@@ -1252,3 +1252,7 @@ Decisão do Pedro: Gemini API em projeto **Free Tier, sem faturamento pago**, no
 ### Migração 0009 (gerador 'gemini') aplicada em produção (2026-10-28)
 
 SQL mostrado e aprovado pelo Pedro ("aprovado a migração"). Dois comandos: `DROP CONSTRAINT` + `ADD CONSTRAINT` de `lead_mensagens_gerador_check`, agora com `'gemini'`. Transação única, conferência do CHECK novo antes do COMMIT; `__drizzle_migrations` segue vazia (padrão do projeto). Pedro informou que `GEMINI_API_KEY` já está no `ecosystem.config.js` do Oracle (valor não lido nem registrado aqui).
+
+### Gemini ativado em produção (2026-10-28)
+
+Deploy do commit `2761330` (`SEM_SMOKE=1`, checagem mínima ok, contagens iguais). O processo do app tem `GEMINI_API_KEY` não vazia (conferida só a presença, valor nunca exibido); `GEMINI_MODEL` não definido → `gemini-3.5-flash-lite`. Chamada mínima a partir do Oracle, sem dado de lead e com `store: false`: `models.get` 200 e `interactions` 200 com `status: completed` (1 requisição da cota gratuita). Falta só o teste pela tela num lead real.

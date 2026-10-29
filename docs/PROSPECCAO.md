@@ -5,8 +5,8 @@ parceiros (cervejarias, bares/restaurantes, espaços de eventos e outros) para
 experiências com parrilla e fogo ao vivo. Mercado inicial: Curitiba e RMC.
 
 **Estado (2026-10-28):** código pronto e testado na branch `automacao-deploy`.
-Migração `drizzle/0008_prospeccao.sql` **aplicada em produção** em 2026-10-28
-(tabelas vazias). O app em produção ainda não tem as telas: falta o deploy.
+Migrações 0008 e 0009 aplicadas em produção em 2026-10-28; Gemini ativo (chave no servidor).
+e app no ar (deploy `2761330`).
 
 ---
 
