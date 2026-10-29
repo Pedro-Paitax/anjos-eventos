@@ -84,13 +84,23 @@ export class GerenciadorWhatsapp implements ClienteWhatsapp {
     const socket = makeWASocket({
       auth: state,
       version,
-      logger: logger.child({ modulo: "baileys" }, { level: "silent" }),
+      // Diagnóstico: WORKER_BAILEYS_LOG_LEVEL=debug mostra os eventos internos do Baileys
+      // (podem conter JIDs). Deixe em silent no uso normal.
+      logger: logger.child({ modulo: "baileys" }, { level: process.env.WORKER_BAILEYS_LOG_LEVEL ?? "silent" }),
       markOnlineOnConnect: false,
       syncFullHistory: false,
     });
     this.socket = socket;
 
     socket.ev.on("creds.update", saveCreds);
+    // Diagnóstico: status de entrega de cada mensagem (1 pendente, 2 servidor, 3 entregue, 4 lida).
+    // Só id e status — nunca JID ou conteúdo.
+    socket.ev.on("messages.update", (atualizacoes) => {
+      if (this.socket !== socket) return;
+      for (const a of atualizacoes) {
+        logger.warn({ id: a.key.id, status: a.update.status }, "Atualização de entrega.");
+      }
+    });
     socket.ev.on("connection.update", (update) => {
       // Ignora eventos de um socket que já foi substituído.
       if (this.socket !== socket) return;
@@ -156,7 +166,8 @@ export class GerenciadorWhatsapp implements ClienteWhatsapp {
   }
 
   async enviarTexto(jid: string, texto: string): Promise<void> {
-    await this.socketConectado().sendMessage(jid, { text: texto });
+    const enviada = await this.socketConectado().sendMessage(jid, { text: texto });
+    logger.warn({ id: enviada?.key.id, status: enviada?.status }, "Texto entregue ao socket.");
   }
 
   async enviarDocumento(
@@ -165,12 +176,13 @@ export class GerenciadorWhatsapp implements ClienteWhatsapp {
     nomeArquivo: string,
     legenda?: string,
   ): Promise<void> {
-    await this.socketConectado().sendMessage(jid, {
+    const enviada = await this.socketConectado().sendMessage(jid, {
       document: arquivo,
       mimetype: "application/pdf",
       fileName: nomeArquivo,
       caption: legenda,
     });
+    logger.warn({ id: enviada?.key.id, status: enviada?.status }, "Documento entregue ao socket.");
   }
 
   /** Desvincula o aparelho (logout real), apaga a sessão local e volta a esperar um novo QR. */

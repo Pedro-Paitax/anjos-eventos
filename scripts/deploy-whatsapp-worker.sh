@@ -1,16 +1,14 @@
 #!/usr/bin/env bash
 # Deploy do WhatsApp Worker (processo separado do app Next.js) no Oracle.
-# NÃO FOI EXECUTADO por quem o escreveu: revisar antes do primeiro uso.
 #
-#   1. build no "ender" (x86) a partir de `git archive HEAD` — só whatsapp-worker/;
-#   2. empacota SÓ o necessário: dist/, package.json, package-lock.json e
+#   1. empacota a fonte de `git archive HEAD -- whatsapp-worker/` nesta máquina e
+#      envia ao Oracle (o `ender` não tem acesso ao npm nem ao GitHub; não é usado);
+#   2. no Oracle (ARM64): `npm ci` completo + `npm run build` numa pasta temporária,
+#      e gera o pacote SÓ com dist/, package.json, package-lock.json e
 #      ecosystem.config.cjs (nenhum node_modules, .env nem sessão no pacote);
-#   3. transfere ender -> esta máquina -> Oracle;
-#   4. no Oracle (ARM64): guarda o pacote atual para rollback, troca só dist/ e
-#      os 3 arquivos acima, e roda `npm ci --omit=dev` AQUI (o Oracle é ARM64 e
-#      o build é x86: dependência com binário nativo tem de ser instalada no
-#      destino);
-#   5. pm2 startOrRestart do ecosystem do worker (SEM --update-env, com
+#   3. no Oracle: guarda o pacote atual para rollback, troca só dist/ e os 3 arquivos
+#      acima, e roda `npm ci --omit=dev` AQUI (dependências instaladas no destino);
+#   4. pm2 startOrRestart do ecosystem do worker (SEM --update-env, com
 #      --max-memory-restart 300M) + pm2 save; confere /health em 127.0.0.1.
 #
 # Uso:  scripts/deploy-whatsapp-worker.sh            (deploy)
@@ -43,9 +41,6 @@
 # `pm2 stop anjos-whatsapp-worker` (o app principal não é afetado).
 set -euo pipefail
 
-ENDER_HOST="ender"
-ENDER_REPO="/srv/share/anjos_eventos"
-ENDER_BUILD_DIR='$HOME/.deploy-anjos-whatsapp-worker'
 ORACLE_HOST="opc@100.121.229.81"
 SSH_OPTS=(-o ConnectTimeout=10 -o BatchMode=yes)
 
@@ -89,26 +84,27 @@ if [ -n "$DIRTY" ]; then
   echo "$DIRTY"
 fi
 
-log "1/4 — Build no $ENDER_HOST (git archive HEAD -> whatsapp-worker, npm ci, npm run build)"
-ssh "${SSH_OPTS[@]}" "$ENDER_HOST" bash -s <<EOF
+log "1/4 — Empacotando a fonte do commit (só whatsapp-worker/) e enviando ao Oracle"
+LOCAL_TMP=$(mktemp -d)
+trap 'rm -rf "$LOCAL_TMP"' EXIT
+git archive "$COMMIT" whatsapp-worker | tar -x -C "$LOCAL_TMP"
+tar czf "$LOCAL_TMP/fonte.tgz" -C "$LOCAL_TMP/whatsapp-worker" .
+scp "${SSH_OPTS[@]}" "$LOCAL_TMP/fonte.tgz" "$ORACLE_HOST:~/anjos-whatsapp-worker-fonte.tgz"
+
+log "2/4 — Build no Oracle (npm ci completo, npm run build) e geração do pacote"
+ssh "${SSH_OPTS[@]}" "$ORACLE_HOST" bash -s <<EOF
 set -euo pipefail
-rm -rf $ENDER_BUILD_DIR
-mkdir -p $ENDER_BUILD_DIR
-cd $ENDER_REPO
-git archive $COMMIT whatsapp-worker | tar -x -C $ENDER_BUILD_DIR
-cd $ENDER_BUILD_DIR/whatsapp-worker
+rm -rf ~/.build-anjos-whatsapp-worker
+mkdir -p ~/.build-anjos-whatsapp-worker
+tar xzf ~/anjos-whatsapp-worker-fonte.tgz -C ~/.build-anjos-whatsapp-worker
+cd ~/.build-anjos-whatsapp-worker
 npm ci
 npm run build
 # Só o necessário: sem node_modules, sem .env, sem auth/.
-tar czf $ENDER_BUILD_DIR/pacote.tgz dist package.json package-lock.json ecosystem.config.cjs
+tar czf ~/anjos-whatsapp-worker-novo.tgz dist package.json package-lock.json ecosystem.config.cjs
+cd ~
+rm -rf ~/.build-anjos-whatsapp-worker ~/anjos-whatsapp-worker-fonte.tgz
 EOF
-
-log "2/4 — Transferindo pacote ($ENDER_HOST -> esta máquina -> Oracle)"
-LOCAL_TMP=$(mktemp -d)
-trap 'rm -rf "$LOCAL_TMP"' EXIT
-scp "${SSH_OPTS[@]}" "$ENDER_HOST:.deploy-anjos-whatsapp-worker/pacote.tgz" "$LOCAL_TMP/pacote.tgz"
-scp "${SSH_OPTS[@]}" "$LOCAL_TMP/pacote.tgz" "$ORACLE_HOST:~/anjos-whatsapp-worker-novo.tgz"
-ssh "${SSH_OPTS[@]}" "$ENDER_HOST" "rm -rf $ENDER_BUILD_DIR"
 
 log "3/4 — Oracle: pré-checagens, rollback, troca de dist/, npm ci --omit=dev"
 ssh "${SSH_OPTS[@]}" "$ORACLE_HOST" bash -s <<EOF
