@@ -5,8 +5,8 @@ parceiros (cervejarias, bares/restaurantes, espaços de eventos e outros) para
 experiências com parrilla e fogo ao vivo. Mercado inicial: Curitiba e RMC.
 
 **Estado (2026-10-28):** código pronto e testado na branch `automacao-deploy`.
-Migrações 0008 e 0009 aplicadas em produção em 2026-10-28; Gemini ativo (chave no servidor).
-e app no ar (deploy `2761330`).
+Migrações 0008 e 0009 aplicadas em produção em 2026-10-28; app no ar
+(deploy `2761330`) com o Gemini ativo (chave no servidor).
 
 ---
 
