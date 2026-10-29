@@ -32,12 +32,13 @@ export function Indicador({ rotulo, valor, detalhe }: { rotulo: string; valor: R
   );
 }
 
-export function NavProspeccao({ atual }: { atual: "leads" | "fila" | "indicadores" | "importar" }) {
+export function NavProspeccao({ atual }: { atual: "leads" | "fila" | "indicadores" | "importar" | "envio" }) {
   const itens = [
     { chave: "leads", href: "/prospeccao", rotulo: "Leads" },
     { chave: "fila", href: "/prospeccao/fila", rotulo: "Fila de pesquisa" },
     { chave: "indicadores", href: "/prospeccao/indicadores", rotulo: "Indicadores" },
     { chave: "importar", href: "/prospeccao/importar", rotulo: "Importar CSV" },
+    { chave: "envio", href: "/prospeccao/envio-automatico", rotulo: "Envio automático" },
   ] as const;
   return (
     <nav aria-label="Prospecção" className="flex flex-wrap gap-2">

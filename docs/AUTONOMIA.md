@@ -31,6 +31,9 @@ Mudança de código segue o fluxo normal do `CLAUDE.md`.
   migração destrutiva/que reescreve dado.
 - Enviar mensagem a terceiros (WhatsApp, e-mail etc.). Teste de envio só para o
   número do próprio Pedro.
+- Ligar o envio automático da prospecção (`/prospeccao/envio-automatico`), aplicar
+  a migração 0010 ou instalar a linha do crontab `prospeccao-envio`: é envio a
+  terceiros. Só o Pedro liga, depois de validar a primeira mensagem do Gemini.
 - Trocar a senha do banco ou qualquer segredo de produção.
 - Merge na `master`.
 - Escanear o QR do WhatsApp (conectar o número).

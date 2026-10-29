@@ -172,7 +172,7 @@ export async function atualizarLead(id: number, dados: DadosLead, responsavelUsu
   );
 }
 
-async function emTransacao<T>(fn: (client: PoolClient) => Promise<T>): Promise<T> {
+export async function emTransacao<T>(fn: (client: PoolClient) => Promise<T>): Promise<T> {
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
@@ -211,7 +211,7 @@ export async function importarLeads(
 }
 
 /** Lê o lead com trava de linha (serializa mudanças de status concorrentes). */
-async function travarLead(client: PoolClient, leadId: number) {
+export async function travarLead(client: PoolClient, leadId: number) {
   const { rows } = await client.query<{ status: StatusLead; naoContatar: boolean }>(
     `SELECT status, nao_contatar AS "naoContatar" FROM leads WHERE id = $1 FOR UPDATE`,
     [leadId],

@@ -17,6 +17,7 @@ import {
   jsonb,
   timestamp,
   index,
+  uniqueIndex,
   check,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
@@ -202,6 +203,67 @@ export const leadInteracoes = pgTable(
     check(
       "lead_interacoes_tipo_check",
       sql`${t.tipo} IN ('envio_confirmado', 'resposta', 'reuniao', 'proposta', 'conversao', 'sem_interesse', 'nao_contatar', 'reativado', 'nota')`,
+    ),
+  ],
+);
+
+/**
+ * Envio automático de WhatsApp (migration 0010). Uma única linha (id = 1).
+ * Nasce DESLIGADO: só liga com uma mensagem do Gemini aprovada por uma pessoa
+ * (`mensagemModeloId`) — a validação humana da primeira mensagem.
+ */
+export const prospeccaoEnvioConfig = pgTable(
+  "prospeccao_envio_config",
+  {
+    id: integer("id").primaryKey().default(1),
+    ativo: boolean("ativo").notNull().default(false),
+    /** Teto de envios por dia (fuso de São Paulo). Máximo 10 por decisão do Pedro (2026-10-29). */
+    limiteDiario: integer("limite_diario").notNull().default(10),
+    /** Nome que o Gemini usa para assinar ("Aqui é <nome>, da Anjos Eventos"). */
+    nomeRemetente: text("nome_remetente"),
+    mensagemModeloId: integer("mensagem_modelo_id").references(() => leadMensagens.id),
+    ligadoPor: integer("ligado_por").references(() => usuarios.id),
+    ligadoEm: timestamp("ligado_em", { withTimezone: true }),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    check("prospeccao_envio_config_unica_check", sql`${t.id} = 1`),
+    check("prospeccao_envio_config_limite_check", sql`${t.limiteDiario} BETWEEN 1 AND 10`),
+    check(
+      "prospeccao_envio_config_ligado_check",
+      sql`NOT ${t.ativo} OR (${t.mensagemModeloId} IS NOT NULL AND ${t.nomeRemetente} IS NOT NULL)`,
+    ),
+  ],
+);
+
+/** Fila de leads para o envio automático (um item por tentativa de abordagem). */
+export const prospeccaoFilaEnvio = pgTable(
+  "prospeccao_fila_envio",
+  {
+    id: serial("id").primaryKey(),
+    leadId: integer("lead_id")
+      .notNull()
+      .references(() => leads.id, { onDelete: "cascade" }),
+    estado: text("estado").notNull().default("pendente"),
+    tentativas: integer("tentativas").notNull().default(0),
+    /** Motivo curto de cancelamento/falha (nunca guarda telefone nem texto da mensagem). */
+    motivo: text("motivo"),
+    mensagemId: integer("mensagem_id").references(() => leadMensagens.id),
+    enfileiradoPor: integer("enfileirado_por").references(() => usuarios.id),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    iniciadoEm: timestamp("iniciado_em", { withTimezone: true }),
+    concluidoEm: timestamp("concluido_em", { withTimezone: true }),
+  },
+  (t) => [
+    index("idx_prospeccao_fila_envio_estado").on(t.estado, t.id),
+    index("idx_prospeccao_fila_envio_lead").on(t.leadId),
+    // Um lead não entra duas vezes na fila enquanto houver item em aberto.
+    uniqueIndex("uq_prospeccao_fila_envio_aberto")
+      .on(t.leadId)
+      .where(sql`${t.estado} IN ('pendente', 'enviando', 'conferir')`),
+    check(
+      "prospeccao_fila_envio_estado_check",
+      sql`${t.estado} IN ('pendente', 'enviando', 'enviada', 'falhou', 'cancelada', 'conferir')`,
     ),
   ],
 );

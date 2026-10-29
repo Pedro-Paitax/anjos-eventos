@@ -37,8 +37,10 @@ Migrações 0008 e 0009 aplicadas em produção em 2026-10-28; app no ar
 
 ## Regras (não alterar sem decisão)
 
-- **Nada é enviado automaticamente.** Gerar ≠ aprovar ≠ enviar. Abrir o link
-  do canal registra só "canal aberto". Enviada = confirmação explícita.
+- **O envio é manual, salvo o envio automático de WhatsApp** (seção abaixo, decisão
+  de 2026-10-29, nasce DESLIGADO). Gerar ≠ aprovar ≠ enviar. Abrir o link do canal
+  registra só "canal aberto". Enviada = confirmação explícita de uma pessoa ou, só no
+  envio automático, o aceite do worker do WhatsApp.
 - **Editar uma mensagem aprovada a devolve para revisão** (a aprovação vale
   para o texto aprovado).
 - **Não contatar**: exige motivo; descarta mensagens pendentes e bloqueia
@@ -151,3 +153,56 @@ anthropic` e o modelo. Custo estimado por mensagem (~1.500 tokens de entrada,
 ~300 de saída, preços de tabela em 2026-10): Claude Opus 5.5 ≈ US$ 0,012;
 Claude Haiku 5.5 ≈ US$ 0,0003. Para 50 leads × 3 versões: ≈ US$ 1,80 (Opus)
 ou ≈ US$ 0,05 (Haiku). A coluna `gerador` já aceita `anthropic`.
+
+## Envio automático de WhatsApp (decisão do Pedro, 2026-10-29)
+
+**Estado: implementado no código, DESLIGADO e sem migração aplicada.** Nada disso
+existe em produção até a migração `0010` ser aplicada e o Pedro ligar a chave na tela.
+
+O que foi decidido:
+- O **Gemini escreve o texto de cada lead** (o mesmo `src/lib/prospeccao-ia.ts`, com as
+  mesmas proteções: só fatos verificados, nada de telefone no pedido, fato não enviado
+  derruba a mensagem) e o sistema envia pelo **WhatsApp Worker** (número dedicado).
+- **Só a primeira mensagem passa por validação humana.** O Pedro gera uma mensagem de
+  WhatsApp com a IA na página de um lead, revisa e aprova (fluxo normal). Em
+  `Prospecção → Envio automático` ele escolhe essa mensagem, confirma e liga. As
+  seguintes são geradas e enviadas sem revisão individual.
+- **Sem frase de saída** ("responda SAIR"). O bloqueio continua pelo botão
+  "Não contatar" do lead, que cancela o item da fila (checado de novo antes de enviar).
+- **Teto de 10 envios por dia** (dia de São Paulo; limite máximo travado em 10 no código
+  e no banco — subir exige nova decisão). Conta envios em andamento, concluídos e
+  "a conferir".
+
+Como funciona:
+1. Na tela `Envio automático` o Pedro **enfileira** os leads (só aparecem leads com
+   telefone `55` + DDD + número, sem contato anterior, sem "não contatar" e fora de
+   status já abordado).
+2. O crontab chama `POST /api/cron/prospeccao-envio` (Bearer `CRON_TOKEN`) a cada ~20 min,
+   seg–sex, 09:00–17:59. **Cada chamada envia no máximo um lead** — o espaçamento natural
+   evita rajada de mensagens (risco de bloqueio do número).
+3. Cada rodada: confere liga/desliga, horário, WhatsApp conectado e teto; reserva o próximo
+   item (lock no banco); revalida o lead; pede o texto ao Gemini; grava a mensagem como
+   "envio iniciado"; chama o worker; se o worker aceitou, grava "enviada" (`enviada_por`
+   vazio = automático), a interação "envio confirmado" e o status "Contatado".
+4. Falhas: WhatsApp desconectado (503) → volta à fila sem gastar tentativa; número sem
+   WhatsApp (422) → item "falhou" + nota no lead; Gemini com erro → até 3 tentativas;
+   **resposta incerta (timeout/502) → "conferir"**: o sistema NUNCA reenvia sozinho; a
+   pessoa olha o WhatsApp e marca "a mensagem saiu" (vira envio confirmado) ou "não saiu".
+   Item preso em "enviando" por mais de 15 min também vira "conferir".
+- Log e `motivo` da fila nunca guardam telefone, texto da mensagem ou chave.
+- Para parar tudo: botão "Desligar envio automático" (efeito na próxima rodada) ou
+  remover a linha do crontab.
+
+Riscos que continuam (inerentes a automatizar WhatsApp não oficial): o número dedicado pode
+ser restringido pelo WhatsApp (envio a quem não conhece o número, sem opt-out); a LGPD
+trata prospecção B2B por legítimo interesse, mas o histórico e o "Não contatar" precisam
+ser respeitados. Comece com poucos leads e acompanhe as respostas.
+
+Ativação (nesta ordem, cada passo com autorização do Pedro — ver `docs/AUTONOMIA.md`):
+1. Pedro vê o SQL de `drizzle/0010_prospeccao_envio_automatico.sql` (2 tabelas novas,
+   FKs e índices; nenhuma tabela existente é alterada) e aprova; `pg_dump` validado antes;
+   aplicar em transação única.
+2. Deploy do app (`scripts/deploy-oracle.sh`); a tela já abre, ainda desligada.
+3. Crontab no Oracle (exemplo em `scripts/crontab-whatsapp.example`, **porta 3001**).
+4. Teste ponta a ponta **só para o número do próprio Pedro** (um lead de teste com o
+   telefone dele), depois gerar/aprovar a mensagem-modelo e ligar.

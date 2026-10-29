@@ -9,6 +9,16 @@ export type StatusWorker = {
   qr_code: string | null;
 };
 
+/** Erro do worker com o status HTTP (null = sem resposta: timeout/rede). */
+export class ErroWorker extends Error {
+  constructor(
+    mensagem: string,
+    readonly status: number | null,
+  ) {
+    super(mensagem);
+  }
+}
+
 function config(): { url: string; token: string } {
   const token = process.env.WHATSAPP_WORKER_TOKEN;
   if (!token) throw new Error("WHATSAPP_WORKER_TOKEN não configurado.");
@@ -17,18 +27,23 @@ function config(): { url: string; token: string } {
 
 async function chamar(caminho: string, corpo?: unknown, timeoutMs = 60_000): Promise<unknown> {
   const { url, token } = config();
-  const resposta = await fetch(`${url}${caminho}`, {
-    method: corpo === undefined ? "GET" : "POST",
-    headers: {
-      authorization: `Bearer ${token}`,
-      ...(corpo === undefined ? {} : { "content-type": "application/json" }),
-    },
-    body: corpo === undefined ? undefined : JSON.stringify(corpo),
-    cache: "no-store",
-    signal: AbortSignal.timeout(timeoutMs),
-  });
+  let resposta: Response;
+  try {
+    resposta = await fetch(`${url}${caminho}`, {
+      method: corpo === undefined ? "GET" : "POST",
+      headers: {
+        authorization: `Bearer ${token}`,
+        ...(corpo === undefined ? {} : { "content-type": "application/json" }),
+      },
+      body: corpo === undefined ? undefined : JSON.stringify(corpo),
+      cache: "no-store",
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+  } catch {
+    throw new ErroWorker("Worker não respondeu.", null);
+  }
   const json = (await resposta.json().catch(() => ({}))) as { error?: string };
-  if (!resposta.ok) throw new Error(json.error ?? `Worker respondeu ${resposta.status}.`);
+  if (!resposta.ok) throw new ErroWorker(json.error ?? `Worker respondeu ${resposta.status}.`, resposta.status);
   return json;
 }
 

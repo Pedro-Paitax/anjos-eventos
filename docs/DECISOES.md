@@ -1256,3 +1256,23 @@ SQL mostrado e aprovado pelo Pedro ("aprovado a migração"). Dois comandos: `DR
 ### Gemini ativado em produção (2026-10-28)
 
 Deploy do commit `2761330` (`SEM_SMOKE=1`, checagem mínima ok, contagens iguais). O processo do app tem `GEMINI_API_KEY` não vazia (conferida só a presença, valor nunca exibido); `GEMINI_MODEL` não definido → `gemini-3.5-flash-lite`. Chamada mínima a partir do Oracle, sem dado de lead e com `store: false`: `models.get` 200 e `interactions` 200 com `status: completed` (1 requisição da cota gratuita). Falta só o teste pela tela num lead real.
+
+### Envio automático de WhatsApp na prospecção (2026-10-29) — IMPLEMENTADO NO CÓDIGO, DESLIGADO, migração 0010 NÃO aplicada
+
+Pedido do Pedro (sessão não supervisionada): o Gemini escreve o WhatsApp de cada lead e o sistema envia pelo worker; **ele valida só a primeira mensagem gerada**, as demais podem sair sozinhas; **sem frase de saída**; **teto de 10 por dia**.
+
+Isto **muda a regra anterior** ("nada é enviado automaticamente", `docs/PROSPECCAO.md`) apenas para WhatsApp via worker e apenas depois de uma liberação explícita na tela. Como foi traduzido em regras:
+- **Liberação = mensagem do Gemini (WhatsApp) aprovada por uma pessoa.** `prospeccao_envio_config.ativo` só vale com `mensagem_modelo_id` apontando para uma mensagem `gemini`/`whatsapp` com `aprovada_por`; se essa mensagem for descartada depois, a liberação deixa de valer (checado a cada rodada). CHECK no banco: ligado exige mensagem-modelo e remetente.
+- **Teto 10/dia** travado no código (`LIMITE_DIARIO_MAXIMO`) e em CHECK (1–10), contado em dia de São Paulo, sob `pg_advisory_xact_lock` (rodadas concorrentes não furam o teto).
+- **Um lead por chamada do cron**, janela seg–sex 09:00–17:59: espaçamento natural, sem rajada.
+- **Nunca reenvia sozinho** em resposta incerta (timeout/502): item "conferir" para uma pessoa decidir. A mensagem é gravada como `envio_iniciado` *antes* de chamar o worker (rastro) e só vira `enviada` (com `enviada_por` nulo) depois que o worker aceita.
+- **Não contatar continua soberano**: o lead é revalidado no executor e a gravação da mensagem trava a linha do lead; item cancelado, nada enviado.
+- Telefone só aceito como `55` + DDD + número (12–13 dígitos); sem presumir DDI. O worker ainda confere o número no WhatsApp (correção do nono dígito, 2026-10-29) e devolve 422 se não existir.
+- Gemini: mesmas proteções e mesma minimização de dados da geração manual; remetente da assinatura = nome informado na liberação.
+
+Código: `src/lib/prospeccao-envio.ts` (regras puras + testes), `src/lib/prospeccao-envio-auto.ts` (executor), `src/app/api/cron/prospeccao-envio/route.ts`, `src/app/actions/prospeccao-envio.ts`, tela `/prospeccao/envio-automatico`, `ErroWorker` em `src/lib/whatsapp-worker.ts` (status HTTP do worker). Testes: 11 de regras puras + 3 do cliente do worker + 11 de integração em Postgres descartável (rodam só com `TEST_DATABASE_URL` de banco `*_teste`; ficam `skipped` no `npm test` comum).
+
+**Migração `drizzle/0010_prospeccao_envio_automatico.sql`** (gerada com drizzle-kit, NÃO aplicada): `CREATE TABLE prospeccao_envio_config` e `prospeccao_fila_envio`, FKs (para `lead_mensagens`, `leads`, `usuarios`), 2 índices e 1 índice único parcial (um lead não entra duas vezes em aberto). Nenhuma tabela existente é tocada. Segue o rito: SQL mostrado ao Pedro, dump validado, transação única, só então deploy. Sem a migração a tela avisa em vez de quebrar e o cron devolve erro 500 sem efeito.
+
+Ativação e riscos: ver "Envio automático de WhatsApp" em `docs/PROSPECCAO.md`.
+

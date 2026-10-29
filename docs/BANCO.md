@@ -283,6 +283,17 @@ Sem DELETE pela aplicação: o histórico comercial é preservado.
 — este pela `drizzle/0009_lead_mensagens_gerador_gemini.sql`, aplicada em
 produção em 2026-10-28 (troca o CHECK, ver `docs/DECISOES.md`).
 
+### Envio automático (migração `0010`, NÃO aplicada — rascunho para revisão)
+
+`drizzle/0010_prospeccao_envio_automatico.sql`: só `CREATE TABLE`, FKs e índices.
+
+| Tabela | Conteúdo |
+|---|---|
+| `prospeccao_envio_config` | linha única (`id = 1`, CHECK): `ativo` (padrão `false`), `limite_diario` (CHECK 1–10), `nome_remetente`, `mensagem_modelo_id` → `lead_mensagens` (a mensagem do Gemini validada por uma pessoa), `ligado_por` → `usuarios`, `ligado_em`. CHECK: ligado exige mensagem-modelo e remetente. Sem a linha = desligado |
+| `prospeccao_fila_envio` | um item por abordagem: `lead_id` (CASCADE), `estado` (`pendente`, `enviando`, `enviada`, `falhou`, `cancelada`, `conferir`), `tentativas`, `motivo` (curto, sem dado pessoal), `mensagem_id`, `enfileirado_por`, datas. Índice único parcial: um lead só tem um item em `pendente`/`enviando`/`conferir` |
+
+`lead_mensagens.enviada_por` nulo + `gerador = 'gemini'` + `estado = 'enviada'` = enviada pelo envio automático.
+
 ---
 
 # Regras de ON DELETE (resumo)
