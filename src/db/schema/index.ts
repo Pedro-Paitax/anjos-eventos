@@ -1,4 +1,5 @@
 export * from "./nucleo-existente";
+export * from "./fornecedores";
 export * from "./insumos";
 export * from "./preparos";
 export * from "./composicao";
@@ -7,3 +8,4 @@ export * from "./orcamentos";
 export * from "./catalogo-complementar";
 export * from "./operacional";
 export * from "./prospeccao";
+export * from "./precos";

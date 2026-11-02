@@ -296,6 +296,24 @@ produção em 2026-10-28 (troca o CHECK, ver `docs/DECISOES.md`).
 
 ---
 
+# Fornecedores e histórico de preços (`src/db/schema/fornecedores.ts`, `precos.ts`)
+
+> Migração `drizzle/0011_precos_fornecedores.sql` — SQL aprovado pelo Pedro em 2026-11-02; aplicar com `scripts/aplicar-migracao-0011.sh` antes do deploy.
+> Só aditiva. Regras e motivos: `docs/DECISOES.md`, "Fornecedores e histórico de preços dos insumos".
+> Domínios em `text` + `CHECK` (listas em `src/lib/precos-opcoes.ts`).
+
+| Tabela | Conteúdo |
+|---|---|
+| `fornecedores` | `nome` (UNIQUE), `telefone` (dígitos com DDI), `observacoes`, `ativo` (padrão `true`) |
+| `cotacoes` | um documento de preços: `fornecedor_id`, `data_cotacao`, `origem` (`pdf_ia`, `planilha`, `manual`), `arquivo_nome`, `status` (`rascunho`, `aprovada`, `descartada`), quem registrou/aprovou e quando |
+| `historico_precos` | um preço observado: `insumo_id` (nulo = item ainda não ligado), `fornecedor_id`, `cotacao_id` (CASCADE; nulo = registro avulso), `nome_no_fornecedor`, `unidade_fornecedor`, `preco` numeric(10,4) **bruto, sem a margem interna**, `fonte` (`cotacao_pdf`, `nota_fiscal`, `pesquisa_web`, `ceasa`, `manual`), `observado_em` (date), `url_fonte`, `registrado_por` |
+
+Colunas novas em `insumos` (todas nulas): `fornecedor_principal_id` → `fornecedores`, `canal` (`atacado`/`varejo`), `fonte_preco` (mesma lista de `historico_precos.fonte`), `preco_atualizado_em`. Lidas e gravadas só por `src/lib/precos-insumo.ts`.
+
+Leituras de preço só consideram linhas avulsas ou de cotação `aprovada`.
+
+---
+
 # Regras de ON DELETE (resumo)
 
 | Tabela filha | FK | Regra |
@@ -313,6 +331,8 @@ produção em 2026-10-28 (troca o CHECK, ver `docs/DECISOES.md`).
 | `lead_evidencias` / `lead_qualificacoes` / `lead_mensagens` / `lead_interacoes` `.lead_id` | → `leads` | CASCADE (a aplicação não apaga leads) |
 | `lead_interacoes.mensagem_id` | → `lead_mensagens` | NO ACTION |
 | colunas de usuário da prospecção (`*_por`, `usuario_id`, `responsavel_usuario_id`) | → `usuarios` | NO ACTION |
+| `historico_precos.cotacao_id` | → `cotacoes` | CASCADE (a aplicação não apaga cotações) |
+| `historico_precos.insumo_id` / `.fornecedor_id`, `cotacoes.fornecedor_id`, `insumos.fornecedor_principal_id` | → `insumos` / `fornecedores` | NO ACTION |
 
 `eventos` (hard delete via `src/lib/eventos.ts`, `DELETE FROM eventos`) hoje não tem restrição por status — ver `docs/REGRAS_NEGOCIO.md` seção 3.
 

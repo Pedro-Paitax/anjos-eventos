@@ -2,7 +2,9 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { atualizarInsumo, type DadosInsumo } from "@/lib/insumos";
+import { atualizarInsumo, obterInsumo, type DadosInsumo } from "@/lib/insumos";
+import { atualizarOrigemInsumo } from "@/lib/precos-insumo";
+import { CANAIS_COMPRA, ehUm } from "@/lib/precos-opcoes";
 import { obterUsuarioAtual } from "@/lib/usuario-atual";
 import { valoresEnviados, type ValoresFormulario } from "@/lib/formulario-valores";
 import { UNIDADES_INSUMO, type UnidadeInsumo } from "@/lib/preparos-opcoes";
@@ -40,8 +42,24 @@ export async function atualizarInsumoAction(
   const dados = extrairDadosInsumo(formData);
   if ("erro" in dados) return { ...dados, valores: valoresEnviados(formData) };
 
+  // Campos da migração 0011: só vêm no formulário quando o histórico de preços está ativo no banco.
+  const temOrigem = formData.has("canal");
+  const fornecedorBruto = String(formData.get("fornecedorPrincipalId") ?? "");
+  const fornecedorPrincipalId = fornecedorBruto === "" ? null : Number(fornecedorBruto);
+  const canalBruto = formData.get("canal");
+  const canal = ehUm(CANAIS_COMPRA, canalBruto) ? canalBruto : null;
+  if (temOrigem && fornecedorPrincipalId !== null && !Number.isInteger(fornecedorPrincipalId)) {
+    return { erro: "Fornecedor principal inválido.", valores: valoresEnviados(formData) };
+  }
+
   try {
+    const anterior = temOrigem ? await obterInsumo(id) : null;
     await atualizarInsumo(id, dados);
+    if (temOrigem) {
+      // Preço digitado aqui = fonte "manual", atualizado agora. Comparação em centavos (numeric(10,4) vs. campo de 2 casas).
+      const precoMudou = Math.round((anterior?.preco ?? -1) * 100) !== Math.round(dados.preco * 100);
+      await atualizarOrigemInsumo(id, { fornecedorPrincipalId, canal }, precoMudou);
+    }
   } catch (erro) {
     return {
       erro: `Falha ao salvar insumo: ${(erro as Error).message}`,

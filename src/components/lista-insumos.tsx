@@ -8,17 +8,47 @@ import { campoClasse } from "@/components/campo";
 import { Vazio } from "@/components/vazio";
 import { botaoClasse } from "@/components/botao";
 import { Seletor } from "@/components/seletor";
+import type { OrigemResumo } from "@/lib/precos-insumo";
+import {
+  PRAZO_PRECO_DIAS,
+  ROTULOS_CANAL,
+  ROTULOS_FONTE,
+  diasEntre,
+  estadoPreco,
+  idadeTexto,
+} from "@/lib/precos-opcoes";
+import { ChipDesatualizado } from "@/components/precos/visual";
+import { Alerta } from "@/components/alerta";
 
 // Preço corrigido já vem calculado do servidor (calcularPrecoCorrigido em
 // src/lib/custo-preparo.ts, que depende de "server-only" — não pode ser
 // importado num "use client"). Ver src/app/insumos/page.tsx.
-export type InsumoComPrecoCorrigido = InsumoResumo & { precoCorrigido: number };
+export type InsumoComPrecoCorrigido = InsumoResumo & {
+  precoCorrigido: number;
+  /** Migração 0011: null quando o histórico de preços não está ativo ou o insumo não tem origem registrada. */
+  origem: OrigemResumo | null;
+};
+
+/** "Atacado · Frigorífico X · Manual, há 3 dias" — só as partes preenchidas. */
+function textoOrigem(origem: OrigemResumo | null, hoje: string): string | null {
+  if (!origem) return null;
+  const fonte = origem.fontePreco
+    ? `${ROTULOS_FONTE[origem.fontePreco]}${origem.atualizadoEm ? `, ${idadeTexto(diasEntre(origem.atualizadoEm, hoje))}` : ""}`
+    : null;
+  const partes = [
+    origem.canal ? ROTULOS_CANAL[origem.canal] : null,
+    origem.fornecedorNome,
+    fonte ?? (origem.atualizadoEm ? null : "preço sem data"),
+  ].filter(Boolean);
+  return partes.join(" · ");
+}
 
 const campoFiltroClasse = campoClasse;
 
 // Insumos não têm campo Categoria no banco (src/db/schema/insumos.ts) —
 // só Unidade, Nome e Preço fazem sentido como filtro/ordenação aqui.
 type Ordenacao = "nome" | "preco-asc" | "preco-desc";
+type FiltroPreco = "" | "conferir";
 
 function compararPorOrdenacao(ordenacao: Ordenacao) {
   return (a: InsumoComPrecoCorrigido, b: InsumoComPrecoCorrigido) => {
@@ -34,15 +64,21 @@ function formatarReais(valor: number | null): string {
   return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
-function LinhaInsumo({ insumo }: { insumo: InsumoComPrecoCorrigido }) {
+function LinhaInsumo({ insumo, hoje }: { insumo: InsumoComPrecoCorrigido; hoje: string }) {
+  const origem = textoOrigem(insumo.origem, hoje);
+  const desatualizado = insumo.origem && estadoPreco(insumo.origem.atualizadoEm, hoje) === "desatualizado";
   return (
     <li className="flex flex-col gap-2 px-6 py-4 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
       <div>
-        <p className="text-[17px] font-semibold">{insumo.nome}</p>
+        <p className="flex flex-wrap items-center gap-2 text-[17px] font-semibold">
+          {insumo.nome}
+          {desatualizado && <ChipDesatualizado />}
+        </p>
         <p className="text-sm text-texto-suave">
           {insumo.udm} · {formatarReais(insumo.preco)} · fator{" "}
           {insumo.fatorCorrecao ?? "—"} · corrigido {formatarReais(insumo.precoCorrigido)}
         </p>
+        {origem && <p className="text-sm text-texto-suave">{origem}</p>}
       </div>
       <Link
         href={`/insumos/${insumo.id}`}
@@ -55,20 +91,37 @@ function LinhaInsumo({ insumo }: { insumo: InsumoComPrecoCorrigido }) {
   );
 }
 
-export function ListaInsumos({ insumos }: { insumos: InsumoComPrecoCorrigido[] }) {
+export function ListaInsumos({ insumos, hoje }: { insumos: InsumoComPrecoCorrigido[]; hoje: string }) {
   const [buscaNome, setBuscaNome] = useState("");
   const [unidadeFiltro, setUnidadeFiltro] = useState("");
   const [ordenacao, setOrdenacao] = useState<Ordenacao>("nome");
+  const [filtroPreco, setFiltroPreco] = useState<FiltroPreco>("");
+  // Só existe com a migração 0011 aplicada (origem preenchida pelo servidor).
+  const temOrigem = insumos.some((i) => i.origem !== null);
+  const contagem = useMemo(() => {
+    let desatualizados = 0;
+    let semData = 0;
+    for (const i of insumos) {
+      if (!i.origem) continue;
+      const e = estadoPreco(i.origem.atualizadoEm, hoje);
+      if (e === "desatualizado") desatualizados++;
+      if (e === "sem_data") semData++;
+    }
+    return { desatualizados, semData };
+  }, [insumos, hoje]);
 
   const insumosFiltrados = useMemo(() => {
     const buscaNormalizada = buscaNome.trim().toLowerCase();
     const filtrados = insumos.filter((insumo) => {
       if (unidadeFiltro && insumo.udm !== unidadeFiltro) return false;
+      if (filtroPreco === "conferir" && (!insumo.origem || estadoPreco(insumo.origem.atualizadoEm, hoje) === "em_dia")) {
+        return false;
+      }
       if (buscaNormalizada && !insumo.nome.toLowerCase().includes(buscaNormalizada)) return false;
       return true;
     });
     return [...filtrados].sort(compararPorOrdenacao(ordenacao));
-  }, [insumos, buscaNome, unidadeFiltro, ordenacao]);
+  }, [insumos, buscaNome, unidadeFiltro, ordenacao, filtroPreco, hoje]);
 
   if (insumos.length === 0) {
     return (
@@ -106,6 +159,18 @@ export function ListaInsumos({ insumos }: { insumos: InsumoComPrecoCorrigido[] }
             ...UNIDADES_INSUMO.map((unidade) => ({ valor: unidade, rotulo: unidade })),
           ]}
         />
+        {temOrigem && (
+          <Seletor
+            aria-label="Filtrar por idade do preço"
+            value={filtroPreco}
+            onChange={(v) => setFiltroPreco(v as FiltroPreco)}
+            className="sm:w-56"
+            opcoes={[
+              { valor: "", rotulo: "Todos os preços" },
+              { valor: "conferir", rotulo: "Desatualizados ou sem data" },
+            ]}
+          />
+        )}
         <Seletor
           aria-label="Ordenação"
           value={ordenacao}
@@ -119,6 +184,22 @@ export function ListaInsumos({ insumos }: { insumos: InsumoComPrecoCorrigido[] }
         />
       </div>
 
+      {temOrigem && (contagem.desatualizados > 0 || contagem.semData > 0) && (
+        <div className="border-b border-borda p-4">
+          <Alerta tipo="aviso">
+            {[
+              contagem.desatualizados > 0 &&
+                `${contagem.desatualizados} ${contagem.desatualizados === 1 ? "insumo está" : "insumos estão"} com preço de mais de ${PRAZO_PRECO_DIAS} dias`,
+              contagem.semData > 0 &&
+                `${contagem.semData} ${contagem.semData === 1 ? "insumo não tem" : "insumos não têm"} data de atualização`,
+            ]
+              .filter(Boolean)
+              .join(" e ")}
+            . Os orçamentos usam esses preços.
+          </Alerta>
+        </div>
+      )}
+
       {insumosFiltrados.length === 0 ? (
         <p className="px-6 py-10 text-center text-sm text-texto-suave">
           Nenhum insumo encontrado com esse filtro.
@@ -126,7 +207,7 @@ export function ListaInsumos({ insumos }: { insumos: InsumoComPrecoCorrigido[] }
       ) : (
         <ul className="divide-y divide-borda">
           {insumosFiltrados.map((insumo) => (
-            <LinhaInsumo key={insumo.id} insumo={insumo} />
+            <LinhaInsumo key={insumo.id} insumo={insumo} hoje={hoje} />
           ))}
         </ul>
       )}

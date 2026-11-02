@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Evento } from "@/lib/eventos";
+import { agruparPorDia, celulasDoMes, diaSelecionado, interpretarMes, mesAdjacente } from "@/lib/calendario-agenda";
 import {
-  chaveAnoMes,
   chaveDiaEvento,
   formatarHora,
   nomeMes,
@@ -17,44 +17,46 @@ const empresasLegenda = [
   "Em Plena Natureza Chácara de Eventos",
 ];
 
-function mesAdjacente(ano: number, mesIndice: number, delta: number) {
-  const data = new Date(ano, mesIndice + delta, 1);
-  return chaveAnoMes(data);
+function ListaDoDia({ eventos }: { eventos: Evento[] }) {
+  return (
+    <ul className="divide-y divide-borda overflow-hidden rounded-cartao border border-borda bg-superficie shadow-realce">
+      {eventos.map((evento) => (
+        <li key={evento.id}>
+          <Link
+            href={`/agenda/${evento.id}`}
+            className="flex flex-col gap-2 px-4 py-3 transition-colors hover:bg-elevada focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-foco"
+          >
+            <span className="font-semibold">{evento.cliente}</span>
+            <span className="flex flex-wrap items-center gap-2">
+              <ChipEmpresa nome={evento.empresa_nome} />
+              <ChipStatus status={evento.status} />
+              <span className="text-sm text-texto-suave">{formatarHora(evento.data_evento)}</span>
+            </span>
+          </Link>
+        </li>
+      ))}
+    </ul>
+  );
 }
 
 export function CalendarioEventos({
   eventos,
   mesParam,
+  diaParam,
 }: {
   eventos: Evento[];
   mesParam: string;
+  diaParam?: string;
 }) {
-  const [anoTexto, mesTexto] = mesParam.split("-");
-  const ano = Number(anoTexto);
-  const mesIndice = Number(mesTexto) - 1;
-
-  const primeiroDiaSemana = new Date(ano, mesIndice, 1).getDay();
-  const diasNoMes = new Date(ano, mesIndice + 1, 0).getDate();
   const hoje = new Date();
-  const ehMesAtual =
-    hoje.getFullYear() === ano && hoje.getMonth() === mesIndice;
+  const { ano, mesIndice } = interpretarMes(mesParam, hoje);
+  const mesChave = mesAdjacente(ano, mesIndice, 0);
+  const ehMesAtual = hoje.getFullYear() === ano && hoje.getMonth() === mesIndice;
 
-  const eventosPorDia = new Map<number, Evento[]>();
-  for (const evento of eventos) {
-    const data = new Date(evento.data_evento);
-    if (data.getFullYear() === ano && data.getMonth() === mesIndice) {
-      const dia = data.getDate();
-      const lista = eventosPorDia.get(dia) ?? [];
-      lista.push(evento);
-      eventosPorDia.set(dia, lista);
-    }
-  }
-
-  const celulas: Array<{ dia: number } | null> = [
-    ...Array.from({ length: primeiroDiaSemana }, () => null),
-    ...Array.from({ length: diasNoMes }, (_, i) => ({ dia: i + 1 })),
-  ];
-  while (celulas.length % 7 !== 0) celulas.push(null);
+  const eventosPorDia = agruparPorDia(eventos, ano, mesIndice);
+  const celulas = celulasDoMes(ano, mesIndice);
+  const diaEscolhido = diaSelecionado(diaParam, ano, mesIndice);
+  const dataEscolhida = diaEscolhido ? partesDataEvento(new Date(ano, mesIndice, diaEscolhido)) : null;
 
   return (
     <div className="flex flex-col gap-4">
@@ -76,45 +78,100 @@ export function CalendarioEventos({
         </Link>
       </div>
 
-      {/* Abaixo de 768 px: lista agrupada por dia (mesmos eventos e links da grade). */}
-      <div className="md:hidden">
-        {eventosPorDia.size === 0 ? (
-          <p className="rounded-cartao border border-borda bg-superficie p-[18px] text-texto-suave">
-            Nenhum evento neste mês.
-          </p>
-        ) : (
-          <div className="flex flex-col gap-4">
-            {[...eventosPorDia.entries()]
+      {/* Abaixo de 768 px: grade compacta; tocar num dia mostra os eventos dele logo abaixo. */}
+      <div className="flex flex-col gap-4 md:hidden">
+        <div className="overflow-hidden rounded-cartao border border-borda bg-superficie text-texto">
+          <div className="grid grid-cols-7 border-b border-borda">
+            {diasSemana.map((dia) => (
+              <div key={dia} className="py-2 text-center text-[13px] text-texto-suave">
+                {dia.slice(0, 3)}
+              </div>
+            ))}
+          </div>
+          <div className="grid grid-cols-7">
+            {celulas.map((celula, indice) => {
+              if (!celula) return <div key={`vazio-m-${indice}`} className="min-h-14 border-b border-r border-borda" />;
+              const doDia = eventosPorDia.get(celula.dia) ?? [];
+              const ehHoje = ehMesAtual && hoje.getDate() === celula.dia;
+              const escolhido = diaEscolhido === celula.dia;
+              const rotulo = `${celula.dia} de ${nomeMes(ano, mesIndice).toLowerCase()}, ${
+                doDia.length === 0 ? "sem eventos" : doDia.length === 1 ? "1 evento" : `${doDia.length} eventos`
+              }`;
+              return (
+                <Link
+                  key={celula.dia}
+                  href={`/agenda?visao=agenda&mes=${mesChave}&dia=${celula.dia}#eventos-do-dia`}
+                  aria-label={rotulo}
+                  aria-current={escolhido ? "date" : undefined}
+                  className={`flex min-h-14 flex-col items-center gap-1 border-b border-r border-borda px-0.5 py-1.5 transition-colors hover:bg-elevada focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-foco ${
+                    escolhido ? "bg-elevada ring-1 ring-inset ring-brasa" : ""
+                  }`}
+                >
+                  <span
+                    className={`flex h-6 min-w-6 items-center justify-center rounded-full text-sm ${
+                      ehHoje ? "bg-brasa font-semibold text-texto" : doDia.length > 0 ? "font-semibold" : "text-texto-suave"
+                    }`}
+                  >
+                    {celula.dia}
+                  </span>
+                  <span aria-hidden className="flex h-2 items-center gap-0.5">
+                    {doDia.slice(0, 3).map((evento) => (
+                      <span
+                        key={evento.id}
+                        className="h-1.5 w-1.5 rounded-full"
+                        style={{ backgroundColor: varCorEmpresa(evento.empresa_nome) }}
+                      />
+                    ))}
+                    {doDia.length > 3 && <span className="text-[10px] leading-none text-texto-suave">+</span>}
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+
+        <section id="eventos-do-dia" className="flex scroll-mt-4 flex-col gap-3">
+          {diaEscolhido && dataEscolhida ? (
+            <>
+              <div className="flex flex-wrap items-baseline justify-between gap-2 px-1">
+                <h2 className="text-[17px] font-semibold">
+                  {dataEscolhida.semana}, {dataEscolhida.dia} {dataEscolhida.mes}
+                </h2>
+                <Link
+                  href={`/agenda?visao=agenda&mes=${mesChave}`}
+                  className="text-sm text-link underline decoration-link/40 underline-offset-4 hover:decoration-link"
+                >
+                  Ver o mês inteiro
+                </Link>
+              </div>
+              {(eventosPorDia.get(diaEscolhido) ?? []).length === 0 ? (
+                <p className="rounded-cartao border border-borda bg-superficie p-[18px] text-texto-suave">
+                  Nenhum evento neste dia.
+                </p>
+              ) : (
+                <ListaDoDia eventos={eventosPorDia.get(diaEscolhido) ?? []} />
+              )}
+            </>
+          ) : eventosPorDia.size === 0 ? (
+            <p className="rounded-cartao border border-borda bg-superficie p-[18px] text-texto-suave">
+              Nenhum evento neste mês.
+            </p>
+          ) : (
+            [...eventosPorDia.entries()]
               .sort(([a], [b]) => a - b)
-              .map(([dia, eventosDoDia]) => {
+              .map(([dia, doDia]) => {
                 const data = partesDataEvento(new Date(ano, mesIndice, dia));
                 return (
-                  <section key={dia} className="flex flex-col gap-2">
+                  <div key={dia} className="flex flex-col gap-2">
                     <h2 className="px-1 text-[17px] font-semibold">
                       {data.semana}, {data.dia} {data.mes}
                     </h2>
-                    <ul className="divide-y divide-borda overflow-hidden rounded-cartao border border-borda bg-superficie shadow-realce">
-                      {eventosDoDia.map((evento) => (
-                        <li key={evento.id}>
-                          <Link
-                            href={`/agenda/${evento.id}`}
-                            className="flex flex-col gap-2 px-4 py-3 transition-colors hover:bg-elevada focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-foco"
-                          >
-                            <span className="font-semibold">{evento.cliente}</span>
-                            <span className="flex flex-wrap items-center gap-2">
-                              <ChipEmpresa nome={evento.empresa_nome} />
-                              <ChipStatus status={evento.status} />
-                              <span className="text-sm text-texto-suave">{formatarHora(evento.data_evento)}</span>
-                            </span>
-                          </Link>
-                        </li>
-                      ))}
-                    </ul>
-                  </section>
+                    <ListaDoDia eventos={doDia} />
+                  </div>
                 );
-              })}
-          </div>
-        )}
+              })
+          )}
+        </section>
       </div>
 
       {/* A partir de 768 px: a grade mensal. */}

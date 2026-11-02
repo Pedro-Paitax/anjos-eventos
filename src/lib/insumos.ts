@@ -36,6 +36,17 @@ export type DadosInsumo = {
   fatorCorrecao: number;
 };
 
+type TabelaInsumos = typeof import("@/db/schema/insumos").insumos;
+
+/** Só as colunas anteriores à migração 0011: a tela de insumos continua funcionando antes de ela ser aplicada. */
+const COLUNAS_INSUMO_RESUMO = (insumos: TabelaInsumos) => ({
+  id: insumos.id,
+  nome: insumos.nome,
+  unidade: insumos.unidade,
+  preco: insumos.preco,
+  fatorCorrecao: insumos.fatorCorrecao,
+});
+
 const numOuNulo = (v: string | null) => (v == null ? null : Number(v));
 
 /** DATA_SOURCE=oracle: mesma lista via Drizzle (unidade do enum = UDM do NocoDB). */
@@ -79,7 +90,10 @@ export async function listarInsumos(): Promise<Insumo[]> {
 async function listarInsumosDetalhadoOracle(): Promise<InsumoResumo[]> {
   const { db } = await import("@/db/client");
   const { insumos } = await import("@/db/schema/insumos");
-  const linhas = await db.select().from(insumos);
+  // Colunas explícitas: as da migração 0011 (fornecedor, canal, fonte) ficam em src/lib/precos-insumo.ts.
+  const linhas = await db
+    .select(COLUNAS_INSUMO_RESUMO(insumos))
+    .from(insumos);
   return linhas
     .map((r) => ({
       id: r.id,
@@ -114,7 +128,11 @@ async function obterInsumoOracle(id: number): Promise<InsumoResumo | null> {
   const { db } = await import("@/db/client");
   const { eq } = await import("drizzle-orm");
   const { insumos } = await import("@/db/schema/insumos");
-  const [r] = await db.select().from(insumos).where(eq(insumos.id, id)).limit(1);
+  const [r] = await db
+    .select(COLUNAS_INSUMO_RESUMO(insumos))
+    .from(insumos)
+    .where(eq(insumos.id, id))
+    .limit(1);
   if (!r) return null;
   return {
     id: r.id,

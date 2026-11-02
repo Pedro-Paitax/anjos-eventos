@@ -39,6 +39,11 @@ const blocos: { titulo: string; itens: ItemHub[] }[] = [
         descricao: "Preço, unidade e fator de correção de cada insumo.",
         href: "/insumos",
       },
+      {
+        titulo: "Fornecedores",
+        descricao: "Quem vende cada insumo e a comparação de preços entre eles.",
+        href: "/fornecedores",
+      },
     ],
   },
 ];

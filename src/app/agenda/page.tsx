@@ -12,7 +12,7 @@ import type { Metadata } from "next";
 export const metadata: Metadata = { title: "Agenda" };
 
 type AgendaPageProps = {
-  searchParams: Promise<{ visao?: string; mes?: string }>;
+  searchParams: Promise<{ visao?: string; mes?: string; dia?: string }>;
 };
 
 export default async function AgendaPage({ searchParams }: AgendaPageProps) {
@@ -21,7 +21,7 @@ export default async function AgendaPage({ searchParams }: AgendaPageProps) {
     redirect("/login");
   }
 
-  const { visao, mes } = await searchParams;
+  const { visao, mes, dia } = await searchParams;
   const visaoAtual = visao === "sequencia" ? "sequencia" : "agenda";
   const mesAtual = mes ?? chaveAnoMes(new Date());
 
@@ -72,7 +72,7 @@ export default async function AgendaPage({ searchParams }: AgendaPageProps) {
       </nav>
 
       {visaoAtual === "agenda" ? (
-        <CalendarioEventos eventos={eventos} mesParam={mesAtual} />
+        <CalendarioEventos eventos={eventos} mesParam={mesAtual} diaParam={dia} />
       ) : (
         <div className="overflow-hidden rounded-cartao border border-borda bg-superficie shadow-realce">
           <ListaEventos eventos={eventos} />

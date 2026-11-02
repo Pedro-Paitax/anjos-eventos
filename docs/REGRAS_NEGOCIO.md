@@ -92,7 +92,7 @@ Margem_Real_Evento (uso interno, nunca visível ao cliente) =
 
 **Status de implementação**: fórmula **aprovada** (`docs/DECISOES.md`), dados de entrada (`Custo_Copeira_Total`, `Custo_Assador_Total`, `Quantidade_Copeira_Sugerida`) já são persistidos em `eventos`, mas **não há, até o momento desta auditoria (2026-09-22), nenhuma função no código que calcule `Margem_Real_Evento`**. É um gap real de implementação — a fórmula existe como decisão de negócio fechada, aguardando ser codificada.
 
-**Nota de semântica do dado**: `Insumos.preco` já é cadastrado com acréscimo de 10-15% sobre o preço pago ao fornecedor — todo "Custo" citado neste documento e no código já reflete essa gordura embutida. Não é um erro, é como o negócio já opera.
+**Nota de semântica do dado**: `Insumos.preco` já é cadastrado com acréscimo de 10-15% sobre o preço pago ao fornecedor — todo "Custo" citado neste documento e no código já reflete essa gordura embutida. Não é um erro, é como o negócio já opera. Preço vindo do histórico de fornecedores entra no cadastro com **+10 %** sobre o preço do fornecedor; preço com **mais de 14 dias** é tratado como desatualizado (decisões do Pedro, 2026-11-02 — `docs/DECISOES.md`, "Fornecedores e histórico de preços dos insumos").
 
 ---
 

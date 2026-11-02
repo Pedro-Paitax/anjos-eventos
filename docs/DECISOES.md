@@ -1276,3 +1276,22 @@ Código: `src/lib/prospeccao-envio.ts` (regras puras + testes), `src/lib/prospec
 
 Ativação e riscos: ver "Envio automático de WhatsApp" em `docs/PROSPECCAO.md`.
 
+
+---
+
+# Fornecedores e histórico de preços dos insumos (2026-11-02) — IMPLEMENTADO NO CÓDIGO, migração 0011 APROVADA (aplicar com `scripts/aplicar-migracao-0011.sh`)
+
+Pedido do Pedro: o maior risco hoje é preço de insumo desatualizado. Ele quer saber de qual fornecedor e canal (atacado/varejo) cada preço veio, guardar histórico e comparar fornecedores ("Fornecedor A: Picanha 1 e Picanha 2; Fornecedor B: Picanha 2..."), com base em cotações em PDF que ele envia toda semana. Leitura do PDF será feita por IA via API (próxima etapa); a busca de preços de varejo, por tarefa agendada na assinatura dele.
+
+Decisões:
+- **Histórico guarda o preço BRUTO do fornecedor.** `insumos.preco` já traz a margem interna ("NOTA DE SEMÂNTICA DO DADO", acima). Registrar um preço não altera `insumos.preco` sozinho.
+- **Preço de cadastro = fornecedor + 10 %** (decisão do Pedro, 2026-11-02: "o preço que aparece na minha tela aumenta 10%, então fornecedor +10"). Vale para todo preço que vem do histórico: botão "Usar no cadastro" na tela do insumo (`aplicarPrecoAoInsumo`, `precoComMargem`, arredondado em centavos). A data do preço passa a ser a do dia em que ele foi observado (a idade é a da informação, não a do clique) e a fonte, a da linha. Preço digitado à mão na tela continua sendo o valor final (sem +10 % automático).
+- **Item = insumo ligado + nome no fornecedor.** "Picanha 1" e "Picanha 2" do mesmo fornecedor são linhas separadas; o último preço de cada item vale na comparação. O selo "Menor preço" só aparece entre fornecedores diferentes e só para itens ligados a um insumo.
+- **Cotação tem estado** (`rascunho` → `aprovada` | `descartada`). Só linhas avulsas ou de cotação aprovada entram em qualquer leitura de preço: a IA vai gravar o PDF lido como rascunho e uma pessoa aprova.
+- **Fonte e data do preço no insumo** (`fonte_preco`, `preco_atualizado_em`): quando o preço é alterado à mão na tela do insumo, vira `manual` com data de agora. Registros antigos ficam "ainda não registrada".
+- **Preço com mais de 14 dias é desatualizado** (decisão do Pedro, 2026-11-02; vale para todos os insumos, `PRAZO_PRECO_DIAS`). Selo "Desatualizado" no insumo e na lista; a lista avisa quantos estão desatualizados ou sem data e filtra só esses. Preço sem data (cadastrado antes da 0011) não ganha selo, mas entra no aviso e no filtro.
+- Sem DELETE pela interface: fornecedor sai com `ativo = false`.
+
+Código: `src/db/schema/fornecedores.ts`, `src/db/schema/precos.ts`, colunas novas em `src/db/schema/insumos.ts`; `src/lib/precos-insumo.ts` (acesso a dados; devolve `null` sem a migração, a tela avisa em vez de quebrar), `src/lib/precos-opcoes.ts` (listas e regras puras), `src/app/actions/precos.ts`, campos novos em `src/app/actions/insumo.ts`; telas `/insumos/[id]` (fornecedor principal, canal, fonte, preço por fornecedor, registrar preço, histórico), `/fornecedores`, `/fornecedores/[id]`, `/fornecedores/comparar`. `src/lib/insumos.ts` passou a selecionar colunas explícitas, para `/insumos` continuar funcionando antes da migração. Testes: 6 de regras puras + 6 de integração em Postgres descartável (`TEST_DATABASE_URL` de banco `*_teste`).
+
+**Migração `drizzle/0011_precos_fornecedores.sql`** (gerada com drizzle-kit; SQL aprovado pelo Pedro em 2026-11-02; aplicação pelo script pontual `scripts/aplicar-migracao-0011.sh`, que faz o dump validado, aplica em transação única e confere tabelas, colunas e que os insumos não mudaram — testado em Postgres descartável; apagar o script depois de aplicar): `CREATE TABLE fornecedores`, `cotacoes`, `historico_precos`; `ALTER TABLE insumos ADD COLUMN` (4 colunas nulas) + 2 CHECKs que aceitam NULL + 1 FK; 4 índices. Só aditiva; nenhuma linha existente é alterada. A migração vai antes do deploy do app.
