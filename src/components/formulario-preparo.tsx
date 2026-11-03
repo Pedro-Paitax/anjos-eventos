@@ -22,14 +22,29 @@ import type { EstadoFormularioPreparo } from "@/app/actions/preparo";
 import { BotaoEnviar } from "@/components/botao-enviar";
 import { Alerta } from "@/components/alerta";
 
+/** Versões de preparo (migration 0012). Ausente = recurso ainda não ativo no banco. */
+export type VariacaoFormularioPreparo = {
+  /** Preparos que podem ser base (não são versão de outro), sem o próprio. */
+  opcoes: { id: number; nome: string; categoria: string | null }[];
+  baseId: number | null;
+  /** Preenchido quando este preparo já tem versões: aí ele não pode virar versão. */
+  versoes: { id: number; nome: string }[];
+};
+
+/** Composição com `id` nulo = linhas novas (versão criada a partir do base). */
+export type ValoresIniciaisPreparo = Omit<PreparoDetalhado, "composicao"> & {
+  composicao: { id: number | null; insumoId: number; quantidade: number }[];
+};
+
 type FormularioPreparoProps = {
-  valoresIniciais?: PreparoDetalhado;
+  valoresIniciais?: ValoresIniciaisPreparo;
   insumosDisponiveis: Insumo[];
   action: (
     estadoAnterior: EstadoFormularioPreparo,
     formData: FormData
   ) => Promise<EstadoFormularioPreparo>;
   rotuloEnvio: string;
+  variacao?: VariacaoFormularioPreparo;
 };
 
 export function FormularioPreparo({
@@ -37,6 +52,7 @@ export function FormularioPreparo({
   insumosDisponiveis,
   action,
   rotuloEnvio,
+  variacao,
 }: FormularioPreparoProps) {
   const [estado, formAction] = useActionState(action, {});
   const [categoria, setCategoria] = useState(
@@ -94,6 +110,33 @@ export function FormularioPreparo({
             </Campo>
           )}
         </div>
+
+        {variacao &&
+          (variacao.versoes.length > 0 ? (
+            <p className="text-sm text-texto-suave">
+              <span className="font-medium">Versões deste preparo:</span>{" "}
+              {variacao.versoes.map((v) => v.nome).join(", ")}. Por ter versões, ele não pode
+              virar versão de outro.
+            </p>
+          ) : (
+            <Campo
+              rotulo="Versão de"
+              ajuda="Agrupa este preparo debaixo do base nas listas e no cardápio. Custo, porção e header continuam sendo deste preparo."
+            >
+              {(p) => (
+                <Seletor {...p}
+                  name="variacaoDe"
+                  defaultValue={String(variacao.baseId ?? "")}
+                  opcoes={[
+                    { valor: "", rotulo: "Nenhum: é um preparo base" },
+                    ...variacao.opcoes
+                      .filter((o) => o.categoria === categoria || o.id === variacao.baseId)
+                      .map((o) => ({ valor: String(o.id), rotulo: o.nome })),
+                  ]}
+                />
+              )}
+            </Campo>
+          ))}
 
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
           <Campo rotulo="Rendimento">

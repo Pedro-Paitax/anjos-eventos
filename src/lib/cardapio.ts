@@ -1,4 +1,9 @@
-export type Preparo = { id: number; nome: string };
+export type Preparo = {
+  id: number;
+  nome: string;
+  /** Preparo base, quando este é uma versão dele (migration 0012). Só agrupa na tela. */
+  variacaoDe?: number | null;
+};
 
 // Categorias do cardápio, na ordem em que aparecem no formulário.
 // "Molhos" fica de fora (não vira seção do cardápio) e "Guarnições" no

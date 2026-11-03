@@ -3,6 +3,7 @@ import { CATEGORIAS_CARDAPIO, type CategoriaCardapio, type Preparo } from "@/lib
 import { exigirToken, nocodbDelete, nocodbGet, nocodbPatch, nocodbPost } from "@/lib/nocodb";
 import { dataSource } from "@/lib/data-source";
 import { passosPreparoSchema, type PassosPreparo } from "@/lib/passos-preparo";
+import { mapaVariacoes } from "@/lib/preparos-variacoes";
 
 const NOCODB_URL =
   "http://100.77.218.36:8090/api/v2/tables/m3yr136ykw6ju2w/records?limit=1000";
@@ -39,11 +40,13 @@ export async function listarPreparosPorCategoria(): Promise<
         .select({ id: preparos.id, nome: preparos.nomePreparo, categoria: preparos.categoria })
         .from(preparos)
         .orderBy(asc(preparos.nomePreparo));
+      // Versões (0012) só agrupam a lista nos seletores; null = migration pendente, sem agrupar.
+      const variacoes = await mapaVariacoes().catch(() => null);
       for (const l of linhas) {
         if (CATEGORIAS_EXCLUIDAS.has(l.categoria)) continue;
         const categoria = (RENOMEAR_CATEGORIA[l.categoria] ?? l.categoria) as CategoriaCardapio;
         if (!(categoria in vazio)) continue;
-        vazio[categoria].push({ id: l.id, nome: l.nome });
+        vazio[categoria].push({ id: l.id, nome: l.nome, variacaoDe: variacoes?.get(l.id) ?? null });
       }
     } catch {
       // Banco indisponível: mesmo comportamento do ramo NocoDB — cardápio vazio em vez de travar a página.
@@ -128,6 +131,8 @@ export type PreparoResumo = {
   categoria: string | null;
   rendimento: number | null;
   unidadeRendimento: string | null;
+  /** Preparo base, quando este é uma versão dele (migration 0012). Só agrupa na tela. */
+  variacaoDe?: number | null;
 };
 
 export type ComposicaoLinhaExistente = {
@@ -202,7 +207,7 @@ const numOuNulo = (v: string | null) => (v == null ? null : Number(v));
 async function listarPreparosOracle(): Promise<PreparoResumo[]> {
   const { db } = await import("@/db/client");
   const { preparos } = await import("@/db/schema/preparos");
-  const linhas = await db.select().from(preparos);
+  const [linhas, variacoes] = await Promise.all([db.select().from(preparos), mapaVariacoes()]);
   return linhas
     .map((r) => ({
       id: r.id,
@@ -210,6 +215,7 @@ async function listarPreparosOracle(): Promise<PreparoResumo[]> {
       categoria: r.categoria,
       rendimento: numOuNulo(r.rendimento),
       unidadeRendimento: r.unidadeRendimento,
+      variacaoDe: variacoes?.get(r.id) ?? null,
     }))
     .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
 }

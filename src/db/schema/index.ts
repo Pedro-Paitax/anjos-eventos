@@ -9,3 +9,4 @@ export * from "./catalogo-complementar";
 export * from "./operacional";
 export * from "./prospeccao";
 export * from "./precos";
+export * from "./preparo-variacoes";

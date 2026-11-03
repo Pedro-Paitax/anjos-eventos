@@ -11,6 +11,8 @@ import { campoClasse } from "@/components/campo";
 import { botaoClasse } from "@/components/botao";
 import { Vazio } from "@/components/vazio";
 import { Seletor } from "@/components/seletor";
+import { ChipNeutro } from "@/components/precos/visual";
+import { agruparPorBase, rotuloVariacao } from "@/lib/variacoes-preparo";
 
 const campoFiltroClasse = campoClasse;
 
@@ -36,7 +38,15 @@ function rotuloRendimento(preparo: PreparoResumo): string {
   return `${preparo.rendimento} ${unidade}`.trim();
 }
 
-function LinhaPreparo({ preparo }: { preparo: PreparoResumo }) {
+type LinhaPreparoProps = {
+  preparo: PreparoResumo;
+  /** Nome do base quando a linha é uma versão (aparece recuada, com o rótulo curto). */
+  nomeBase?: string;
+  /** Quantas versões o preparo tem (só nas linhas de base). */
+  versoes?: number;
+};
+
+function LinhaPreparo({ preparo, nomeBase, versoes = 0 }: LinhaPreparoProps) {
   const [erro, setErro] = useState<string | null>(null);
   const [excluido, setExcluido] = useState(false);
   const [confirmando, setConfirmando] = useState(false);
@@ -58,12 +68,15 @@ function LinhaPreparo({ preparo }: { preparo: PreparoResumo }) {
   if (excluido) return null;
 
   return (
-    <li className="flex flex-col gap-2 px-6 py-4">
+    <li className={`flex flex-col gap-2 py-4 pr-6 ${nomeBase ? "pl-10 sm:pl-14" : "pl-6"}`}>
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-        <div>
-          <p className="text-[17px] font-semibold">{preparo.nome}</p>
+        <div className={nomeBase ? "border-l-2 border-borda-forte pl-3" : undefined}>
+          <p className="flex flex-wrap items-center gap-2 text-[17px] font-semibold">
+            {nomeBase ? rotuloVariacao(nomeBase, preparo.nome) : preparo.nome}
+            {versoes > 0 && <ChipNeutro>{versoes === 1 ? "1 versão" : `${versoes} versões`}</ChipNeutro>}
+          </p>
           <p className="text-sm text-texto-suave">
-            {preparo.categoria ?? "Sem categoria"} · {rotuloRendimento(preparo)}
+            {nomeBase ? `Versão de ${nomeBase}` : (preparo.categoria ?? "Sem categoria")} · {rotuloRendimento(preparo)}
           </p>
         </div>
         <div className="flex items-center gap-4 pl-0 sm:pl-0">
@@ -99,6 +112,14 @@ function LinhaPreparo({ preparo }: { preparo: PreparoResumo }) {
       )}
     </li>
   );
+}
+
+/** Base seguido das suas versões, recuadas. Versão cujo base ficou fora do filtro aparece com o nome inteiro. */
+function LinhasAgrupadas({ itens }: { itens: PreparoResumo[] }) {
+  return agruparPorBase(itens).flatMap(({ item, variacoes }) => [
+    <LinhaPreparo key={item.id} preparo={item} versoes={variacoes.length} />,
+    ...variacoes.map((v) => <LinhaPreparo key={v.id} preparo={v} nomeBase={item.nome} />),
+  ]);
 }
 
 export function ListaPreparos({ preparos }: { preparos: PreparoResumo[] }) {
@@ -200,18 +221,14 @@ export function ListaPreparos({ preparos }: { preparos: PreparoResumo[] }) {
                 {categoria}
               </p>
               <ul className="divide-y divide-borda">
-                {itens.map((preparo) => (
-                  <LinhaPreparo key={preparo.id} preparo={preparo} />
-                ))}
+                <LinhasAgrupadas itens={itens} />
               </ul>
             </div>
           ))}
         </div>
       ) : (
         <ul className="divide-y divide-borda">
-          {preparosFiltrados.map((preparo) => (
-            <LinhaPreparo key={preparo.id} preparo={preparo} />
-          ))}
+          <LinhasAgrupadas itens={preparosFiltrados} />
         </ul>
       )}
     </div>

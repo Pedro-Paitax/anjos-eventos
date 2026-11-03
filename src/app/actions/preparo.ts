@@ -13,6 +13,15 @@ import {
 import { criarInsumo, type DadosInsumo, type Insumo } from "@/lib/insumos";
 import { obterUsuarioAtual } from "@/lib/usuario-atual";
 import { passosPreparoSchema } from "@/lib/passos-preparo";
+import { copiarHeadersDoBase, definirVariacaoDe } from "@/lib/preparos-variacoes";
+
+/** Campo "Versão de" (migration 0012): só vem no formulário quando o recurso está ativo. */
+function extrairVariacaoDe(formData: FormData): { presente: false } | { presente: true; baseId: number | null } {
+  if (!formData.has("variacaoDe")) return { presente: false };
+  const bruto = String(formData.get("variacaoDe") ?? "");
+  const baseId = bruto === "" ? null : Number(bruto);
+  return { presente: true, baseId: baseId !== null && Number.isInteger(baseId) ? baseId : null };
+}
 
 export type EstadoFormularioPreparo = { erro?: string };
 
@@ -110,15 +119,24 @@ export async function criarPreparoAction(
 
   const composicao = extrairComposicao(formData);
 
+  const variacao = extrairVariacaoDe(formData);
+
   let novoId: number;
+  let erroVersao = false;
   try {
     novoId = await criarPreparo(dados, composicao);
+    if (variacao.presente && variacao.baseId !== null) {
+      const r = await definirVariacaoDe(novoId, variacao.baseId);
+      if ("erro" in r) erroVersao = true;
+      else await copiarHeadersDoBase(novoId, variacao.baseId);
+    }
   } catch (erro) {
     return { erro: `Falha ao salvar preparo: ${(erro as Error).message}` };
   }
 
   revalidatePath("/preparos");
-  redirect(`/preparos/${novoId}`);
+  // O preparo já foi criado: se o vínculo de versão falhar, a tela de edição avisa.
+  redirect(erroVersao ? `/preparos/${novoId}?erroVersao=1` : `/preparos/${novoId}`);
 }
 
 export async function atualizarPreparoAction(
@@ -134,8 +152,14 @@ export async function atualizarPreparoAction(
 
   const composicao = extrairComposicao(formData);
 
+  const variacao = extrairVariacaoDe(formData);
+
   try {
     await atualizarPreparo(id, dados, composicao);
+    if (variacao.presente) {
+      const r = await definirVariacaoDe(id, variacao.baseId);
+      if ("erro" in r) return { erro: `Preparo salvo, mas a versão não: ${r.erro}` };
+    }
   } catch (erro) {
     return { erro: `Falha ao salvar preparo: ${(erro as Error).message}` };
   }

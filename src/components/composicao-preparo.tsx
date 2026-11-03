@@ -30,12 +30,13 @@ export function ComposicaoPreparo({
   composicaoInicial,
 }: {
   insumosIniciais: Insumo[];
-  composicaoInicial: Array<{ id: number; insumoId: number; quantidade: number }>;
+  /** `id` nulo = linha nova (ex.: ficha copiada do preparo base ao criar uma versão). */
+  composicaoInicial: Array<{ id: number | null; insumoId: number; quantidade: number }>;
 }) {
   const [insumos, setInsumos] = useState(insumosIniciais);
   const [linhas, setLinhas] = useState<LinhaComposicao[]>(() =>
     composicaoInicial.map((c) => ({
-      chave: `existente-${c.id}`,
+      chave: c.id == null ? novaChave() : `existente-${c.id}`,
       id: c.id,
       insumoId: c.insumoId,
       quantidade: String(c.quantidade),

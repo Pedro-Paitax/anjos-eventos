@@ -296,6 +296,25 @@ produção em 2026-10-28 (troca o CHECK, ver `docs/DECISOES.md`).
 
 ---
 
+# Versões de preparo (`src/db/schema/preparo-variacoes.ts`)
+
+> Migração `drizzle/0012_preparo_variacoes.sql` — **NÃO aplicada** (aguarda o ok do Pedro;
+> aplicar com `scripts/aplicar-migracao-0012.sh` antes do deploy). Só aditiva.
+
+## `preparo_variacoes`
+
+| Coluna | Tipo | Constraints |
+|---|---|---|
+| preparo_id | integer | PK, FK → `preparos.id`, ON DELETE CASCADE (a versão) |
+| base_preparo_id | integer | FK → `preparos.id`, ON DELETE CASCADE, NOT NULL; índice |
+| created_at | timestamptz | default now() |
+
+CHECK: `preparo_id <> base_preparo_id`. Um nível só (versão de versão não existe) e o base não pode ser versão: checado na aplicação (`src/lib/preparos-variacoes.ts`, sob `pg_advisory_xact_lock`).
+
+Só agrupamento de tela ("Fraldinha" → "com Chimichurri"): nenhum cálculo de custo, porção, preço, orçamento, ficha técnica ou lista de compras lê esta tabela. Cada versão continua sendo um preparo completo. Apagar o base ou a versão apaga só o vínculo.
+
+---
+
 # Fornecedores e histórico de preços (`src/db/schema/fornecedores.ts`, `precos.ts`)
 
 > Migração `drizzle/0011_precos_fornecedores.sql` — SQL aprovado pelo Pedro em 2026-11-02; aplicar com `scripts/aplicar-migracao-0011.sh` antes do deploy.
@@ -332,6 +351,7 @@ Leituras de preço só consideram linhas avulsas ou de cotação `aprovada`.
 | `lead_interacoes.mensagem_id` | → `lead_mensagens` | NO ACTION |
 | colunas de usuário da prospecção (`*_por`, `usuario_id`, `responsavel_usuario_id`) | → `usuarios` | NO ACTION |
 | `historico_precos.cotacao_id` | → `cotacoes` | CASCADE (a aplicação não apaga cotações) |
+| `preparo_variacoes.preparo_id` / `.base_preparo_id` | → `preparos` | CASCADE (só o vínculo some) |
 | `historico_precos.insumo_id` / `.fornecedor_id`, `cotacoes.fornecedor_id`, `insumos.fornecedor_principal_id` | → `insumos` / `fornecedores` | NO ACTION |
 
 `eventos` (hard delete via `src/lib/eventos.ts`, `DELETE FROM eventos`) hoje não tem restrição por status — ver `docs/REGRAS_NEGOCIO.md` seção 3.
