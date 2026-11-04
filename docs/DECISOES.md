@@ -1311,7 +1311,7 @@ Ainda não existe tela de cotação; a leitura de PDF por IA é a próxima etapa
 - `aplicarPrecoAoInsumo` leva o preço ao cadastro (+10 %, data da cotação).
 - A lista de preços (`ListaPrecos`) passou a mostrar `unidade_fornecedor`, para o aviso do preço de peça aparecer na tela.
 
-### Resumo diário de preços pelo WhatsApp (2026-11-04) — IMPLEMENTADO NO CÓDIGO, migração 0013 NÃO aplicada, cron NÃO instalado
+### Resumo diário de preços pelo WhatsApp (2026-11-04) — IMPLEMENTADO NO CÓDIGO, migração 0013 APLICADA (2026-11-04), deploy e cron PENDENTES
 
 Pedido do Pedro: "envio de PDF toda vez que os preços forem atualizados, pelo WhatsApp conectado no sistema". As escolhas dele:
 - **Destino:** os números da família (`FAMILIA_WHATSAPP_NUMEROS`, os mesmos da Ordem de Ação e do lembrete de 7 dias).
@@ -1331,6 +1331,16 @@ Como ficou:
   - As linhas só ficam marcadas como enviadas se pelo menos um envio der certo; se todos falharem, saem no dia seguinte.
   - Sem números configurados, com o worker desconectado ou com a 0013 ainda não aplicada, a rota não envia nada e responde 503.
 - **Crontab:** linha comentada em `scripts/crontab-whatsapp.example`, às 18:00.
+- **Botão "Enviar PDF de preços" em `/insumos`** (pedido do Pedro, mesmo dia): envia o resumo **na hora** para os mesmos números (`enviarResumoPrecosAction`).
+  - Antes de enviar, abre uma janela que mostra os números mascarados (•••• 1234) e quantos insumos mudaram desde o último resumo.
+  - Sem mudança pendente, o envio manual sai só com a tabela completa; o automático, nesse caso, não envia nada.
+  - O envio manual marca as mudanças como enviadas, para elas não se repetirem no resumo das 18h.
+
+**Migração 0013 aplicada** em 2026-11-04 (SQL aprovado pelo Pedro), por `scripts/aplicar-migracao-0013.sh`:
+- **Dump:** `~/backups-anjos-eventos/pre-0013-20261104-124512.dump` (142.630 bytes, 33 tabelas com dados).
+- **Conferência:** insumos iguais (144, mesma soma de preços), gatilho presente e tabela vazia.
+- **Gatilho testado em produção** numa transação com ROLLBACK: mesmo preço não grava, outra coluna não grava, preço novo grava antes e depois.
+- As 66 mudanças de 04/11 aconteceram antes da 0013 e **não** estão na tabela.
 
 Testes: 8 de regras puras e PDF; 3 de integração (gatilho, falha de envio, marcação), que só rodam com `TEST_DATABASE_URL`.
 

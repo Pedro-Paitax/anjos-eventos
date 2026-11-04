@@ -2693,3 +2693,23 @@ Ficaram sem preço novo:
   - Brócolis: o fresco é vendido por unidade, sem peso.
   - Alecrim fresco: não há.
   - Cebola Roxa: não há.
+
+## 2026-11-04 — Migração 0013 (resumo de preços) aplicada em produção
+
+- **SQL:** aprovado pelo Pedro e aplicado com `scripts/aplicar-migracao-0013.sh` (apagado depois de rodar).
+- **Dump:** `~/backups-anjos-eventos/pre-0013-20261104-124512.dump` (142.630 bytes, 33 tabelas com dados).
+- **Antes e depois:** `insumos=144 soma_precos=4363.7500 historico=81`, igual nos dois; gatilho = 1; tabela nova vazia.
+- **Gatilho:** testado em produção com ROLLBACK.
+- **Código:** branch `feat/precos-cotacao-fornecedor`, com o resumo diário, o botão em `/insumos` e o aviso do preço de peça.
+
+### Pendente (Pedro)
+
+1. Merge e deploy.
+2. Primeiro envio de teste só para o número do Pedro, pelo botão.
+3. Instalar a linha das 18h do crontab.
+
+### Build local quebrado (já era assim na `master`)
+
+`next build` no Windows falha ao pré-renderizar `/_global-error` ou `/agenda/novo`, com `InvariantError: Expected workStore to be initialized`.
+- Acontece também na `master` (2 de 2 tentativas). Não é causado pela branch.
+- O deploy faz o build no `ender`.
