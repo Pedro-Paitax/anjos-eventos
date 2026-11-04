@@ -2678,3 +2678,18 @@ Ficaram sem preço novo:
   - Sorvete de Flocos: vem em litros; o insumo é em kg.
   - Brownie e Pão de Baguete: não há no Muffato.
   - Alho Crispy: não há.
+
+### Lote 3 (mercearia e hortifruti) — gravado
+
+- **Aprovação:** o Pedro aprovou o lote inteiro.
+- **Dump:** `~/backups-anjos-eventos/pre-precos-lote3-2026-11-04.dump` (141.379 bytes, 33 tabelas com dados).
+- **Gravação:** ensaio com ROLLBACK e depois COMMIT, em transação única (`precos-pesquisa/gravar-precos.mts`, com `lote3-aprovado.json`).
+- **Insumos atualizados (20), todos pelo Super Muffato em varejo, vistos em 04/11:** Coca Cola, Batata Doce, Cenoura, Massa de Lasanha, Alho, Creme de Leite, Pepino em Conserva, Pimentão Vermelho, Orégano, Cebola Branca, Leite Integral, Arroz Arbóreo, Geleia de Damasco, Rúcula, Batata Palha, Ovo de Codorna, Alho Triturado, Óleo de Soja, Molho Barbecue e Proteína de Soja.
+- **Conferência:** 144 insumos; só os 20 mudaram; nome, unidade e fator iguais.
+- **Situação depois do lote:** 69 insumos com data e 75 sem data.
+- **Não encontrados:**
+  - Uva Itália: só há uvas sem semente.
+  - Laranja Bahia: só há laranja Pera.
+  - Brócolis: o fresco é vendido por unidade, sem peso.
+  - Alecrim fresco: não há.
+  - Cebola Roxa: não há.
