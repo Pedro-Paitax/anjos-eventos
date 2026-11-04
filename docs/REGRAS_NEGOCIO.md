@@ -165,7 +165,13 @@ Regra de borda: se `Fator de Correção` for 0 ou vazio, ou `Custo Médio` estiv
   - picanha suína pode ser a temperada (a natural é difícil de achar);
   - filé argentino = contra-filé;
   - "coxa e sobrecoxa" do fornecedor vale como sobrecoxa;
-  - bacon em cubos.
+  - bacon em cubos;
+  - queijo coalho é o pacote de espetos (vem com 6).
+
+**Hortifruti usa preço de varejo (decisão do Pedro, 2026-11-04).** A Anjos compra de um hortifruti, que por sua vez compra no CEASA. Por isso:
+- O preço vem do varejo (Super Muffato).
+- O boletim do CEASA Curitiba entra no histórico só como referência (fornecedor "CEASA Curitiba") e **não** vai para o cadastro.
+- Para comparação: o varejo ficou de 13 % a mais de 200 % acima do CEASA, conforme o item.
 
 ---
 

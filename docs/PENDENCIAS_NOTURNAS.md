@@ -2648,3 +2648,33 @@ Dump antes: `~/backups-anjos-eventos/pre-estrutura-costela-sobrecoxa-2026-11-04.
 - Na ficha "Coxa de Frango Desossada" (27), o insumo 96 (coxa desossada) foi trocado pelo 150 (sobrecoxa desossada).
 - O insumo 101 e o preparo 33 passaram de "Coxa de Frango" para "Sobrecoxa de Frango".
 - Contagens iguais (144 insumos, 94 preparos, 441 linhas de composição). Nada foi apagado; o insumo 96 ficou sem uso.
+
+### Lote 2 (mercearia, frios e hortifruti) — gravado
+
+- **Fonte:** site do Super Muffato, varejo, visto em 04/11. O Pedro aprovou tudo, menos azeite, parmesão e queijo coalho, que ficam para conferência dele.
+- **Dump:** `~/backups-anjos-eventos/pre-precos-lote2-2026-11-04.dump` (139.793 bytes, 33 tabelas com dados).
+- **Gravação:** ensaio com ROLLBACK e depois COMMIT, em transação única, por `precos-pesquisa/gravar-precos.mts` (`registrarPreco` + `aplicarPrecoAoInsumo`).
+- **Fornecedores criados:** "Super Muffato" (5) e "CEASA Curitiba" (6, só referência).
+- **Insumos atualizados (17):** Provolone (fatiado), Manteiga, Mostarda Dijon, Cream Cheese, Geleia de Pimenta, Arroz Agulhinha, Queijo Prato, Gorgonzola, Farinha de Mandioca, Palmito, Salame, Tomate, Tomate Cereja, Manga, Batata Inglesa, Abacaxi (unidade) e Salsinha (maço).
+- **Referência do CEASA:** 4 linhas, só no histórico (tomate, tomate cereja, manga e batata).
+- **Conferência:** 144 insumos; só os 17 mudaram; nome, unidade e fator iguais.
+
+Custo das fichas, antes → depois:
+
+| Preparo | Antes | Depois | Variação |
+|---|---|---|---|
+| Vinagrete | 16,95 | 19,39 | +14 % |
+| Bruschetta com Provolone | 77,82 | 56,38 | −28 % |
+| Mix de Folhas | 48,41 | 47,92 | −1 % |
+| Arroz Branco | 7,07 | 6,04 | −15 % |
+
+Ficaram sem preço novo:
+- **Para o Pedro conferir:**
+  - Azeite: R$ 65,80/L no Muffato; o cadastro está em 29,90.
+  - Parmesão Ralado: R$ 118,00/kg.
+  - Queijo Coalho: espeto Quatá, R$ 92,33/kg.
+- **Não encontrados:**
+  - Pão de Alho: o pacote não diz quantos pães tem.
+  - Sorvete de Flocos: vem em litros; o insumo é em kg.
+  - Brownie e Pão de Baguete: não há no Muffato.
+  - Alho Crispy: não há.
