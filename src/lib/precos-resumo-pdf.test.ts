@@ -89,9 +89,10 @@ describe("gerarResumoPrecosPdf", () => {
     expect(doc.getPageCount()).toBeGreaterThan(3);
   });
 
-  it("recusa resumo sem mudanças", async () => {
-    await expect(
-      gerarResumoPrecosPdf({ mudancas: [], tabela, periodo: { de: "2026-11-04", ate: "2026-11-04" }, hoje: "2026-11-04", geradoEm: "x" }),
-    ).rejects.toThrow();
+  it("sem mudanças (envio manual) sai só com a tabela; sem insumos, recusa", async () => {
+    const bytes = await gerarResumoPrecosPdf({ mudancas: [], tabela, periodo: null, hoje: "2026-11-04", geradoEm: "x" });
+    expect((await PDFDocument.load(bytes)).getPageCount()).toBeGreaterThan(2);
+    expect(legendaResumoPrecos({ mudancas: [], periodo: null })).toContain("nenhum preço mudou");
+    await expect(gerarResumoPrecosPdf({ mudancas: [], tabela: [], periodo: null, hoje: "2026-11-04", geradoEm: "x" })).rejects.toThrow();
   });
 });

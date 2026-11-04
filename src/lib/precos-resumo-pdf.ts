@@ -86,8 +86,8 @@ export type InsumoTabela = {
 export type DadosResumoPrecos = {
   mudancas: MudancaInsumo[];
   tabela: InsumoTabela[];
-  /** "AAAA-MM-DD" da primeira e da última mudança do período. */
-  periodo: { de: string; ate: string };
+  /** "AAAA-MM-DD" da primeira e da última mudança do período; null = nenhuma mudança (envio manual só com a tabela). */
+  periodo: { de: string; ate: string } | null;
   /** "AAAA-MM-DD" de hoje (idade dos preços). */
   hoje: string;
   /** Já formatado (rodapé). */
@@ -101,9 +101,16 @@ export function origemTexto(fonte: FontePreco | null, fornecedor: string | null)
 const ROTULO_ESTADO = { em_dia: "em dia", desatualizado: "desatualizado", sem_data: "sem data" } as const;
 
 /** Legenda curta da mensagem do WhatsApp que acompanha o PDF. */
+function textoPeriodo(p: { de: string; ate: string }): string {
+  return p.de === p.ate ? formatarDiaCurto(p.de) : `${formatarDiaCurto(p.de)} a ${formatarDiaCurto(p.ate)}`;
+}
+
 export function legendaResumoPrecos(d: Pick<DadosResumoPrecos, "mudancas" | "periodo">): string {
   const n = d.mudancas.length;
-  const periodo = d.periodo.de === d.periodo.ate ? formatarDiaCurto(d.periodo.de) : `${formatarDiaCurto(d.periodo.de)} a ${formatarDiaCurto(d.periodo.ate)}`;
+  if (n === 0 || !d.periodo) {
+    return "Tabela de preços de insumos: nenhum preço mudou desde o último resumo. No PDF: a tabela completa de preços.";
+  }
+  const periodo = textoPeriodo(d.periodo);
   const grandes = d.mudancas.filter((m) => m.variacaoPct != null && Math.abs(m.variacaoPct) > DESTAQUE_VARIACAO_PCT).length;
   return [
     `Preços de insumos atualizados (${periodo}): ${n} ${n === 1 ? "insumo mudou" : "insumos mudaram"}`,
@@ -130,7 +137,7 @@ type Coluna = { titulo: string; largura: number; direita?: boolean };
 type LinhaTabela = { celulas: string[]; destaque?: boolean };
 
 export async function gerarResumoPrecosPdf(d: DadosResumoPrecos): Promise<Uint8Array> {
-  if (d.mudancas.length === 0) throw new Error("Resumo de preços sem mudanças.");
+  if (d.tabela.length === 0) throw new Error("Resumo de preços sem insumos.");
 
   const pdf = await PDFDocument.create();
   const normal = await pdf.embedFont(StandardFonts.Helvetica);
@@ -195,18 +202,18 @@ export async function gerarResumoPrecosPdf(d: DadosResumoPrecos): Promise<Uint8A
     y -= 6;
   };
 
-  const periodo =
-    d.periodo.de === d.periodo.ate ? formatarDiaCurto(d.periodo.de) : `${formatarDiaCurto(d.periodo.de)} a ${formatarDiaCurto(d.periodo.ate)}`;
   texto("ATUALIZAÇÃO DE PREÇOS DE INSUMOS", MARGEM, y - 18, negrito, 17);
   y -= 30;
-  texto(`Período das mudanças: ${periodo}`, MARGEM, y - 11, normal, 11);
+  texto(d.periodo ? `Período das mudanças: ${textoPeriodo(d.periodo)}` : "Nenhum preço mudou desde o último resumo.", MARGEM, y - 11, normal, 11);
   y -= 22;
 
   const porId = new Map(d.tabela.map((t) => [t.insumoId, t]));
   titulo(`1. O que mudou (${d.mudancas.length})`, [
-    "Preço de cadastro (fornecedor + 10%). Em destaque: variação acima de " + `${DESTAQUE_VARIACAO_PCT}%.`,
+    d.mudancas.length
+      ? "Preço de cadastro (fornecedor + 10%). Em destaque: variação acima de " + `${DESTAQUE_VARIACAO_PCT}%.`
+      : "Nenhuma mudança de preço desde o último resumo enviado.",
   ]);
-  tabela(
+  if (d.mudancas.length) tabela(
     [
       { titulo: "Insumo", largura: 165 },
       { titulo: "Un.", largura: 45 },

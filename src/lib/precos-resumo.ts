@@ -76,7 +76,31 @@ function nomeArquivo(hoje: string): string {
   return `precos-insumos-${hoje}.pdf`;
 }
 
-export async function executarResumoPrecos(agora: Date = new Date()): Promise<ResultadoResumoPrecos> {
+/**
+ * Quantos insumos mudaram de preço desde o último resumo (para a tela de /insumos).
+ * null = migração 0013 ainda não aplicada.
+ */
+export async function contarInsumosComMudancaPendente(): Promise<number | null> {
+  try {
+    const { rows } = await pool.query<{ n: number }>(
+      `SELECT count(DISTINCT insumo_id)::int AS n FROM alteracoes_preco_insumo WHERE enviado_em IS NULL`,
+    );
+    return rows[0].n;
+  } catch (erro) {
+    const codigo = (erro as { code?: string }).code;
+    if (codigo === "42P01" || codigo === "42703") return null;
+    throw erro;
+  }
+}
+
+/**
+ * `manual` (botão em /insumos): envia mesmo sem mudanças pendentes — aí o PDF sai só com a tabela
+ * completa. O automático (cron) não envia nada quando não há mudança.
+ */
+export async function executarResumoPrecos(
+  opcoes: { agora?: Date; manual?: boolean } = {},
+): Promise<ResultadoResumoPrecos> {
+  const agora = opcoes.agora ?? new Date();
   const numeros = numerosFamilia();
   if (numeros.length === 0) {
     console.error("[precos-resumo] FAMILIA_WHATSAPP_NUMEROS não configurado.");
@@ -92,7 +116,7 @@ export async function executarResumoPrecos(agora: Date = new Date()): Promise<Re
     throw erro;
   }
   const { mudancas, idsConsumidos } = consolidarAlteracoes(pendentes);
-  if (mudancas.length === 0) {
+  if (mudancas.length === 0 && !opcoes.manual) {
     // Só idas e voltas ao mesmo preço: nada a contar, mas não voltam amanhã.
     if (idsConsumidos.length) await marcarEnviadas(idsConsumidos);
     return { ok: true, mudancas: 0 };
@@ -105,7 +129,7 @@ export async function executarResumoPrecos(agora: Date = new Date()): Promise<Re
   const dados = {
     mudancas,
     tabela: await tabelaCompleta(),
-    periodo: { de: datas[0], ate: datas[datas.length - 1] },
+    periodo: mudancas.length ? { de: datas[0], ate: datas[datas.length - 1] } : null,
     hoje,
     geradoEm: new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", dateStyle: "short", timeStyle: "short" }).format(agora),
   };
@@ -126,6 +150,6 @@ export async function executarResumoPrecos(agora: Date = new Date()): Promise<Re
     }
   }
   if (enviados === 0) return { ok: false, motivo: "todos_os_envios_falharam" };
-  await marcarEnviadas(idsConsumidos);
+  if (idsConsumidos.length) await marcarEnviadas(idsConsumidos);
   return { ok: true, mudancas: mudancas.length, enviados, falhas };
 }
