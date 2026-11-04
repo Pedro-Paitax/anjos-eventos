@@ -1296,6 +1296,21 @@ Código: `src/db/schema/fornecedores.ts`, `src/db/schema/precos.ts`, colunas nov
 
 **Migração `drizzle/0011_precos_fornecedores.sql`** (gerada com drizzle-kit; SQL aprovado pelo Pedro em 2026-11-02; aplicação pelo script pontual `scripts/aplicar-migracao-0011.sh`, que faz o dump validado, aplica em transação única e confere tabelas, colunas e que os insumos não mudaram — testado em Postgres descartável; apagar o script depois de aplicar): `CREATE TABLE fornecedores`, `cotacoes`, `historico_precos`; `ALTER TABLE insumos ADD COLUMN` (4 colunas nulas) + 2 CHECKs que aceitam NULL + 1 FK; 4 índices. Só aditiva; nenhuma linha existente é alterada. A migração vai antes do deploy do app.
 
+### Cotação de fornecedor gravada pelo Claude Code: menor preço e caixa fechada (2026-11-04)
+
+O Pedro enviou o catálogo em PDF da **Aroma da Carne** (fornecedor de carnes, sistema SisAtak, 03/11/2026) e decidiu:
+- **Sempre o menor preço** entre as opções do mesmo produto. **Alcatra:** sempre o corte mais barato.
+- **Preço da caixa fechada** (CX); o da peça fica como aviso.
+- Regra completa em `docs/REGRAS_NEGOCIO.md`, seção 7.
+
+Ainda não existe tela de cotação; a leitura de PDF por IA é a próxima etapa. Enquanto isso, o lote é gravado pelas funções de `src/lib/precos-insumo.ts`:
+- Elas passaram a aceitar um `client` opcional, para o lote inteiro rodar em transação única. Sem esse parâmetro, o app continua igual.
+- Função nova: `registrarCotacaoAprovada`.
+- Campos novos em `registrarPreco`: `cotacaoId`, `unidadeFornecedor` e `observacao`. A função agora devolve o id da linha.
+- Fluxo: a cotação é gravada já `aprovada` pelo Pedro; cada linha vai para o histórico com `fonte = cotacao_pdf`, o nome do item no catálogo e `unidade_fornecedor = "CX ~24 kg · peça R$ 56,12/kg"`; o canal fica em `observacao`.
+- `aplicarPrecoAoInsumo` leva o preço ao cadastro (+10 %, data da cotação).
+- A lista de preços (`ListaPrecos`) passou a mostrar `unidade_fornecedor`, para o aviso do preço de peça aparecer na tela.
+
 ### Cadastro de fichas técnicas pelo Claude Code (2026-11-02)
 
 O comando `/cadastrar-preparo` deixou de usar o NocoDB (fonte legada desde o corte de 2026-09-22) e passou a gravar no Postgres pelo script `scripts/cadastrar-preparo.ts`: `--referencia` lista headers, insumos e fornecedores; sem flag simula e mostra o resumo; `--gravar` grava numa transação única (insumos novos + histórico de preço, preparos, composição, `header_preparo`). Regras checadas antes de gravar (`scripts/lib-cadastro-preparo.ts`, 9 testes): header obrigatório (sem ele o preparo sai do cálculo, ver PENDENCIAS "Achado complementar"), Carnes com subcategoria e sem peso de atratividade, demais com peso explícito, peso médio obrigatório para rendimento em Unidade, nome de preparo novo, insumo existente nunca alterado, insumo novo = fornecedor + 10 % com fonte/link/data (ou "estimado", que entra sem data). Testado num Postgres descartável (simulação, erros, gravação e recusa de duplicado).

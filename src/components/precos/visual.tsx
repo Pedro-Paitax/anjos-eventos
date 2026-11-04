@@ -69,7 +69,8 @@ export function ListaPrecos({ precos, hoje, titulo, detalhe, menores, acao }: Li
             <div className="flex min-w-0 flex-col gap-0.5">
               <p className="font-semibold [overflow-wrap:anywhere]">{titulo(p)}</p>
               <p className="text-sm text-texto-suave">
-                {[...detalhe(p), ROTULOS_FONTE[p.fonte], dataComIdade(p.observadoEm, hoje)]
+                {/* Como o fornecedor vende (ex.: "CX ~24 kg · peça R$ 56,12/kg"); sem insumo ligado, vira a unidade do preço. */}
+                {[...detalhe(p), p.insumoUnidade ? p.unidadeFornecedor : null, ROTULOS_FONTE[p.fonte], dataComIdade(p.observadoEm, hoje)]
                   .filter(Boolean)
                   .join(" · ")}
                 {p.urlFonte && (

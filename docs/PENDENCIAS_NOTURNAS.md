@@ -2572,3 +2572,62 @@ Pendente: deploy do app (`scripts/deploy-oracle.sh`); decisão sobre IA; pesquis
 Antes (somente leitura): CHECK `gerador IN ('modelo_local','manual','anthropic')`; 9 constraints em `lead_mensagens`; 0 mensagens, 0 leads; 26 tabelas. `pg_dump -Fc` validado: `~/backups-anjos-eventos/pre-0009-20261028-232255.dump` (máquina do Pedro), 107.401 bytes, 248 entradas, 27 tabelas com dados. Aplicada em transação única (2 comandos lidos de `drizzle/0009_lead_mensagens_gerador_gemini.sql`, script pontual com `pg` e trava exigindo o SQL idêntico ao aprovado; apagado depois). COMMIT sem erro.
 
 Depois: CHECK com `'gemini'`; 9 constraints em `lead_mensagens` (mesma quantidade); contagens iguais (usuarios 5, eventos 1, orcamentos 1, itens_evento_confirmados 12, preparos 54, insumos 122, leads 0, lead_mensagens 0); 26 tabelas.
+
+## 2026-11-04 — Preços de insumos: lote 1 (cotação Aroma da Carne) gravado em produção
+
+### Levantamento (somente leitura)
+
+- 141 insumos: 131 sem data, 0 desatualizados e 10 em dia.
+- Os 10 "em dia" eram `pesquisa_web` de 02/11, com fontes fora de Curitiba (Tenda, Pão de Açúcar, Zoom, Buscapé). A Picanha Suína tinha sido cotada como temperada.
+
+### Gravação
+
+- Cotação: catálogo da Aroma da Carne de 03/11/2026, aprovado pelo Pedro com as regras do menor preço e da caixa fechada (`docs/REGRAS_NEGOCIO.md`, seção 7).
+- Dump: `~/backups-anjos-eventos/pre-precos-2026-11-04.dump` (máquina do Pedro), 137.621 bytes, 33 tabelas com dados (`pg_restore --list`).
+- Primeiro rodou um ensaio com ROLLBACK; depois o COMMIT, em transação única, pelas funções do app (`precos-pesquisa/gravar-lote.mts`, fora do git).
+- Foram criados o fornecedor 2, "Aroma da Carne", e a cotação 2, aprovada pelo usuário 2, Pedro.
+- 27 linhas foram gravadas em `historico_precos` (`cotacao_pdf`) e 27 insumos tiveram o preço atualizado (bruto + 10 %, data 03/11).
+
+### Conferência
+
+- 141 insumos antes e depois; só os 27 do lote mudaram.
+- Nome, unidade e fator ficaram iguais em todos.
+
+Variações acima de 30 %:
+
+| Insumo | Variação |
+|---|---|
+| Filé Mignon | +57 % |
+| Tulipa | +60 % |
+| Panceta | −53 % |
+| Costelinha Suína | −46 % |
+| Picanha Suína | −45 % (agora a temperada) |
+| Bacon | −41 % (cubos) |
+| Copa Lombo | −35 % |
+| Carne Moída | −33 % |
+| Presunto | −30 % |
+
+Custo das fichas mais usadas, antes → depois:
+
+| Preparo | Antes | Depois | Variação |
+|---|---|---|---|
+| Alcatra Grelhada | 69,18 | 71,28 | +3 % |
+| Copa Lombo | 36,38 | 23,57 | −35 % |
+| Escarola com Bacon | 11,24 | 8,35 | −26 % |
+| Contra-Filé | 74,43 | 82,04 | +10 % |
+
+Orçamentos fechados não mudam: o preço deles é congelado.
+
+### Não atualizados
+
+- **Fora do catálogo:** Costela Bovina (peça inteira; o catálogo só tem os cortes), Paleta Suína e Linguiça Pernil.
+- **Pedro disse que não precisa:** Linguiça Cuiabana e Tutano.
+
+### Pendente
+
+- **Código:** branch `feat/precos-cotacao-fornecedor` (client opcional nas funções de preço, `registrarCotacaoAprovada`, aviso do preço de peça na tela). Falta merge e deploy.
+- **Testes de integração novos:** não rodaram. O `docker run` do Postgres descartável no `ender` foi bloqueado pelo classificador de permissões. O caminho foi validado pelo ensaio com ROLLBACK em produção.
+- **Estrutura (pedido do Pedro):**
+  - criar os insumos e preparos Costela Janela, Ponta e Ripa;
+  - unificar coxa e sobrecoxa em sobrecoxa nas fichas e nos insumos.
+- **Lotes seguintes:** pesquisa web dos 110 insumos restantes (hortifruti, mercearia e frios).

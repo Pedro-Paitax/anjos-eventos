@@ -154,6 +154,19 @@ custo_por_unidade_rendimento × porção_por_pessoa
 
 Regra de borda: se `Fator de Correção` for 0 ou vazio, ou `Custo Médio` estiver vazio, o custo do insumo é tratado como R$0 (evita divisão por zero).
 
+**Preço do insumo a partir de cotação (decisão do Pedro, 2026-11-04):**
+- Entre as opções de uma cotação para o **mesmo produto** (marcas, resfriado ou congelado), vale **sempre a mais barata**.
+- **Alcatra:** vale o **corte** mais barato (miolo, completa ou com maminha).
+- Nos outros produtos, corte diferente não vale. Exemplos: diafragma não é fraldinha; contra-filé com osso não é contra-filé.
+- Usa-se o **preço KG da caixa fechada** (CX). O preço da peça (PC) fica registrado como aviso no histórico (`unidade_fornecedor`).
+- Preço de cadastro = bruto + 10 % (`precoComMargem`).
+- Equivalências confirmadas pelo Pedro:
+  - panceta = barriga suína natural;
+  - picanha suína pode ser a temperada (a natural é difícil de achar);
+  - filé argentino = contra-filé;
+  - "coxa e sobrecoxa" do fornecedor vale como sobrecoxa;
+  - bacon em cubos.
+
 ---
 
 # 8. Motor de dimensionamento
