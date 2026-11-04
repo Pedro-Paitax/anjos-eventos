@@ -535,7 +535,7 @@ function PainelCalculos({
                   )}
                 </td>
                 <td className="px-3 py-2">{linha.rendimento}</td>
-                <td className="px-3 py-2">R$ {linha.custoPorUnidadeRendimento.toFixed(2)}</td>
+                <td className="px-3 py-2">R$ {linha.custoPorUnidadeRendimento.toFixed(4)}</td>
                 <td className="px-3 py-2 font-medium">R$ {linha.custoTotalItem.toFixed(2)}</td>
               </tr>
             ))}

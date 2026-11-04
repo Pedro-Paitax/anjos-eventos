@@ -6,6 +6,7 @@ import {
   resolverItensPorPreparoIds,
 } from "@/lib/dimensionamento-cardapio";
 import { calcularCustoPreparo } from "@/lib/custo-preparo";
+import { custoDoItem } from "@/lib/custo-item-cardapio";
 import {
   calcularPrecificacaoCardapio,
   type ItemCardapioPrecificacao,
@@ -152,10 +153,11 @@ export async function calcularDebugCardapio(
       const custo = custosPorPreparoId.get(item.preparo_id);
       if (!custo) continue;
 
-      const custoPorUnidadeRendimento = arredondar(custo.custoTotalPreparo / custo.rendimento);
+      // Sem arredondar: é o valor que calcularPrecificacaoCardapio usa (R$ 0,06918/g não pode virar R$ 0,07/g).
+      const custoPorUnidadeRendimento = custo.custoTotalPreparo / custo.rendimento;
       // Não recalcula por conta própria — usa direto o que distribuirPorcoes
       // já produziu (o próprio campo que carrega a correção do bug).
-      const custoTotalItem = arredondar(custoPorUnidadeRendimento * item.quantidade_para_custo);
+      const custoTotalItem = custoDoItem(custo.custoTotalPreparo, custo.rendimento, item.quantidade_para_custo);
 
       linhas.push({
         preparoId: item.preparo_id,
