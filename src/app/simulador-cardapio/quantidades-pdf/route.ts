@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { exigirUsuarioApi } from "@/lib/api-auth";
 import { calcularDebugCardapio } from "@/lib/debug-calculo-cardapio";
 import { lerParametrosQuantidades } from "@/lib/quantidades-cardapio-url";
+import { pessoasParaProducao } from "@/lib/pessoas-producao";
 import { gerarQuantidadesCardapioPdf, montarLinhasQuantidades } from "@/lib/quantidades-cardapio-pdf";
 
 export const dynamic = "force-dynamic";
@@ -23,6 +24,8 @@ export async function GET(request: Request) {
   // deslocamento não mudam nenhuma linha, por isso não vêm no endereço.
   const debug = await calcularDebugCardapio(preparoIds, {
     numConvidados: adultos + criancasAte5 + criancas5a10,
+    // Quantidades: criança = meia porção (src/lib/pessoas-producao.ts).
+    pessoasProducao: pessoasParaProducao({ adultos, criancasAte5, criancas5a10 }),
     regiaoMetropolitanaCuritiba: false,
   });
   if ("erro" in debug) return NextResponse.json({ erro: debug.erro }, { status: debug.status });

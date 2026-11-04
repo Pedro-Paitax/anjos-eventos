@@ -1311,6 +1311,21 @@ Ainda não existe tela de cotação; a leitura de PDF por IA é a próxima etapa
 - `aplicarPrecoAoInsumo` leva o preço ao cadastro (+10 %, data da cotação).
 - A lista de preços (`ListaPrecos`) passou a mostrar `unidade_fornecedor`, para o aviso do preço de peça aparecer na tela.
 
+### Carne por pessoa, criança = meia porção e rendimentos de arroz e maionese (2026-11-04) — DADOS GRAVADOS, código PENDENTE de deploy
+
+Origem: simulação de um cardápio real (54 adultos + 8 crianças) pedida pelo Pedro. O sistema pedia 45,6 kg de carne, cerca de 740 g crus por adulto. O Pedro: "estamos falando de um exército comendo". Decisões dele:
+- **Carne: 400 g crus comprados por pessoa.** O teto de Proteínas Principais era tratado como 400 g **servidos**. Depois da perda no fogo (rendimento da ficha, ex.: 1,2 kg cru → 1 kg assado), da limpeza (fator 0,85) e da folga de 10 %, isso virava ~620 g crus só de carne principal. O teto passou a **280 g servidos**, o equivalente assado de 400 g crus. Gravado em `macro_categorias` (id 1). No Oracle não há cache, então vale na hora. **O preço sugerido por pessoa dos próximos cálculos cai junto.** Orçamentos com preço congelado e eventos já confirmados (snapshot) não mudam.
+- **Criança = meia porção na produção** (`src/lib/pessoas-producao.ts`). Usado no dimensionamento do orçamento, que alimenta o snapshot da confirmação, a ficha técnica, a lista de compras e o custo da margem. Também no "Ver cálculos" e no PDF de quantidades do Simulador. Não muda convidados, equipe nem preço. Limitação conhecida: a receita da margem projetada continua sem a meia-entrada (seção 2 de `REGRAS_NEGOCIO.md`); agora o custo já conta a criança como meia.
+- **Arroz Branco (51): rendimento 1.000 → 2.700 G.** A ficha usa 1 kg cru + 2 L de água; 100 g de arroz cru rendem 260–280 g cozidos (TudoGostoso, Receiteria, Omni Calculator).
+- **Maionese Tradicional (55): 500 ML → 1.500 G.** É a soma dos ingredientes da própria ficha (0,8 kg de batata, 0,15 de cenoura, 0,1 de ervilha, 0,36 L de óleo, 0,15 L de leite). A unidade foi para G, igual à da macro Guarnições Leves.
+- **Tempero minúsculo sumia da lista de compras.** A ficha arredonda cada insumo a 2 casas, então 0,07 g de noz-moscada virava 0. A ficha agora também guarda `quantidadeExata`, e a lista de compras usa esse valor; a exibição da ficha não muda.
+
+Gravação: `pg_dump` validado (`~/backups-anjos-eventos/pre-dimensionamento-20261104-175015.dump`, 147.037 bytes, 34 tabelas com dados), transação única com cada UPDATE condicionado ao valor antigo, contagens iguais antes e depois (10 macros, 94 preparos, 441 composições, 144 insumos).
+
+Resultado no cardápio simulado (54 + 8, ou seja 58 pessoas para a produção): carne de 45,6 → **32,5 kg** (24,1 kg de carnes principais + 8,4 kg de entradas), arroz de 10,3 → 3,6 kg, batata de 12,3 → 3,9 kg. A compra total caiu de R$ 2.429 para **R$ 1.705**.
+
+Não mudou e fica para o Pedro decidir: o teto de Saladas Leves (30 g, abaixo dos 80–100 g das referências de churrasco) e outros preparos de arroz (à Grega, Carreteiro, com Alho Crispy), que podem ter o mesmo erro de rendimento.
+
 ### Resumo diário de preços pelo WhatsApp (2026-11-04) — IMPLEMENTADO NO CÓDIGO, migração 0013 APLICADA (2026-11-04), deploy e cron PENDENTES
 
 Pedido do Pedro: "envio de PDF toda vez que os preços forem atualizados, pelo WhatsApp conectado no sistema". As escolhas dele:

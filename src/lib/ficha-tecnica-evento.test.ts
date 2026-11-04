@@ -21,9 +21,24 @@ describe("calcularFichaTecnicaEscalada", () => {
     expect(resultado.fatorMultiplicador).toBeCloseTo(2.75, 8);
     expect(resultado.rendimentoAjustado).toBe(27.5); // 10 * 2.75
     expect(resultado.insumos).toEqual([
-      { insumoId: 2, nome: "Bacon", unidade: "KG", quantidadeEscalada: 2.75 },
-      { insumoId: 1, nome: "Farinha de Mandioca", unidade: "KG", quantidadeEscalada: 5.5 },
+      { insumoId: 2, nome: "Bacon", unidade: "KG", quantidadeEscalada: 2.75, quantidadeExata: expect.closeTo(2.75, 8) },
+      { insumoId: 1, nome: "Farinha de Mandioca", unidade: "KG", quantidadeEscalada: 5.5, quantidadeExata: expect.closeTo(5.5, 8) },
     ]);
+  });
+
+  it("quantidade minúscula: a exibida arredonda a 0, a exata fica para a lista de compras", () => {
+    const [noz] = calcularFichaTecnicaEscalada({
+      preparoId: 3,
+      nomePreparo: "Picanha Suína com Laranja",
+      rendimentoOriginal: 1050,
+      unidadeRendimento: "G",
+      quantidadeConfirmada: 62,
+      composicao: [{ insumoId: 9, nome: "Noz-Moscada", unidade: "KG", quantidade: 0.001 }],
+      passos: null,
+      modoPreparoBruto: "",
+    }).insumos;
+    expect(noz.quantidadeEscalada).toBe(0);
+    expect(noz.quantidadeExata).toBeGreaterThan(0);
   });
 
   it("rendimentoAjustado equivale a Quantidade_Confirmada x 1,10 (produção real + buffer)", () => {

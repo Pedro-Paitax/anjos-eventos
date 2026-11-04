@@ -91,7 +91,7 @@ com seus metadados de categorização, rendimento e regras de cálculo.
 | Capacidade_Teto | Teto de consumo por pessoa | NUMERIC(8,2) | NOT NULL |
 | Unidade | Enum fechado: g, ml | TEXT com CHECK, ou ENUM | NOT NULL |
 
-**Valores atuais confirmados:** Proteínas Principais (400g), Carboidratos Densos (150g), Guarnições Leves (90g), Saladas Leves (30g), Saladas Pesadas (80g), Entradas e Petiscos (120g), Condimentos/Molhos (30ml), Bebidas S/Álcool (600ml), Sobremesas (100ml ou g conforme o preparo). Nota histórica: "Saladas Leves" reaproveita o registro Id 4, originalmente "Saladas" com teto único de 60g, renomeado — preservado para não quebrar vínculos existentes.
+**Valores atuais confirmados:** Proteínas Principais (280g servidos ≈ 400g crus comprados; era 400g servidos até 2026-11-04, ver `docs/REGRAS_NEGOCIO.md` seção 8), Carboidratos Densos (150g), Guarnições Leves (90g), Saladas Leves (30g), Saladas Pesadas (80g), Entradas e Petiscos (120g), Condimentos/Molhos (30ml), Bebidas S/Álcool (600ml), Sobremesas (100ml ou g conforme o preparo). Nota histórica: "Saladas Leves" reaproveita o registro Id 4, originalmente "Saladas" com teto único de 60g, renomeado — preservado para não quebrar vínculos existentes.
 
 **Relacionamentos:**
 - 1:N com `Headers_UI` (uma Macro_Categoria agrupa vários Headers_UI).

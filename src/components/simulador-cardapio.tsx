@@ -10,6 +10,7 @@ import {
   type ValoresIniciaisCardapio,
 } from "@/components/seletor-cardapio";
 import { calcularDebugCardapioAction, calcularPrecificacaoEventoAction } from "@/app/actions/precificacao";
+import { pessoasParaProducao } from "@/lib/pessoas-producao";
 import { obterItensCardapioModeloAction } from "@/app/actions/cardapio-modelo";
 import type { CardapioModeloResumo } from "@/lib/cardapios-modelo";
 import { calcularTaxaDeslocamento, sugerirQuantidadeGarcom, VALOR_GARCOM_PADRAO } from "@/lib/precificacao-constantes";
@@ -193,6 +194,12 @@ export function SimuladorCardapio({
       const resposta = await calcularDebugCardapioAction({
         preparoIds: preparoIdsSelecionados,
         numConvidados: numConvidadosNumero,
+        // Quantidades: criança = meia porção (mesma base do Orçamento/Evento).
+        pessoasProducao: pessoasParaProducao({
+          adultos: adultosNumero,
+          criancasAte5: criancasAte5Numero,
+          criancas5a10: criancas5a10Numero,
+        }),
         regiaoMetropolitanaCuritiba: regiaoMetropolitana,
         quantidadeGarcom: paraNumero(qtdGarcons) || undefined,
         valorGarcom: paraNumero(valorGarcom) || undefined,

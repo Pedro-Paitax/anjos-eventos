@@ -55,7 +55,7 @@ export function calcularListaCompras(
     for (const insumo of ficha.insumos) {
       const fator = dadosInsumo.get(insumo.insumoId)?.fatorCorrecao;
       const semFator = fator == null || !Number.isFinite(fator) || fator <= 0;
-      const necessario = insumo.quantidadeEscalada / (semFator ? 1 : fator);
+      const necessario = insumo.quantidadeExata / (semFator ? 1 : fator);
       const atual = bruto.get(insumo.insumoId);
       if (atual) atual.soma += necessario;
       else

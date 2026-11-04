@@ -2713,3 +2713,11 @@ Ficaram sem preço novo:
 `next build` no Windows falha ao pré-renderizar `/_global-error` ou `/agenda/novo`, com `InvariantError: Expected workStore to be initialized`.
 - Acontece também na `master` (2 de 2 tentativas). Não é causado pela branch.
 - O deploy faz o build no `ender`.
+
+## 2026-11-04 — Carne por pessoa, criança = meia porção, arroz e maionese
+
+Detalhes e motivo em `docs/DECISOES.md`, seção "Carne por pessoa, criança = meia porção…".
+- **Banco (gravado):** teto de Proteínas Principais 400 → 280 g; Arroz Branco 1.000 → 2.700 G; Maionese Tradicional 500 ML → 1.500 G.
+  - Dump: `~/backups-anjos-eventos/pre-dimensionamento-20261104-175015.dump`.
+- **Código (falta deploy):** criança = meia porção no dimensionamento; tempero minúsculo não some mais da lista de compras.
+- **Para o Pedro decidir:** teto de Saladas Leves (30 g); rendimento dos outros arrozes.

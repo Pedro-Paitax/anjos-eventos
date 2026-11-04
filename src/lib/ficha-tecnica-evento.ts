@@ -23,7 +23,10 @@ export type InsumoEscalado = {
   insumoId: number;
   nome: string;
   unidade: string;
+  /** Arredondada em 2 casas, para exibir. */
   quantidadeEscalada: number;
+  /** Sem arredondar: base da lista de compras (tempero de 0,07 g não pode virar 0 e sumir da compra). */
+  quantidadeExata: number;
 };
 
 export type FichaTecnicaEscalada = {
@@ -68,6 +71,7 @@ export function calcularFichaTecnicaEscalada(dados: DadosFichaTecnicaBruta): Fic
         nome: item.nome,
         unidade: item.unidade,
         quantidadeEscalada: arredondar(item.quantidade * fatorMultiplicador),
+        quantidadeExata: item.quantidade * fatorMultiplicador,
       }))
       .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")),
     passos:
