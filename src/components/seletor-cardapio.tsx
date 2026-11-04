@@ -6,7 +6,7 @@ import { CATEGORIAS_CARDAPIO, type CategoriaCardapio, type Preparo } from "@/lib
 import { rotuloClasse } from "@/components/formulario-evento";
 import { Modal } from "@/components/modal";
 import { botaoClasse } from "@/components/botao";
-import { emOrdemDeVersoes, rotuloVariacao } from "@/lib/variacoes-preparo";
+import { ListaEscolhaPreparos } from "@/components/lista-escolha-preparos";
 
 type SelecaoCardapio = Record<CategoriaCardapio, string[]>;
 
@@ -219,42 +219,11 @@ export function SeletorCardapio({
             ))}
           </div>
 
-          <div className="flex flex-col gap-1 overflow-y-auto">
-            {preparosPorCategoria[categoriaAtiva].length === 0 && (
-              <p className="px-1 py-2 text-sm text-texto-suave">
-                Nenhum item cadastrado nessa categoria.
-              </p>
-            )}
-            {/* Versões (ex.: "com Chimichurri") ficam recuadas debaixo do preparo base; a seleção continua pelo próprio item. */}
-            {emOrdemDeVersoes(preparosPorCategoria[categoriaAtiva]).map(({ item, nomeBase }) => {
-              const jaSelecionado = selecao[categoriaAtiva].includes(item.nome);
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  disabled={jaSelecionado}
-                  onClick={() => adicionar(categoriaAtiva, item.nome)}
-                  aria-label={nomeBase ? `${jaSelecionado ? "Adicionado" : "Adicionar"}: ${item.nome}` : undefined}
-                  className={`flex min-h-11 items-center justify-between rounded-controle py-2 pr-3 text-left transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-foco ${
-                    nomeBase ? "ml-4 pl-3" : "px-3"
-                  } ${
-                    jaSelecionado
-                      ? "cursor-not-allowed bg-white/[0.04] text-texto-suave"
-                      : "text-texto hover:bg-white/[0.06]"
-                  }`}
-                >
-                  {nomeBase ? (
-                    <span className="border-l-2 border-borda-forte pl-3">{rotuloVariacao(nomeBase, item.nome)}</span>
-                  ) : (
-                    <span>{item.nome}</span>
-                  )}
-                  <span className="text-[13px]">
-                    {jaSelecionado ? "Adicionado" : "+ Adicionar"}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
+          <ListaEscolhaPreparos
+            itens={preparosPorCategoria[categoriaAtiva]}
+            selecionado={(item) => selecao[categoriaAtiva].includes(item.nome)}
+            onAdicionar={(item) => adicionar(categoriaAtiva, item.nome)}
+          />
         </Modal>
       )}
     </div>

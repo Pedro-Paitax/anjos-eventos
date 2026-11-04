@@ -37,6 +37,18 @@ export function rotuloVariacao(nomeBase: string, nome: string): string {
   return nome;
 }
 
+/**
+ * Nome completo da versão dividido em "parte igual ao base" e "o que muda", para destacar a diferença
+ * sem esconder o nome ("Pão de Alho Tradicional" + "com Chimichurri"). Sem o prefixo, tudo vai em `diferenca`.
+ */
+export function partesNomeVariacao(nomeBase: string, nome: string): { comum: string; diferenca: string } {
+  const diferenca = rotuloVariacao(nomeBase, nome);
+  if (diferenca === nome) return { comum: "", diferenca: nome };
+  // Tudo antes da diferença, inclusive um separador ("+", "-"), para o nome lido em sequência ficar inteiro.
+  const fim = nome.trimEnd();
+  return { comum: fim.slice(0, fim.length - diferenca.length).trimEnd(), diferenca };
+}
+
 /** Lista plana para menus: base, depois as versões dele com `nomeBase` (para recuar e encurtar o rótulo). */
 export function emOrdemDeVersoes<T extends ItemComVariacao>(itens: T[]): { item: T; nomeBase?: string }[] {
   return agruparPorBase(itens).flatMap(({ item, variacoes }) => [

@@ -49,13 +49,13 @@ const CINZA = rgb(0.45, 0.45, 0.45);
 const CINZA_CLARO = rgb(0.9, 0.9, 0.9);
 
 // Fontes padrão cobrem português (WinAnsi); o resto vira "?".
-function paraWinAnsi(texto: string): string {
+export function paraWinAnsi(texto: string): string {
   return Array.from(texto.replace(/\r?\n/g, " "))
     .map((c) => (c.charCodeAt(0) <= 0xff ? c : "?"))
     .join("");
 }
 
-function quebrar(texto: string, fonte: PDFFont, tamanho: number, largura: number): string[] {
+export function quebrar(texto: string, fonte: PDFFont, tamanho: number, largura: number): string[] {
   const linhas: string[] = [];
   let atual = "";
   for (const palavra of paraWinAnsi(texto).split(" ")) {
