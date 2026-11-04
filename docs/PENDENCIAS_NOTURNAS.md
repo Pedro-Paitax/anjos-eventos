@@ -2627,7 +2627,24 @@ Orçamentos fechados não mudam: o preço deles é congelado.
 
 - **Código:** branch `feat/precos-cotacao-fornecedor` (client opcional nas funções de preço, `registrarCotacaoAprovada`, aviso do preço de peça na tela). Falta merge e deploy.
 - **Testes de integração novos:** não rodaram. O `docker run` do Postgres descartável no `ender` foi bloqueado pelo classificador de permissões. O caminho foi validado pelo ensaio com ROLLBACK em produção.
-- **Estrutura (pedido do Pedro):**
-  - criar os insumos e preparos Costela Janela, Ponta e Ripa;
-  - unificar coxa e sobrecoxa em sobrecoxa nas fichas e nos insumos.
-- **Lotes seguintes:** pesquisa web dos 110 insumos restantes (hortifruti, mercearia e frios).
+- **Lotes seguintes:** pesquisa web dos insumos restantes (hortifruti, mercearia e frios). O lote 2 (25 insumos: Super Muffato e boletim do CEASA Curitiba de 04/11) aguarda aprovação.
+
+### Estrutura (aprovada pelo Pedro, mesmo dia)
+
+Dump antes: `~/backups-anjos-eventos/pre-estrutura-costela-sobrecoxa-2026-11-04.dump` (139.168 bytes, 33 tabelas com dados).
+
+**Cortes de costela.** Via `scripts/cadastrar-preparo.ts`, em transação única, foram criados três insumos e três preparos, como versões de "Costela" e com a ficha dela copiada:
+
+| Preparo (id) | Insumo | Bruto Aroma da Carne (R$/kg) | Cadastro (R$/kg) |
+|---|---|---|---|
+| Costela Janela (99) | Costela Janela | 22,80 | 25,08 |
+| Costela Ponta (100) | Costela Ponta | 23,40 | 25,74 |
+| Costela Ripa (101) | Costela Ripa | 21,96 | 24,16 |
+
+- Fator 0,7 nos três: o mesmo da costela inteira, por decisão do Pedro.
+- O insumo "Costela Bovina" (peça inteira) continua com o preço antigo.
+
+**Coxa → sobrecoxa.** Feito em transação única, com ensaio antes:
+- Na ficha "Coxa de Frango Desossada" (27), o insumo 96 (coxa desossada) foi trocado pelo 150 (sobrecoxa desossada).
+- O insumo 101 e o preparo 33 passaram de "Coxa de Frango" para "Sobrecoxa de Frango".
+- Contagens iguais (144 insumos, 94 preparos, 441 linhas de composição). Nada foi apagado; o insumo 96 ficou sem uso.
