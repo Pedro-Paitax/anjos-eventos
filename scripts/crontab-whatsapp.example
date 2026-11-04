@@ -10,6 +10,11 @@ CRON_TZ=America/Sao_Paulo
 # 09:00 — Lembrete de 7 dias (pendências)
 0 9 * * * . ~/.anjos-cron.env && curl -fsS -X POST -H "Authorization: Bearer $CRON_TOKEN" http://127.0.0.1:3001/api/cron/lembrete-7-dias >> ~/anjos-cron.log 2>&1
 
+# 18:00 — Resumo diário de preços de insumos (PDF para FAMILIA_WHATSAPP_NUMEROS; decisão 2026-11-04).
+# Só envia se algum preço mudou desde o último resumo. NÃO instale antes de: migração 0013 aplicada,
+# deploy feito e primeiro envio conferido pelo Pedro.
+#0 18 * * * . ~/.anjos-cron.env && curl -fsS -m 120 -X POST -H "Authorization: Bearer $CRON_TOKEN" http://127.0.0.1:3001/api/cron/precos-resumo >> ~/anjos-cron.log 2>&1
+
 # Prospecção — envio automático de WhatsApp (decisão 2026-10-29, ver docs/PROSPECCAO.md).
 # NÃO instale antes de: migração 0010 aplicada, deploy feito, teste só no número do Pedro e
 # envio automático ligado na tela. Cada chamada envia NO MÁXIMO UM lead (teto 10/dia no código);

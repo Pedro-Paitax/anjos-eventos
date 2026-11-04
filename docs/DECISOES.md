@@ -1311,6 +1311,35 @@ Ainda não existe tela de cotação; a leitura de PDF por IA é a próxima etapa
 - `aplicarPrecoAoInsumo` leva o preço ao cadastro (+10 %, data da cotação).
 - A lista de preços (`ListaPrecos`) passou a mostrar `unidade_fornecedor`, para o aviso do preço de peça aparecer na tela.
 
+### Resumo diário de preços pelo WhatsApp (2026-11-04) — IMPLEMENTADO NO CÓDIGO, migração 0013 NÃO aplicada, cron NÃO instalado
+
+Pedido do Pedro: "envio de PDF toda vez que os preços forem atualizados, pelo WhatsApp conectado no sistema". As escolhas dele:
+- **Destino:** os números da família (`FAMILIA_WHATSAPP_NUMEROS`, os mesmos da Ordem de Ação e do lembrete de 7 dias).
+- **Frequência:** **uma vez por dia**, e só se algum preço mudou desde o último resumo. Assim um lote de 20 insumos ou vários cliques não viram vários PDFs.
+- **Conteúdo:** **o que mudou + a tabela completa**.
+
+Como ficou:
+- **Registro das mudanças.** A migração 0013 cria a tabela `alteracoes_preco_insumo` (insumo, preço anterior, preço novo, alterado em, enviado em) e um gatilho em `insumos`.
+  - O gatilho grava uma linha a cada mudança de `preco` e a cada insumo novo, este com preço anterior nulo.
+  - Foi feito no banco, e não no app, para pegar **qualquer** caminho: a tela, o botão "Usar no cadastro" e os scripts de lote. O gatilho só insere na tabela nova; não altera nem bloqueia o UPDATE.
+- **O PDF** (`src/lib/precos-resumo-pdf.ts`, funções puras, `pdf-lib` como a lista de compras) tem duas partes:
+  1. **O que mudou.** As mudanças de cada insumo são juntadas: o "antes" é o da primeira mudança e o "depois", o da última. Quem voltou ao mesmo preço sai da lista. A ordem é da maior variação para a menor, com destaque acima de 30 %, e cada linha mostra a fonte e o fornecedor.
+  2. **Tabela completa.** Preço, origem, data e situação (em dia, desatualizado ou sem data) de todos os insumos.
+  - O fornecedor é o da linha do histórico que gerou o preço atual: mesmo dia e bruto + 10 % igual ao preço de cadastro. Linhas só de referência, como as do CEASA, não batem.
+- **Envio** (`src/lib/precos-resumo.ts`, rota `POST /api/cron/precos-resumo` protegida por `CRON_TOKEN`):
+  - Sai um PDF com legenda para cada número, um de cada vez.
+  - As linhas só ficam marcadas como enviadas se pelo menos um envio der certo; se todos falharem, saem no dia seguinte.
+  - Sem números configurados, com o worker desconectado ou com a 0013 ainda não aplicada, a rota não envia nada e responde 503.
+- **Crontab:** linha comentada em `scripts/crontab-whatsapp.example`, às 18:00.
+
+Testes: 8 de regras puras e PDF; 3 de integração (gatilho, falha de envio, marcação), que só rodam com `TEST_DATABASE_URL`.
+
+Ativação, nesta ordem e com o ok do Pedro em cada passo:
+1. Aprovar o SQL da 0013 e rodar `scripts/aplicar-migracao-0013.sh`.
+2. Merge e deploy.
+3. Primeiro envio de teste só para o número do Pedro (`docs/AUTONOMIA.md`).
+4. Instalar a linha do crontab.
+
 ### Cadastro de fichas técnicas pelo Claude Code (2026-11-02)
 
 O comando `/cadastrar-preparo` deixou de usar o NocoDB (fonte legada desde o corte de 2026-09-22) e passou a gravar no Postgres pelo script `scripts/cadastrar-preparo.ts`: `--referencia` lista headers, insumos e fornecedores; sem flag simula e mostra o resumo; `--gravar` grava numa transação única (insumos novos + histórico de preço, preparos, composição, `header_preparo`). Regras checadas antes de gravar (`scripts/lib-cadastro-preparo.ts`, 9 testes): header obrigatório (sem ele o preparo sai do cálculo, ver PENDENCIAS "Achado complementar"), Carnes com subcategoria e sem peso de atratividade, demais com peso explícito, peso médio obrigatório para rendimento em Unidade, nome de preparo novo, insumo existente nunca alterado, insumo novo = fornecedor + 10 % com fonte/link/data (ou "estimado", que entra sem data). Testado num Postgres descartável (simulação, erros, gravação e recusa de duplicado).

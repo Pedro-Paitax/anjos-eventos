@@ -40,7 +40,7 @@ export type ResultadoLembrete =
   | { ok: false; motivo: "worker_desconectado" | "destinatarios_nao_configurados" }
   | { ok: true; eventos_com_pendencia: number; mensagens_enviadas: number; falhas: number };
 
-async function workerConectado(contexto: string): Promise<boolean> {
+export async function workerConectado(contexto: string): Promise<boolean> {
   const status = await statusWorker();
   if (status?.status === "connected") return true;
   console.error(
@@ -190,7 +190,7 @@ export async function executarOrdemAcao(): Promise<ResultadoOrdemAcao> {
   return { ok: true, eventos: resultados };
 }
 
-function numerosFamilia(): string[] {
+export function numerosFamilia(): string[] {
   return (process.env.FAMILIA_WHATSAPP_NUMEROS ?? "")
     .split(",")
     .map((n) => n.trim())
