@@ -1,5 +1,24 @@
 import { describe, expect, it } from "vitest";
-import { agruparPorBase, rotuloVariacao } from "./variacoes-preparo";
+import { agruparPorBase, partesNomeVariacao, rotuloVariacao } from "./variacoes-preparo";
+
+describe("partesNomeVariacao", () => {
+  it("separa o que é igual ao base do que muda, mantendo a grafia do nome", () => {
+    expect(partesNomeVariacao("Pão de Alho Tradicional", "Pão de Alho Tradicional com Chimichurri")).toEqual({
+      comum: "Pão de Alho Tradicional",
+      diferenca: "com Chimichurri",
+    });
+    expect(partesNomeVariacao("Queijo Coalho", "queijo coalho + Melaço")).toEqual({
+      comum: "queijo coalho +",
+      diferenca: "Melaço",
+    });
+  });
+  it("nome que não começa pelo base fica inteiro na diferença", () => {
+    expect(partesNomeVariacao("Linguiça Fina", "Linguiça de Pernil Fina com Vinagrete")).toEqual({
+      comum: "",
+      diferenca: "Linguiça de Pernil Fina com Vinagrete",
+    });
+  });
+});
 
 describe("agruparPorBase", () => {
   const itens = [

@@ -9,12 +9,14 @@ import {
   paraValoresIniciaisCardapio,
   type ValoresIniciaisCardapio,
 } from "@/components/seletor-cardapio";
-import { calcularDebugCardapioAction, calcularPrecificacaoAction } from "@/app/actions/precificacao";
+import { calcularDebugCardapioAction, calcularPrecificacaoEventoAction } from "@/app/actions/precificacao";
 import { obterItensCardapioModeloAction } from "@/app/actions/cardapio-modelo";
 import type { CardapioModeloResumo } from "@/lib/cardapios-modelo";
 import { calcularTaxaDeslocamento, sugerirQuantidadeGarcom, VALOR_GARCOM_PADRAO } from "@/lib/precificacao-constantes";
 import { Alerta } from "@/components/alerta";
 import { Seletor } from "@/components/seletor";
+import { botaoClasse } from "@/components/botao";
+import { montarUrlQuantidadesPdf } from "@/lib/quantidades-cardapio-url";
 
 type ResultadoDebug = Awaited<ReturnType<typeof calcularDebugCardapioAction>>;
 
@@ -46,7 +48,10 @@ export function SimuladorCardapio({
   preparosPorCategoria: Record<CategoriaCardapio, Preparo[]>;
   cardapiosModelo: CardapioModeloResumo[];
 }) {
-  const [numConvidados, setNumConvidados] = useState("");
+  // Mesmas faixas do Orçamento (formulario-orcamento-churrasco.tsx): adultos pagam cheio, crianças meia.
+  const [qtdAdultos, setQtdAdultos] = useState("");
+  const [qtdCriancasAte5, setQtdCriancasAte5] = useState("");
+  const [qtdCriancas5a10, setQtdCriancas5a10] = useState("");
   const [regiaoMetropolitana, setRegiaoMetropolitana] = useState(false);
   const [qtdGarcons, setQtdGarcons] = useState("");
   const [valorGarcom, setValorGarcom] = useState(String(VALOR_GARCOM_PADRAO));
@@ -114,7 +119,11 @@ export function SimuladorCardapio({
   const [debugResultado, setDebugResultado] = useState<ResultadoDebug | null>(null);
   const [calculandoDebug, setCalculandoDebug] = useState(false);
 
-  const numConvidadosNumero = paraNumero(numConvidados);
+  const adultosNumero = paraNumero(qtdAdultos);
+  const criancasAte5Numero = paraNumero(qtdCriancasAte5);
+  const criancas5a10Numero = paraNumero(qtdCriancas5a10);
+  // Porções e equipe são dimensionadas pelo total de convidados, como no Orçamento.
+  const numConvidadosNumero = adultosNumero + criancasAte5Numero + criancas5a10Numero;
   const quantidadeGarcomSugerida =
     numConvidadosNumero > 0 ? sugerirQuantidadeGarcom(numConvidadosNumero) : 0;
   const taxaDeslocamento = calcularTaxaDeslocamento(regiaoMetropolitana);
@@ -127,12 +136,17 @@ export function SimuladorCardapio({
     const timer = setTimeout(() => {
       setCalculando(true);
       setErro(null);
-      calcularPrecificacaoAction({
+      calcularPrecificacaoEventoAction({
         preparoIds: preparoIdsSelecionados,
         numConvidados: numConvidadosNumero,
         regiaoMetropolitanaCuritiba: regiaoMetropolitana,
         quantidadeGarcom: paraNumero(qtdGarcons) || undefined,
         valorGarcom: paraNumero(valorGarcom) || undefined,
+        distribuicaoConvidados: {
+          adultos: adultosNumero,
+          criancasAte5: criancasAte5Numero,
+          criancas5a10: criancas5a10Numero,
+        },
       })
         .then((resposta) => {
           if ("erro" in resposta) {
@@ -158,6 +172,9 @@ export function SimuladorCardapio({
     simulacaoAtiva,
     preparoIdsSelecionados,
     numConvidadosNumero,
+    adultosNumero,
+    criancasAte5Numero,
+    criancas5a10Numero,
     regiaoMetropolitana,
     qtdGarcons,
     valorGarcom,
@@ -191,19 +208,35 @@ export function SimuladorCardapio({
       {/* Convidados */}
       <section className="flex flex-col gap-5">
         <h3 className={secaoTituloClasse}>Convidados</h3>
-        <div className="flex flex-col gap-1.5 sm:max-w-xs">
-          <label htmlFor="numConvidados" className={rotuloClasse}>
-            Número de convidados
-          </label>
-          <input
-            id="numConvidados"
-            type="number"
-            min={0}
-            value={numConvidados}
-            onChange={(e) => setNumConvidados(e.target.value)}
-            className={campoClasse}
-          />
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
+          {(
+            [
+              ["qtdAdultos", "Adultos", qtdAdultos, setQtdAdultos],
+              ["qtdCriancasAte5", "Crianças até 5 anos", qtdCriancasAte5, setQtdCriancasAte5],
+              ["qtdCriancas5a10", "Crianças de 5 a 10 anos", qtdCriancas5a10, setQtdCriancas5a10],
+            ] as const
+          ).map(([id, rotulo, valor, definir]) => (
+            <div key={id} className="flex flex-col gap-1.5">
+              <label htmlFor={id} className={rotuloClasse}>
+                {rotulo}
+              </label>
+              <input
+                id={id}
+                type="number"
+                inputMode="numeric"
+                min={0}
+                value={valor}
+                onChange={(e) => definir(e.target.value)}
+                className={campoClasse}
+              />
+            </div>
+          ))}
         </div>
+        {criancasAte5Numero + criancas5a10Numero > 0 && (
+          <p className="text-sm text-texto-suave">
+            Total: {numConvidadosNumero} convidados. Crianças pagam meia no total do evento.
+          </p>
+        )}
       </section>
 
       {/* Cardápio */}
@@ -301,8 +334,8 @@ export function SimuladorCardapio({
 
         {!simulacaoAtiva && (
           <p className="text-sm text-texto-suave">
-            Informe o número de convidados e selecione ao menos um item do
-            cardápio pra calcular.
+            Informe os convidados e selecione ao menos um item do cardápio pra
+            calcular.
           </p>
         )}
         {simulacaoAtiva && calculando && (
@@ -382,7 +415,16 @@ export function SimuladorCardapio({
             </button>
 
             {mostrarCalculos && (
-              <PainelCalculos resultado={debugResultado} carregando={calculandoDebug} />
+              <PainelCalculos
+                resultado={debugResultado}
+                carregando={calculandoDebug}
+                urlPdf={montarUrlQuantidadesPdf({
+                  preparoIds: preparoIdsSelecionados,
+                  adultos: adultosNumero,
+                  criancasAte5: criancasAte5Numero,
+                  criancas5a10: criancas5a10Numero,
+                })}
+              />
             )}
           </div>
         )}
@@ -394,9 +436,12 @@ export function SimuladorCardapio({
 function PainelCalculos({
   resultado,
   carregando,
+  urlPdf,
 }: {
   resultado: ResultadoDebug | null;
   carregando: boolean;
+  /** PDF com item, consumo previsto e custo, da seleção e dos convidados atuais da tela. */
+  urlPdf: string;
 }) {
   if (carregando) {
     return <p role="status" aria-live="polite" className="text-sm text-texto-suave">Calculando o passo a passo…</p>;
@@ -412,6 +457,20 @@ function PainelCalculos({
 
   return (
     <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-2 rounded-controle border border-borda bg-superficie p-4 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-sm text-texto-suave">
+          Só item, consumo previsto e custo, num PDF para mandar a outras pessoas.
+        </p>
+        <a
+          href={urlPdf}
+          target="_blank"
+          rel="noopener"
+          className={`${botaoClasse("secundario", "sm")} shrink-0 self-start sm:self-auto`}
+        >
+          Exportar PDF das quantidades
+        </a>
+      </div>
+
       <p className="text-sm text-texto-suave">
         Passo a passo do que <code className="text-texto">distribuirPorcoes</code> e{" "}
         <code className="text-texto">calcularPrecificacaoCardapio</code> calculam pra cada item
