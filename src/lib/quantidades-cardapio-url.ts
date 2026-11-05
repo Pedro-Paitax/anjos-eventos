@@ -26,6 +26,13 @@ export function montarUrlQuantidadesPdf(p: ParametrosQuantidades): string {
   return `${CAMINHO_QUANTIDADES_PDF}?${busca.toString()}`;
 }
 
+export const CAMINHO_FICHAS_TECNICAS = "/simulador-cardapio/fichas-tecnicas";
+
+/** Página das fichas técnicas do cardápio: mesmos parâmetros do PDF de quantidades (lerParametrosQuantidades). */
+export function montarUrlFichasTecnicas(p: ParametrosQuantidades): string {
+  return montarUrlQuantidadesPdf(p).replace(CAMINHO_QUANTIDADES_PDF, CAMINHO_FICHAS_TECNICAS);
+}
+
 function inteiro(texto: string | null, minimo: number, maximo: number): number | null {
   if (texto === null || texto.trim() === "") return minimo === 0 ? 0 : null;
   if (!/^\d+$/.test(texto.trim())) return null;

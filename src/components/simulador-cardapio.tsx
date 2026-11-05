@@ -17,7 +17,11 @@ import { calcularTaxaDeslocamento, sugerirQuantidadeGarcom, VALOR_GARCOM_PADRAO 
 import { Alerta } from "@/components/alerta";
 import { Seletor } from "@/components/seletor";
 import { botaoClasse } from "@/components/botao";
-import { montarUrlQuantidadesPdf } from "@/lib/quantidades-cardapio-url";
+import {
+  montarUrlFichasTecnicas,
+  montarUrlQuantidadesPdf,
+  type ParametrosQuantidades,
+} from "@/lib/quantidades-cardapio-url";
 import { AvisoAjusteTeto } from "@/components/aviso-ajuste-teto";
 
 type ResultadoDebug = Awaited<ReturnType<typeof calcularDebugCardapioAction>>;
@@ -185,6 +189,14 @@ export function SimuladorCardapio({
     valorGarcom,
     precoFixoSelecionado,
   ]);
+
+  // Seleção e convidados atuais da tela: mesmos parâmetros dos dois PDFs do "Ver cálculos".
+  const parametrosPdf: ParametrosQuantidades = {
+    preparoIds: preparoIdsSelecionados,
+    adultos: adultosNumero,
+    criancasAte5: criancasAte5Numero,
+    criancas5a10: criancas5a10Numero,
+  };
 
   async function alternarCalculos() {
     if (mostrarCalculos) {
@@ -433,12 +445,8 @@ export function SimuladorCardapio({
               <PainelCalculos
                 resultado={debugResultado}
                 carregando={calculandoDebug}
-                urlPdf={montarUrlQuantidadesPdf({
-                  preparoIds: preparoIdsSelecionados,
-                  adultos: adultosNumero,
-                  criancasAte5: criancasAte5Numero,
-                  criancas5a10: criancas5a10Numero,
-                })}
+                urlPdfQuantidades={montarUrlQuantidadesPdf(parametrosPdf)}
+                urlPdfFichas={montarUrlFichasTecnicas(parametrosPdf)}
               />
             )}
           </div>
@@ -448,18 +456,30 @@ export function SimuladorCardapio({
   );
 }
 
+/** 4500 g → "4.500 g (4,5 kg)"; 1500 ml → "1.500 ml (1,5 L)". Só apresentação do volume já calculado. */
+function formatarConsumoTela(quantidade: number, unidade: string): string {
+  const base = `${quantidade.toLocaleString("pt-BR", { maximumFractionDigits: 2 })} ${unidade}`;
+  const maior = unidade.toLowerCase() === "g" ? "kg" : unidade.toLowerCase() === "ml" ? "L" : null;
+  if (!maior || quantidade < 1000) return base;
+  return `${base} (${(quantidade / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 2 })} ${maior})`;
+}
+
 function PainelCalculos({
   resultado,
   carregando,
-  urlPdf,
+  urlPdfQuantidades,
+  urlPdfFichas,
 }: {
   resultado: ResultadoDebug | null;
   carregando: boolean;
   /** PDF com item, consumo previsto e custo, da seleção e dos convidados atuais da tela. */
-  urlPdf: string;
+  urlPdfQuantidades: string;
+  /** PDF com a ficha técnica de cada preparo, escalada para os mesmos convidados. */
+  urlPdfFichas: string;
 }) {
+  const [detalhado, setDetalhado] = useState(false);
   if (carregando) {
-    return <p role="status" aria-live="polite" className="text-sm text-texto-suave">Calculando o passo a passo…</p>;
+    return <p role="status" aria-live="polite" className="text-sm text-texto-suave">Calculando…</p>;
   }
   if (!resultado) return null;
   if ("erro" in resultado) {
@@ -472,93 +492,126 @@ function PainelCalculos({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-2 rounded-controle border border-borda bg-superficie p-4 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-sm text-texto-suave">
-          Só item, consumo previsto e custo, num PDF para mandar a outras pessoas.
-        </p>
+      <AvisoAjusteTeto ajustes={resultado.resultadoFinal.ajustes_teto} avisos={resultado.avisos} />
+
+      <div className="flex flex-col gap-2 sm:flex-row">
         <a
-          href={urlPdf}
+          href={urlPdfQuantidades}
           target="_blank"
           rel="noopener"
-          className={`${botaoClasse("secundario", "sm")} shrink-0 self-start sm:self-auto`}
+          className={`${botaoClasse("secundario", "sm")} w-full sm:w-auto`}
         >
           Exportar PDF das quantidades
         </a>
+        <a
+          href={urlPdfFichas}
+          target="_blank"
+          rel="noopener"
+          className={`${botaoClasse("secundario", "sm")} w-full sm:w-auto`}
+        >
+          Exportar PDF das fichas técnicas
+        </a>
       </div>
 
-      <AvisoAjusteTeto ajustes={resultado.resultadoFinal.ajustes_teto} avisos={resultado.avisos} />
-
-      <p className="text-sm text-texto-suave">
-        Passo a passo do que <code className="text-texto">distribuirPorcoes</code> e{" "}
-        <code className="text-texto">calcularPrecificacaoCardapio</code> calculam pra cada item
-        selecionado acima — nenhuma fórmula diferente da usada no valor sugerido.
-      </p>
-
       <div className="overflow-x-auto rounded-controle bg-superficie text-texto">
-        <table className="w-full min-w-[1100px] border-collapse text-sm">
+        <table className="w-full border-collapse text-sm">
           <thead>
             <tr className="border-b border-borda text-left text-texto-suave">
               <th className="px-3 py-2 font-normal">Preparo</th>
-              <th className="px-3 py-2 font-normal">Macro (unidade)</th>
-              <th className="px-3 py-2 font-normal">Unid. rendimento preparo</th>
-              <th className="px-3 py-2 font-normal">Peso (origem)</th>
-              <th className="px-3 py-2 font-normal">Soma pesos grupo</th>
-              <th className="px-3 py-2 font-normal">Porção calc. → final</th>
-              <th className="px-3 py-2 font-normal">Volume total</th>
-              <th className="px-3 py-2 font-normal">Rendimento</th>
-              <th className="px-3 py-2 font-normal">Custo/unid. rend.</th>
-              <th className="px-3 py-2 font-normal">Custo total item</th>
+              <th className="px-3 py-2 text-right font-normal">Consumo previsto</th>
+              <th className="px-3 py-2 text-right font-normal">Custo</th>
             </tr>
           </thead>
           <tbody>
             {resultado.linhas.map((linha) => (
-              <tr
-                key={linha.preparoId}
-                className={
-                  linha.unidadeDivergente
-                    ? "border-b border-borda bg-red-600/15 text-red-900"
-                    : "border-b border-borda"
-                }
-              >
+              <tr key={linha.preparoId} className="border-b border-borda">
                 <td className="px-3 py-2 font-medium">{linha.preparoNome}</td>
-                <td className="px-3 py-2">
-                  {linha.macroCategoriaNome} ({linha.unidadeMacro})
+                <td className="whitespace-nowrap px-3 py-2 text-right tabular-nums">
+                  {formatarConsumoTela(linha.volumeNecessarioTotal, linha.unidadeMacro)}
                 </td>
-                <td className="px-3 py-2">
-                  {linha.unidadeRendimentoPreparo}
-                  {linha.unidadeDivergente && (
-                    <span className="ml-1 font-semibold text-red-700">≠ unidade da macro</span>
-                  )}
-                </td>
-                <td className="px-3 py-2">
-                  {linha.peso} <span className="text-texto-suave">({linha.origemPeso})</span>
-                </td>
-                <td className="px-3 py-2">{linha.somaPesosGrupo}</td>
-                <td className="px-3 py-2">
-                  {linha.porcaoCalculada} → {linha.porcaoFinal}
-                  {linha.limitadaPorHardCap && (
-                    <span className="ml-1 text-texto-suave">
-                      (Hard Cap {linha.porcaoMaximaIndividual})
-                    </span>
-                  )}
-                </td>
-                <td className="px-3 py-2">
-                  {linha.volumeNecessarioTotal} {linha.unidadeMacro}
-                  {linha.quantidadeParaCusto !== linha.volumeNecessarioTotal && (
-                    <span className="text-texto-suave">
-                      {" "}
-                      → {linha.quantidadeParaCusto} un (convertido)
-                    </span>
-                  )}
-                </td>
-                <td className="px-3 py-2">{linha.rendimento}</td>
-                <td className="px-3 py-2">R$ {linha.custoPorUnidadeRendimento.toFixed(4)}</td>
-                <td className="px-3 py-2 font-medium">R$ {linha.custoTotalItem.toFixed(2)}</td>
+                <td className="whitespace-nowrap px-3 py-2 text-right tabular-nums">R$ {linha.custoTotalItem.toFixed(2)}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+
+      <button
+        type="button"
+        onClick={() => setDetalhado((aberto) => !aberto)}
+        aria-expanded={detalhado}
+        className={`${botaoClasse("secundario", "sm")} self-start`}
+      >
+        {detalhado ? "Ocultar detalhes" : "Ver detalhes"}
+      </button>
+
+      {detalhado && (
+        <div className="overflow-x-auto rounded-controle bg-superficie text-texto">
+          <table className="w-full min-w-[1100px] border-collapse text-sm">
+            <thead>
+              <tr className="border-b border-borda text-left text-texto-suave">
+                <th className="px-3 py-2 font-normal">Preparo</th>
+                <th className="px-3 py-2 font-normal">Macro (unidade)</th>
+                <th className="px-3 py-2 font-normal">Unid. rendimento preparo</th>
+                <th className="px-3 py-2 font-normal">Peso (origem)</th>
+                <th className="px-3 py-2 font-normal">Soma pesos grupo</th>
+                <th className="px-3 py-2 font-normal">Porção calc. → final</th>
+                <th className="px-3 py-2 font-normal">Volume total</th>
+                <th className="px-3 py-2 font-normal">Rendimento</th>
+                <th className="px-3 py-2 font-normal">Custo/unid. rend.</th>
+                <th className="px-3 py-2 font-normal">Custo total item</th>
+              </tr>
+            </thead>
+            <tbody>
+              {resultado.linhas.map((linha) => (
+                <tr
+                  key={linha.preparoId}
+                  className={
+                    linha.unidadeDivergente
+                      ? "border-b border-borda bg-red-950/30 text-red-200"
+                      : "border-b border-borda"
+                  }
+                >
+                  <td className="px-3 py-2 font-medium">{linha.preparoNome}</td>
+                  <td className="px-3 py-2">
+                    {linha.macroCategoriaNome} ({linha.unidadeMacro})
+                  </td>
+                  <td className="px-3 py-2">
+                    {linha.unidadeRendimentoPreparo}
+                    {linha.unidadeDivergente && (
+                      <span className="ml-1 font-semibold text-red-300">≠ unidade da macro</span>
+                    )}
+                  </td>
+                  <td className="px-3 py-2">
+                    {linha.peso} <span className="text-texto-suave">({linha.origemPeso})</span>
+                  </td>
+                  <td className="px-3 py-2">{linha.somaPesosGrupo}</td>
+                  <td className="px-3 py-2">
+                    {linha.porcaoCalculada} → {linha.porcaoFinal}
+                    {linha.limitadaPorHardCap && (
+                      <span className="ml-1 text-texto-suave">
+                        (Hard Cap {linha.porcaoMaximaIndividual})
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-3 py-2">
+                    {linha.volumeNecessarioTotal} {linha.unidadeMacro}
+                    {linha.quantidadeParaCusto !== linha.volumeNecessarioTotal && (
+                      <span className="text-texto-suave">
+                        {" "}
+                        → {linha.quantidadeParaCusto} un (convertido)
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-3 py-2">{linha.rendimento}</td>
+                  <td className="px-3 py-2">R$ {linha.custoPorUnidadeRendimento.toFixed(4)}</td>
+                  <td className="px-3 py-2 font-medium">R$ {linha.custoTotalItem.toFixed(2)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {resultado.itensExcluidos.length > 0 && (
         <div className="rounded-controle border border-borda-forte bg-elevada p-4">
