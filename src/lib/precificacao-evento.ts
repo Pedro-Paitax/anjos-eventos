@@ -43,7 +43,20 @@ export type PrecificacaoEventoResultado = {
   resultado: PrecificacaoResultado;
   /** Preparos selecionados que não entraram no cálculo (nome + motivo), pra avisar quem está cadastrando o evento — nunca exibido ao cliente. Só dado faltando (peso/subcategoria/rendimento) chega aqui — falha de rede é fail-hard, ver FalhaCalculoErro. */
   itensExcluidos: { preparo: string; motivo: string }[];
+  /** Avisos de configuração para a tela interna (ex.: ajuste por acompanhamentos mal configurado). */
+  avisos?: string[];
 };
+
+type AjusteResolvido = Awaited<ReturnType<typeof resolverItensPorPreparoIds>>["ajusteAcompanhamentos"];
+
+/** Opções com o ajuste por acompanhamentos (só quando o resolvedor o carregou: caminho Oracle). */
+function comAjuste(opcoes: OpcoesPrecificacao, ajuste: AjusteResolvido): OpcoesPrecificacao {
+  return ajuste ? { ...opcoes, ajusteAcompanhamentos: ajuste.parametros } : opcoes;
+}
+
+function avisosDoAjuste(ajuste: AjusteResolvido): { avisos?: string[] } {
+  return ajuste?.aviso ? { avisos: [ajuste.aviso] } : {};
+}
 
 /**
  * Resolve peso/macro-categoria (motor de dimensionamento) e custo (motor de
@@ -56,14 +69,19 @@ async function resolverItensParaPrecificacao(
   preparoIds: number[],
   token: string
 ): Promise<
-  | { itensParaPrecificacao: ItemCardapioPrecificacao[]; itensExcluidos: { preparo: string; motivo: string }[] }
+  | {
+      itensParaPrecificacao: ItemCardapioPrecificacao[];
+      itensExcluidos: { preparo: string; motivo: string }[];
+      ajuste: AjusteResolvido;
+    }
   | PrecificacaoEventoErro
   | FalhaCalculoErro
 > {
   let itensResolvidos: Awaited<ReturnType<typeof resolverItensPorPreparoIds>>["itensResolvidos"];
   let itensExcluidos: Awaited<ReturnType<typeof resolverItensPorPreparoIds>>["itensExcluidos"];
+  let ajuste: AjusteResolvido;
   try {
-    ({ itensResolvidos, itensExcluidos } = await resolverItensPorPreparoIds(preparoIds, token));
+    ({ itensResolvidos, itensExcluidos, ajusteAcompanhamentos: ajuste } = await resolverItensPorPreparoIds(preparoIds, token));
   } catch {
     // Mesma política de fail-hard abaixo, mas na etapa de resolver
     // peso/macro-categoria (antes até de chegar no motor de custo) — sem
@@ -133,6 +151,9 @@ async function resolverItensParaPrecificacao(
       rendimento: custo.rendimento,
       unidadeRendimentoPreparo: item.unidadeRendimentoPreparo,
       pesoMedioUnidadeG: item.pesoMedioUnidadeG,
+      pesoAcompanhamentoMacro: item.pesoAcompanhamentoMacro,
+      macroAjustaPorAcompanhamentos: item.macroAjustaPorAcompanhamentos,
+      ignoraHardCap: item.ignoraHardCap,
     });
   }
 
@@ -144,7 +165,7 @@ async function resolverItensParaPrecificacao(
     };
   }
 
-  return { itensParaPrecificacao, itensExcluidos: [...itensExcluidos, ...semCusto] };
+  return { itensParaPrecificacao, itensExcluidos: [...itensExcluidos, ...semCusto], ajuste };
 }
 
 /**
@@ -170,9 +191,12 @@ export async function calcularPrecificacaoParaPreparos(
   const resolvido = await resolverItensParaPrecificacao(preparoIds, token);
   if ("erro" in resolvido) return resolvido;
 
-  const resultado = calcularPrecificacaoCardapio(resolvido.itensParaPrecificacao, opcoes);
+  const resultado = calcularPrecificacaoCardapio(
+    resolvido.itensParaPrecificacao,
+    comAjuste(opcoes, resolvido.ajuste)
+  );
 
-  return { resultado, itensExcluidos: resolvido.itensExcluidos };
+  return { resultado, itensExcluidos: resolvido.itensExcluidos, ...avisosDoAjuste(resolvido.ajuste) };
 }
 
 /**
@@ -197,7 +221,11 @@ export async function calcularPrecificacaoEventoParaPreparos(
   const resolvido = await resolverItensParaPrecificacao(preparoIds, token);
   if ("erro" in resolvido) return resolvido;
 
-  const resultado = calcularPrecificacaoParaEvento(resolvido.itensParaPrecificacao, opcoes, distribuicao);
+  const resultado = calcularPrecificacaoParaEvento(
+    resolvido.itensParaPrecificacao,
+    comAjuste(opcoes, resolvido.ajuste),
+    distribuicao
+  );
 
-  return { resultado, itensExcluidos: resolvido.itensExcluidos };
+  return { resultado, itensExcluidos: resolvido.itensExcluidos, ...avisosDoAjuste(resolvido.ajuste) };
 }

@@ -18,6 +18,7 @@ import { Alerta } from "@/components/alerta";
 import { Seletor } from "@/components/seletor";
 import { botaoClasse } from "@/components/botao";
 import { montarUrlQuantidadesPdf } from "@/lib/quantidades-cardapio-url";
+import { AvisoAjusteTeto } from "@/components/aviso-ajuste-teto";
 
 type ResultadoDebug = Awaited<ReturnType<typeof calcularDebugCardapioAction>>;
 
@@ -112,6 +113,7 @@ export function SimuladorCardapio({
   // só silenciosamente sumir do preço (docs/PENDENCIAS_NOTURNAS.md,
   // achado de 2026-09-09).
   const [itensExcluidos, setItensExcluidos] = useState<{ preparo: string; motivo: string }[]>([]);
+  const [avisosCalculo, setAvisosCalculo] = useState<string[]>([]);
 
   // "Ver cálculos" — diagnóstico do que está selecionado agora na tela
   // (docs/PENDENCIAS_NOTURNAS.md, bug de mistura de unidades). Recalculado
@@ -154,10 +156,12 @@ export function SimuladorCardapio({
             setErro(mensagemDeErro(resposta));
             setResultado(null);
             setItensExcluidos([]);
+            setAvisosCalculo([]);
             return;
           }
           setResultado(resposta.resultado);
           setItensExcluidos(resposta.itensExcluidos);
+          setAvisosCalculo(resposta.avisos ?? []);
           // Preço fixo do Cardápio Modelo prevalece sobre o valor dinâmico —
           // pré-preenchido uma vez em aplicarTemplate, não sobrescrito aqui.
           if (precoFixoSelecionado == null) {
@@ -367,6 +371,10 @@ export function SimuladorCardapio({
         )}
 
         {simulacaoAtiva && resultado && (
+          <AvisoAjusteTeto ajustes={resultado.ajustes_teto} avisos={avisosCalculo} />
+        )}
+
+        {simulacaoAtiva && resultado && (
           <p className="text-sm text-texto-suave">
             {precoFixoSelecionado != null
               ? "Preço por pessoa pré-preenchido com o preço fixo do Cardápio Pré-Montado selecionado — editável."
@@ -477,6 +485,8 @@ function PainelCalculos({
           Exportar PDF das quantidades
         </a>
       </div>
+
+      <AvisoAjusteTeto ajustes={resultado.resultadoFinal.ajustes_teto} avisos={resultado.avisos} />
 
       <p className="text-sm text-texto-suave">
         Passo a passo do que <code className="text-texto">distribuirPorcoes</code> e{" "}

@@ -19,6 +19,8 @@ import {
 import { BotaoEnviar } from "@/components/botao-enviar";
 import { Alerta } from "@/components/alerta";
 import { Seletor } from "@/components/seletor";
+import { AvisoAjusteTeto } from "@/components/aviso-ajuste-teto";
+import type { AjusteTetoResumo } from "@/lib/ajuste-acompanhamentos";
 
 type FormularioOrcamentoChurrascoProps = {
   empresaId: number;
@@ -125,6 +127,7 @@ export function FormularioOrcamentoChurrasco({
   const [calculandoPrecificacao, setCalculandoPrecificacao] = useState(false);
   const [erroPrecificacao, setErroPrecificacao] = useState<string | null>(null);
   const [itensExcluidos, setItensExcluidos] = useState<{ preparo: string; motivo: string }[]>([]);
+  const [ajusteTeto, setAjusteTeto] = useState<{ ajustes?: AjusteTetoResumo[]; avisos?: string[] }>({});
 
   const precificacaoAtiva = preparoIdsSelecionados.length > 0 && numConvidados > 0;
 
@@ -150,12 +153,14 @@ export function FormularioOrcamentoChurrasco({
           if ("erro" in resposta) {
             setErroPrecificacao(mensagemDeErro(resposta));
             setItensExcluidos([]);
+            setAjusteTeto({});
             return;
           }
           if (precoFixoSelecionado == null) {
             setPrecoPessoa(String(resposta.resultado.valor_sugerido_por_pessoa));
           }
           setItensExcluidos(resposta.itensExcluidos);
+          setAjusteTeto({ ajustes: resposta.resultado.ajustes_teto, avisos: resposta.avisos });
         })
         .catch(() => setErroPrecificacao("Falha ao calcular o valor sugerido."))
         .finally(() => setCalculandoPrecificacao(false));
@@ -328,6 +333,7 @@ export function FormularioOrcamentoChurrasco({
           logística.
         </p>
         {precificacaoAtiva && erroPrecificacao && <Alerta tipo="perigo">{erroPrecificacao}</Alerta>}
+        {precificacaoAtiva && <AvisoAjusteTeto ajustes={ajusteTeto.ajustes} avisos={ajusteTeto.avisos} />}
         {precificacaoAtiva && itensExcluidos.length > 0 && (
           <Alerta tipo="aviso">
             <p className="font-medium">

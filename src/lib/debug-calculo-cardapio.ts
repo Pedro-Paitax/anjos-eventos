@@ -45,6 +45,8 @@ export type DebugCalculoResultado = {
   linhas: LinhaDebugItem[];
   itensExcluidos: { preparo: string; motivo: string }[];
   resultadoFinal: PrecificacaoResultado;
+  /** Avisos de configuração (ex.: ajuste por acompanhamentos mal configurado). */
+  avisos?: string[];
 };
 
 function arredondar(valor: number): number {
@@ -80,7 +82,9 @@ export async function calcularDebugCardapio(
 
   // No modo oracle a leitura é via Drizzle (resolverItensPorPreparoIds ignora o token).
   const token = dataSource() === "oracle" ? "" : exigirToken();
-  const { itensResolvidos, itensExcluidos } = await resolverItensPorPreparoIds(preparoIds, token);
+  const { itensResolvidos, itensExcluidos, ajusteAcompanhamentos } = await resolverItensPorPreparoIds(preparoIds, token);
+  // Ajuste do teto por acompanhamentos: o mesmo do Simulador (só existe no caminho Oracle).
+  const parametrosAjuste = ajusteAcompanhamentos ? ajusteAcompanhamentos.parametros : undefined;
 
   const custosPorPreparoId = new Map<
     number,
@@ -122,7 +126,8 @@ export async function calcularDebugCardapio(
   // internamente mas normalmente não retorna sozinha.
   const macroCategoriasDimensionadas = distribuirPorcoes(
     itensComCusto,
-    opcoes.pessoasProducao && opcoes.pessoasProducao > 0 ? opcoes.pessoasProducao : opcoes.numConvidados
+    opcoes.pessoasProducao && opcoes.pessoasProducao > 0 ? opcoes.pessoasProducao : opcoes.numConvidados,
+    parametrosAjuste
   );
 
   const itensParaPrecificacao: ItemCardapioPrecificacao[] = itensComCusto.map((item) => {
@@ -141,13 +146,19 @@ export async function calcularDebugCardapio(
       rendimento: custo.rendimento,
       unidadeRendimentoPreparo: item.unidadeRendimentoPreparo,
       pesoMedioUnidadeG: item.pesoMedioUnidadeG,
+      pesoAcompanhamentoMacro: item.pesoAcompanhamentoMacro,
+      macroAjustaPorAcompanhamentos: item.macroAjustaPorAcompanhamentos,
+      ignoraHardCap: item.ignoraHardCap,
     };
   });
 
   // Mesma função de precificação usada em produção — reaproveitada sem
   // alteração só pra chegar no agregado final (valor sugerido etc.),
   // exibido junto da tabela de diagnóstico pra dar o contexto do resultado.
-  const resultadoFinal = calcularPrecificacaoCardapio(itensParaPrecificacao, opcoes);
+  const resultadoFinal = calcularPrecificacaoCardapio(
+    itensParaPrecificacao,
+    parametrosAjuste !== undefined ? { ...opcoes, ajusteAcompanhamentos: parametrosAjuste } : opcoes
+  );
 
   const linhas: LinhaDebugItem[] = [];
   for (const macro of macroCategoriasDimensionadas) {
@@ -193,5 +204,6 @@ export async function calcularDebugCardapio(
     linhas,
     itensExcluidos: [...itensExcluidos, ...semCusto],
     resultadoFinal,
+    ...(ajusteAcompanhamentos?.aviso ? { avisos: [ajusteAcompanhamentos.aviso] } : {}),
   };
 }

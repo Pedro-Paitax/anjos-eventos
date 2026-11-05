@@ -99,6 +99,13 @@
       "when": 1793805910476,
       "tag": "0013_precos_alteracoes",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1793830224526,
+      "tag": "0014_teto_carne_acompanhamentos",
+      "breakpoints": true
     }
   ]
 }
