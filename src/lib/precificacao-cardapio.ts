@@ -1,4 +1,9 @@
-import { distribuirPorcoes, type ItemResolvido } from "@/lib/dimensionamento-cardapio";
+import {
+  distribuirPorcoes,
+  type ItemResolvido,
+  type MacroCategoriaDimensionada,
+} from "@/lib/dimensionamento-cardapio";
+import type { AjusteTetoResumo, ParametrosAjusteAcompanhamentos } from "@/lib/ajuste-acompanhamentos";
 import {
   MARKUP_CARDAPIO,
   BASE_CONSUMIVEIS_FIXA,
@@ -45,6 +50,10 @@ export type ItemCardapioPrecificacao = {
   /** UOM Rendimento cru do preparo e Peso_Medio_Unidade_G — só pra alimentar a conversão de unidade do distribuirPorcoes (docs/DECISOES.md, "Correção do Bug de Mistura de Unidades"), mesmo papel de ItemResolvido. */
   unidadeRendimentoPreparo: string;
   pesoMedioUnidadeG: number | null;
+  /** Ajuste por acompanhamentos e D5 (sem hard cap em Carnes) — mesmo papel de ItemResolvido. */
+  pesoAcompanhamentoMacro?: number;
+  macroAjustaPorAcompanhamentos?: boolean;
+  ignoraHardCap?: boolean;
 };
 
 export type OpcoesPrecificacao = {
@@ -66,6 +75,11 @@ export type OpcoesPrecificacao = {
    * ignorando um preço fixo já escolhido — regressão contra a Tarefa 1.
    */
   precoPorPessoaEscolhido?: number;
+  /**
+   * Ajuste do teto por acompanhamentos (docs/REGRAS_NEGOCIO.md seção 8), carregado pelo wrapper de
+   * I/O. Omitido = cálculo idêntico ao de antes; null = desligado.
+   */
+  ajusteAcompanhamentos?: ParametrosAjusteAcompanhamentos | null;
 };
 
 export type PrecificacaoResultado = {
@@ -86,6 +100,8 @@ export type PrecificacaoResultado = {
   custo_operacional_total: number;
   custo_base_por_pessoa: number;
   valor_sugerido_total_evento: number;
+  /** Só com opcoes.ajusteAcompanhamentos: macros cujo teto foi ajustado (tela interna, nunca ao cliente). */
+  ajustes_teto?: AjusteTetoResumo[];
 };
 
 /**
@@ -128,9 +144,12 @@ export function calcularPrecificacaoCardapio(
     // repassar pra calcularCustoPreparo sem buscar o Preparo de novo) — aqui
     // o rendimento já resolvido do motor de custo é equivalente.
     rendimentoPreparo: item.rendimento,
+    pesoAcompanhamentoMacro: item.pesoAcompanhamentoMacro,
+    macroAjustaPorAcompanhamentos: item.macroAjustaPorAcompanhamentos,
+    ignoraHardCap: item.ignoraHardCap,
   }));
 
-  const macroCategorias = distribuirPorcoes(itensResolvidos, numConvidados);
+  const macroCategorias = distribuirPorcoes(itensResolvidos, numConvidados, opcoes.ajusteAcompanhamentos);
   const dadosCustoPorPreparoId = new Map(itens.map((item) => [item.preparoId, item]));
 
   let custoCardapioTotal = 0;
@@ -195,7 +214,24 @@ export function calcularPrecificacaoCardapio(
     custo_operacional_total: custoOperacionalTotal,
     custo_base_por_pessoa: custoBasePorPessoa,
     valor_sugerido_total_evento: valorSugeridoTotalEvento,
+    ...(opcoes.ajusteAcompanhamentos !== undefined ? { ajustes_teto: resumirAjustesTeto(macroCategorias) } : {}),
   };
+}
+
+function resumirAjustesTeto(macros: MacroCategoriaDimensionada[]): AjusteTetoResumo[] {
+  return macros.flatMap((m) =>
+    m.ajuste_acompanhamentos
+      ? [
+          {
+            ...m.ajuste_acompanhamentos,
+            macro: m.macro_categoria,
+            unidade: m.unidade,
+            teto_base: m.capacidade_teto_base ?? m.capacidade_teto,
+            teto_ajustado: m.capacidade_teto,
+          },
+        ]
+      : []
+  );
 }
 
 export type DistribuicaoConvidados = {

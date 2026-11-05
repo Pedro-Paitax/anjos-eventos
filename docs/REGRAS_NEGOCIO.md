@@ -181,11 +181,20 @@ Regra de borda: se `Fator de Correção` for 0 ou vazio, ou `Custo Médio` estiv
 
 ```text
 Porcao_Calculada =
-Capacidade_Teto_Macro ×
+Teto_Efetivo_Macro ×
 (Peso_Item / Σ Pesos_Macro_dos_itens_selecionados)
 
+Teto_Efetivo_Macro =
+Capacidade_Teto_Macro                     [macro sem ajuste, ou ajuste desligado]
+Teto_Ajustado                             [macro com ajusta_por_acompanhamentos = true]
+
+A           = Σ peso_acompanhamento da macro de cada preparo selecionado (cada preparo uma vez)
+Excedente   = MAX(0, A − acomp_referencia)
+Fator       = 1 − acomp_reducao_por_item × Excedente
+Teto_Ajustado = MIN(Capacidade_Teto_Macro, MAX(teto_carne_piso_g, Capacidade_Teto_Macro × Fator))
+
 Porcao_Final =
-MIN(Porcao_Calculada, Porcao_Maxima_Individual)   [quando houver Hard Cap]
+MIN(Porcao_Calculada, Porcao_Maxima_Individual)   [quando houver Hard Cap; nunca em Carnes, seção 12]
 
 Volume_Necessário_Total =
 Porcao_Final × Pessoas_Producao
@@ -195,7 +204,18 @@ Pessoas_Producao = Adultos + (Crianças até 5 + Crianças de 5 a 10) / 2
 
 **Criança = meia porção na produção (decisão do Pedro, 2026-11-04).** As quantidades, a ficha técnica e a lista de compras contam cada criança como meia pessoa. Isso não muda o número de convidados, a equipe sugerida nem o preço (criança paga meia, seção 3). Um orçamento sem a divisão entre adultos e crianças usa o total de convidados. Código: `src/lib/pessoas-producao.ts`.
 
-**Os tetos são porção SERVIDA (já pronta).** A ficha técnica converte esse valor para o peso cru: perda no fogo pelo rendimento do preparo, perda na limpeza pelo fator de correção e +10 % de folga. Por isso o teto de Proteínas Principais é **280 g servidos**, o equivalente a **~400 g de carne crua comprada por pessoa**: a referência "400 g por pessoa" do Pedro e do sócio é carne comprada. Até 2026-11-04 o teto era 400 g servidos, e o sistema comprava ~620 g crus de carne principal por pessoa.
+**Os tetos são porção SERVIDA (já pronta).** A ficha técnica converte esse valor para o peso cru: perda no fogo pelo rendimento do preparo, perda na limpeza pelo fator de correção e +10 % de folga. As fichas de Carnes guardam o rendimento em peso pronto (1,2 kg cru limpo → 1 kg assado nos cortes puros; levantamento de 2026-11-04).
+
+**Teto de carne: 450 g comprados por pessoa (decisão do Pedro, 2026-11-04).** Peso bruto, antes da limpeza. No sistema o teto de Proteínas Principais é **315 g servidos** (450 × 0,7). Histórico: 400 g servidos até 2026-11-04, quando virou 280 g (400 g comprados × 0,7) e, no mesmo dia, 315 g. *(Gravado no banco em 2026-11-05, com a migração 0014.)*
+
+**Ajuste por acompanhamentos (decisão do Pedro, 2026-11-04).** Com muitos acompanhamentos o teto de carne baixa; nunca sobe acima do teto base.
+- Peso de acompanhamento por macro (`macro_categorias.peso_acompanhamento`): Entradas e Petiscos 1, Guarnições Leves 1, Saladas Pesadas 1, Saladas Leves 0,5. As demais valem 0, inclusive Carboidratos Densos e a própria macro de carne. Entradas com carne (linguiças, coxinha da asa, coração) contam como acompanhamento.
+- Só a macro Proteínas Principais tem `ajusta_por_acompanhamentos = true`.
+- Parâmetros (`configuracoes_globais`): referência 5, redução de 5 % por acompanhamento acima da referência, piso de 252 g servidos (360 g comprados, −20 %). Exemplo: A = 6 → 299,25 g; A = 7 → 283,5 g; A ≥ 9 → 252 g.
+- Qualquer parâmetro nulo ou fora da faixa desliga o ajuste (avisa na tela interna se só parte estiver preenchida). Antes da migração 0014 e no legado NocoDB, o ajuste fica desligado.
+- A linha "Proteínas Principais: 315 → 283,5 g por pessoa (7 acompanhamentos; referência 5)" aparece no orçamento, no simulador interno e no "Ver cálculos". Nunca no payload público.
+- Evento já aceito não muda: as quantidades ficam congeladas em `itens_evento_confirmados`.
+- Código: `src/lib/ajuste-acompanhamentos.ts`, `src/lib/ajuste-acompanhamentos-db.ts` e `distribuirPorcoes` em `src/lib/dimensionamento-cardapio.ts`.
 
 ---
 
@@ -230,7 +250,7 @@ Isso é intencional. Não inventar peso padrão para resolver dado ausente.
 
 A hierarquia automática existe SOMENTE para a categoria Carnes.
 
-Pesos (fonte: `docs/DECISOES.md`, calibrados com o Pedro e o sócio a partir da proporção real 2:1:1 = Carne Vermelha:Suíno:Aves em 400g de proteína **crua comprada** por evento típico. No sistema isso equivale ao teto de 280 g servidos, ver seção 8):
+Pesos (fonte: `docs/DECISOES.md`, calibrados com o Pedro e o sócio a partir da proporção real 2:1:1 = Carne Vermelha:Suíno:Aves; a proporção continua valendo). O total de carne é **450 g crus comprados por pessoa** (decisão de 2026-11-04, no lugar dos 400 g), que no sistema é o teto de 315 g servidos, ver seção 8:
 
 ```text
 Carne Vermelha = 2,0
@@ -248,6 +268,8 @@ Não aplicar essa hierarquia automaticamente a outras categorias.
 
 `Porcao_Maxima_Individual` limita a quantidade final de um preparo.
 
+**Carnes não têm Hard Cap (decisão D5 do Pedro, 2026-11-04).** Para preparos da categoria Carnes o motor ignora `Porcao_Maxima_Individual`, e cada carne recebe a fatia cheia do teto. O valor não é apagado do banco, e o formulário de preparo esconde o campo para Carnes. Em 2026-11-04 nenhum preparo de Carnes tinha o campo preenchido. Entradas com carne (linguiças etc.) são da categoria Entrada e continuam podendo ter Hard Cap.
+
 O excedente NÃO é redistribuído para os outros itens da mesma categoria neste estágio do sistema. Isso é uma limitação conhecida e aceita — não implementar redistribuição automaticamente sem autorização.
 
 ---
@@ -263,7 +285,7 @@ Divisão feita no agrupamento visual (`headers_ui` → `macro_categorias`), não
 
 **Hard Cap retroativo**: Mix de Folhas Verdes tem `Porcao_Maxima_Individual = 15g` — mesmo dentro do teto de 30g, uma travessa 100% de folha não deveria absorver o teto inteiro sozinha.
 
-**Processo permanente para todo preparo novo**: o fluxo de cadastro de preparo exige o "Teste de Estresse de Item Único" (se este preparo fosse a única escolha da categoria e recebesse 100% do teto, seria uma porção humanamente condizente?) antes de decidir `Porcao_Maxima_Individual`.
+**Processo permanente para todo preparo novo**: o fluxo de cadastro de preparo exige o "Teste de Estresse de Item Único" (se este preparo fosse a única escolha da categoria e recebesse 100% do teto, seria uma porção humanamente condizente?) antes de decidir `Porcao_Maxima_Individual`. **Não se aplica a Carnes**, que não têm Hard Cap (seção 12).
 
 ---
 

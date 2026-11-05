@@ -1311,6 +1311,34 @@ Ainda não existe tela de cotação; a leitura de PDF por IA é a próxima etapa
 - `aplicarPrecoAoInsumo` leva o preço ao cadastro (+10 %, data da cotação).
 - A lista de preços (`ListaPrecos`) passou a mostrar `unidade_fornecedor`, para o aviso do preço de peça aparecer na tela.
 
+### Teto de carne 450 g comprados, redução por acompanhamentos e fim do hard cap em Carnes (2026-11-04) — APROVADA; migração 0014 e dados APLICADOS (2026-11-05); código PENDENTE de deploy
+
+**Aplicação (2026-11-05, SQL aprovado pelo Pedro):**
+- Dump validado: `~/backups-anjos-eventos/pre-0014-20261105-102842.dump` (147.148 bytes, 34 tabelas com dados).
+- A 0014 e os dados foram aplicados numa transação única, depois de um teste com ROLLBACK.
+- Contagens iguais antes e depois: 10 macros, 1 configuração, 94 preparos, 2 orçamentos, 26 itens confirmados; tolerância 1,99.
+- Conferido pelo código novo, com os parâmetros lidos do banco: Cardápio 01 = R$ 26,38 de custo e R$ 52,06 sugerido; Cardápio 04 com carne 315 → 283,5 g. Bate com a tabela de impacto.
+- **Até o deploy, o app em produção usa o teto de 315 g sem o ajuste por acompanhamentos** (o código antigo não lê os parâmetros). Só os Cardápios 03 e 04 ficam diferentes do previsto: 315 g em vez de 299,25 g e 283,5 g.
+
+Spec: `docs/specs/SPEC_TETO_CARNE_ACOMPANHAMENTOS.md`. Decisões do Pedro:
+- **D1/D2 (corrigidas pelo Pedro após o levantamento):** o teto de carne é **450 g comprados por pessoa**, peso bruto antes da limpeza (o spec falava em cru limpo). As fichas de Carnes guardam rendimento em peso **pronto** (cortes puros: 1,2 kg cru limpo → 1 kg assado), então o Pedro escolheu a opção C: **gravar o teto em peso servido, 450 × 0,7 = 315 g**. Substitui os 280 g gravados mais cedo no mesmo dia (seção abaixo).
+- **D3:** com muitos acompanhamentos o teto baixa; nunca sobe. Referência 5 acompanhamentos ponderados, −5 % por acompanhamento acima, piso 252 g servidos (360 g comprados, −20 %).
+- **D4:** Entradas contam como acompanhamento. Pesos: Entradas e Petiscos 1, Guarnições Leves 1, Saladas Pesadas 1, Saladas Leves 0,5; o resto 0, **inclusive Carboidratos Densos** (decisão do Pedro).
+- **D5:** Carnes não têm hard cap. O motor ignora `porcao_maxima_individual` para a categoria Carnes; o valor não é apagado. Em 2026-11-04 nenhum preparo de Carnes tinha o campo preenchido (a Linguiça Toscana, suspeita do spec, é da categoria Entrada e não tem limite).
+
+Levantamento (só leitura, 2026-11-04): o teto atual em produção era 280 (não 400, como o spec supunha). Contagem ponderada dos cardápios-modelo com os pesos aprovados: 01 = 4,5; 02 = 4,5; 03 = 6; 04 = 7; 05 = 4; Costela Fogo de Chão = 5. Só os Cardápios 03 (299,25 g) e 04 (283,5 g) têm a carne reduzida. Os únicos 2 orçamentos (8 e 9) já estão aceitos, com quantidades e preço congelados.
+
+Impacto (100 convidados, custo do cardápio por pessoa, de 280 g para 315 g com ajuste): Cardápio 01 +8,9 %, 02 +8,9 %, 03 +4,1 %, 04 +0,8 %, 05 +6,7 %, Costela +7,6 %. A margem dos pacotes de preço fixo cai de 0,3 a 2,5 pontos percentuais.
+
+Implementação:
+- Migração **0014** (só aditiva): `macro_categorias.peso_acompanhamento` e `ajusta_por_acompanhamentos`; `configuracoes_globais.acomp_referencia`, `acomp_reducao_por_item` e `teto_carne_piso_g`. Os valores vão num script de dados separado: `scripts/dados-0014-teto-carne-acompanhamentos.sql`.
+- Leitura defensiva em `src/lib/ajuste-acompanhamentos-db.ts`: sem a 0014, ou sem os parâmetros, o ajuste fica desligado e o cálculo é igual ao de antes. O legado NocoDB nunca recebe o ajuste.
+- `distribuirPorcoes(itens, pessoas, parametros?)`: sem o 3º argumento, resultado idêntico ao anterior (testes antigos sem alteração). `capacidade_teto` passa a ser o teto efetivo; `capacidade_teto_base` e `ajuste_acompanhamentos` vêm quando há parâmetros.
+- Vale para todos os chamadores: dimensionamento do orçamento (snapshot da confirmação, margem, simulador público), precificação do simulador e do orçamento e "Ver cálculos".
+- A linha do ajuste aparece no orçamento, no simulador interno e no "Ver cálculos" (`src/components/aviso-ajuste-teto.tsx`), nunca no payload público.
+
+Ordem de aplicação: dump validado → `drizzle/0014_teto_carne_acompanhamentos.sql` → deploy → script de dados. O teto 315 vale assim que o script de dados roda, mesmo sem o código novo; por isso ele vai por último.
+
 ### Carne por pessoa, criança = meia porção e rendimentos de arroz e maionese (2026-11-04) — DADOS GRAVADOS, código PENDENTE de deploy
 
 Origem: simulação de um cardápio real (54 adultos + 8 crianças) pedida pelo Pedro. O sistema pedia 45,6 kg de carne, cerca de 740 g crus por adulto. O Pedro: "estamos falando de um exército comendo". Decisões dele:

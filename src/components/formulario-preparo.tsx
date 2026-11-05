@@ -243,25 +243,41 @@ export function FormularioPreparo({
               />
             )}
           </Campo>
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="porcaoMaximaIndividual" className={rotuloClasse}>
-              Porção máxima individual
-            </label>
-            <input
-              id="porcaoMaximaIndividual"
-              name="porcaoMaximaIndividual"
-              type="number"
-              step="0.01"
-              min="0"
-              defaultValue={valoresIniciais?.porcaoMaximaIndividual ?? ""}
-              className={campoClasse}
-              aria-describedby="porcaoMaximaIndividualAjuda"
-            />
-            <p id="porcaoMaximaIndividualAjuda" className="text-xs text-texto-suave">
-              Sempre em gramas (ou ml) por pessoa, na mesma unidade da macro
-              — nunca em número de unidades. Ex.: 2 fatias de 10 g = 20.
-            </p>
-          </div>
+          {categoria === "Carnes" ? (
+            <div className="flex flex-col gap-1.5">
+              <p className={rotuloClasse}>Porção máxima individual</p>
+              {/* Carnes não têm hard cap (decisão D5, 2026-11-04): o motor ignora o valor, mas ele
+                  não é apagado ao salvar. */}
+              <input
+                type="hidden"
+                name="porcaoMaximaIndividual"
+                value={valoresIniciais?.porcaoMaximaIndividual ?? ""}
+              />
+              <p className="text-xs text-texto-suave">
+                Não se aplica a Carnes: cada carne recebe a fatia cheia do teto de carne.
+              </p>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="porcaoMaximaIndividual" className={rotuloClasse}>
+                Porção máxima individual
+              </label>
+              <input
+                id="porcaoMaximaIndividual"
+                name="porcaoMaximaIndividual"
+                type="number"
+                step="0.01"
+                min="0"
+                defaultValue={valoresIniciais?.porcaoMaximaIndividual ?? ""}
+                className={campoClasse}
+                aria-describedby="porcaoMaximaIndividualAjuda"
+              />
+              <p id="porcaoMaximaIndividualAjuda" className="text-xs text-texto-suave">
+                Sempre em gramas (ou ml) por pessoa, na mesma unidade da macro
+                — nunca em número de unidades. Ex.: 2 fatias de 10 g = 20.
+              </p>
+            </div>
+          )}
         </div>
       </section>
 

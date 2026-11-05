@@ -33,6 +33,14 @@ export const hierarquiaProteina = pgTable("hierarquia_proteina", {
 export const configuracoesGlobais = pgTable("configuracoes_globais", {
   id: serial("id").primaryKey(),
   toleranciaTrocaPrecoFixo: numeric("tolerancia_troca_preco_fixo", { precision: 10, scale: 2 }).notNull(),
+  /**
+   * Migração 0014 — ajuste do teto de carne por acompanhamentos (docs/REGRAS_NEGOCIO.md seção 8).
+   * Qualquer um nulo = ajuste desligado. Lidos só por src/lib/ajuste-acompanhamentos-db.ts.
+   */
+  acompReferencia: numeric("acomp_referencia", { precision: 4, scale: 1 }),
+  acompReducaoPorItem: numeric("acomp_reducao_por_item", { precision: 5, scale: 4 }),
+  /** Piso do teto ajustado, na unidade da macro (g servidos). */
+  tetoCarnePisoG: numeric("teto_carne_piso_g", { precision: 6, scale: 2 }),
 });
 
 export const cardapiosModelo = pgTable("cardapios_modelo", {

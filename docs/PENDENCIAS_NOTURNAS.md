@@ -2721,3 +2721,29 @@ Detalhes e motivo em `docs/DECISOES.md`, seção "Carne por pessoa, criança = m
   - Dump: `~/backups-anjos-eventos/pre-dimensionamento-20261104-175015.dump`.
 - **Código (falta deploy):** criança = meia porção no dimensionamento; tempero minúsculo não some mais da lista de compras.
 - **Para o Pedro decidir:** teto de Saladas Leves (30 g); rendimento dos outros arrozes.
+
+## 2026-11-04 — Teto de carne 315 g, ajuste por acompanhamentos e fim do hard cap em Carnes (banco APLICADO em 2026-11-05; código sem deploy)
+
+- **2026-11-05:** a 0014 e os dados foram aplicados com o SQL aprovado pelo Pedro.
+  - Dump: `~/backups-anjos-eventos/pre-0014-20261105-102842.dump`.
+  - Transação única, contagens iguais antes e depois.
+- **Falta:** commit e merge (Pedro) e o deploy. Até o deploy, produção usa 315 g sem o ajuste.
+
+## 2026-11-05 — Deploy da `master` `d3aeef4` (merge da `feat/precos-cotacao-fornecedor`)
+
+- **Resultado:** no ar, com `SEM_SMOKE=1` autorizado pelo Pedro nesta data.
+  - `/login` 200 por localhost e IP Tailscale; escuta em `0.0.0.0:3001`.
+  - Contagens iguais antes e depois.
+  - Backup do app: `/home/opc/anjos-eventos-app-backup-20261105-105610.tgz`.
+  - Dump: `pre-deploy-d3aeef4-20261105-105303.dump`.
+- **Tentativas anteriores:**
+  - 1ª: o DNS do `ender` estava fora (o Pedro corrigiu). O clone `/srv/share/anjos_eventos` estava 81 commits atrás e foi atualizado com `git fetch`, sem mexer nas mudanças locais de `.claude/agents/`.
+  - 2ª: o smoke completo falhou só nas 3 checagens com token (401), e o rollback automático funcionou.
+- **🔴 Pendente (Pedro):** o `~/.anjos/smoke-token` local (68 caracteres) não é igual ao `SMOKE_TOKEN` do Oracle (48 caracteres). Enquanto não forem iguais, o smoke completo falha. Mexer no token é com o Pedro (`docs/AUTONOMIA.md`).
+- O Tailscale SSH pediu confirmação de login no passo 2 (scp).
+
+Spec `docs/specs/SPEC_TETO_CARNE_ACOMPANHAMENTOS.md`; decisões e números em `docs/DECISOES.md`, seção "Teto de carne 450 g comprados…".
+- **Branch:** `teto-carne-acompanhamentos`, sem commit (o Pedro faz o commit e o merge).
+- **Migração 0014** gerada (`drizzle/0014_teto_carne_acompanhamentos.sql`, só ADD COLUMN) e **não aplicada**.
+- **SQL de dados:** `scripts/dados-0014-teto-carne-acompanhamentos.sql`, aguardando aprovação do Pedro.
+- **Ordem em produção:** dump → 0014 → deploy → dados.

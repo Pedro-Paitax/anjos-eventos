@@ -10,7 +10,7 @@
  * como algo já formalizado com o Pedro/Gemini (mesmo padrão de cautela
  * das outras lacunas "óbvias" deste documento).
  */
-import { pgTable, serial, text, numeric, integer, pgEnum, primaryKey } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, numeric, integer, pgEnum, primaryKey, boolean } from "drizzle-orm/pg-core";
 import { preparos } from "./preparos";
 
 export const unidadeMacroEnum = pgEnum("unidade_macro", ["g", "ml"]);
@@ -20,6 +20,14 @@ export const macroCategorias = pgTable("macro_categorias", {
   nomeMacro: text("nome_macro").notNull().unique(),
   capacidadeTeto: numeric("capacidade_teto", { precision: 8, scale: 2 }).notNull(),
   unidade: unidadeMacroEnum("unidade").notNull(),
+  /**
+   * Migração 0014 (teto de carne por acompanhamentos, docs/REGRAS_NEGOCIO.md seção 8): quanto um
+   * preparo desta macro conta como acompanhamento (Entradas 1, Saladas Leves 0,5, Molhos 0...).
+   * Lida só por src/lib/ajuste-acompanhamentos-db.ts, com leitura defensiva (coluna ausente = 0).
+   */
+  pesoAcompanhamento: numeric("peso_acompanhamento", { precision: 3, scale: 2 }).notNull().default("0"),
+  /** true = o teto desta macro baixa quando o cardápio tem muitos acompanhamentos (hoje só Proteínas Principais). */
+  ajustaPorAcompanhamentos: boolean("ajusta_por_acompanhamentos").notNull().default(false),
 });
 
 export const headersUi = pgTable("headers_ui", {

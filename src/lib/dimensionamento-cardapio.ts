@@ -5,6 +5,12 @@ import { buscarPesosPadraoPorSubcategoria } from "@/lib/hierarquia-proteina";
 import { TAG_MACRO_CATEGORIAS } from "@/lib/cache-tags";
 import { dataSource } from "@/lib/data-source";
 import { pessoasParaProducaoOrcamento } from "@/lib/pessoas-producao";
+import {
+  contarAcompanhamentos,
+  type AjusteAcompanhamentosAplicado,
+  type ParametrosAjusteAcompanhamentos,
+} from "@/lib/ajuste-acompanhamentos";
+import { carregarAjusteAcompanhamentos } from "@/lib/ajuste-acompanhamentos-db";
 
 // IDs de tabela do NocoDB (base Senhor_Churrasco_DB), confirmados via
 // /api/v2/meta/bases/.../tables — não inventar, checar o schema real antes
@@ -101,9 +107,13 @@ export type ItemDimensionado = {
 
 export type MacroCategoriaDimensionada = {
   macro_categoria: string;
+  /** Teto EFETIVO por pessoa (já ajustado por acompanhamentos, quando houver ajuste). */
   capacidade_teto: number;
   unidade: string;
   itens: ItemDimensionado[];
+  /** Só presentes quando distribuirPorcoes recebe o 3º argumento (parâmetros do ajuste, mesmo que null). */
+  capacidade_teto_base?: number;
+  ajuste_acompanhamentos?: AjusteAcompanhamentosAplicado | null;
 };
 
 export type ItemExcluido = {
@@ -143,7 +153,38 @@ export type ItemResolvido = {
   pesoMedioUnidadeG: number | null;
   /** Rendimento cru do Preparo — carregado aqui só pra o chamador poder repassar pra calcularCustoPreparo sem buscar o mesmo Preparo de novo (docs/DECISOES.md, "Política de Falha do Motor de Cálculo"). */
   rendimentoPreparo: number | null;
+  /** Quanto este preparo conta como acompanhamento (peso da macro, migração 0014). Ausente = 0. */
+  pesoAcompanhamentoMacro?: number;
+  /** A macro deste preparo baixa o teto com muitos acompanhamentos (hoje só Proteínas Principais). */
+  macroAjustaPorAcompanhamentos?: boolean;
+  /** Categoria Carnes: Porcao_Maxima_Individual não vale (decisão D5 do Pedro, 2026-11-04). */
+  ignoraHardCap?: boolean;
 };
+
+/**
+ * Teto da macro reduzido por acompanhamentos (docs/REGRAS_NEGOCIO.md seção 8). Nunca sobe acima do
+ * teto base; o piso acima do teto base vira o teto base.
+ */
+export function calcularTetoAjustado(
+  tetoBase: number,
+  contagem: number,
+  parametros: ParametrosAjusteAcompanhamentos
+): { teto: number; ajuste: AjusteAcompanhamentosAplicado } {
+  const excedente = Math.max(0, contagem - parametros.referencia);
+  const fator = 1 - parametros.reducaoPorItem * excedente;
+  const piso = Math.min(parametros.pisoG, tetoBase);
+  const teto = arredondar(Math.min(tetoBase, Math.max(piso, tetoBase * fator)));
+  return {
+    teto,
+    ajuste: {
+      contagem,
+      referencia: parametros.referencia,
+      reducao_por_item: parametros.reducaoPorItem,
+      piso_g: parametros.pisoG,
+      fator_aplicado: tetoBase > 0 ? Number((teto / tetoBase).toFixed(4)) : 1,
+    },
+  };
+}
 
 /**
  * Núcleo puro do motor de dimensionamento (sem I/O): recebe itens já
@@ -151,10 +192,14 @@ export type ItemResolvido = {
  * REGRAS_NEGOCIO.md seção 5 — distribuição proporcional ao peso dentro do
  * teto da macro-categoria, com Hard Cap opcional. Separado da busca no
  * NocoDB pra poder ser validado isoladamente.
+ *
+ * `parametrosAjuste` (opcional): ajuste do teto por acompanhamentos (seção 8). Omitido = resultado
+ * idêntico ao de antes; `null` = ajuste desligado, mas com capacidade_teto_base no resultado.
  */
 export function distribuirPorcoes(
   itens: ItemResolvido[],
-  numConvidados: number
+  numConvidados: number,
+  parametrosAjuste?: ParametrosAjusteAcompanhamentos | null
 ): MacroCategoriaDimensionada[] {
   const grupos = new Map<
     string | number,
@@ -172,14 +217,27 @@ export function distribuirPorcoes(
     grupos.set(item.macroCategoriaChave, grupo);
   }
 
+  // Acompanhamentos do cardápio inteiro (todas as macros), cada preparo uma vez.
+  const contagemAcompanhamentos = parametrosAjuste ? contarAcompanhamentos(itens) : 0;
+
   const resultado: MacroCategoriaDimensionada[] = [];
   for (const grupo of grupos.values()) {
     const somaPesos = grupo.itens.reduce((soma, item) => soma + item.peso, 0);
 
+    let tetoEfetivo = grupo.capacidadeTeto;
+    let ajuste: AjusteAcompanhamentosAplicado | null = null;
+    if (parametrosAjuste && grupo.itens.some((item) => item.macroAjustaPorAcompanhamentos)) {
+      ({ teto: tetoEfetivo, ajuste } = calcularTetoAjustado(
+        grupo.capacidadeTeto,
+        contagemAcompanhamentos,
+        parametrosAjuste
+      ));
+    }
+
     const itensDimensionados: ItemDimensionado[] = grupo.itens.map((item) => {
-      const porcaoCalculada = arredondar(grupo.capacidadeTeto * (item.peso / somaPesos));
+      const porcaoCalculada = arredondar(tetoEfetivo * (item.peso / somaPesos));
       const porcaoFinal =
-        item.porcaoMaximaIndividual != null
+        item.porcaoMaximaIndividual != null && !item.ignoraHardCap
           ? Math.min(porcaoCalculada, item.porcaoMaximaIndividual)
           : porcaoCalculada;
       const volumeNecessarioTotal = arredondar(porcaoFinal * numConvidados);
@@ -220,9 +278,12 @@ export function distribuirPorcoes(
 
     resultado.push({
       macro_categoria: grupo.nome,
-      capacidade_teto: grupo.capacidadeTeto,
+      capacidade_teto: tetoEfetivo,
       unidade: grupo.unidade,
       itens: itensDimensionados,
+      ...(parametrosAjuste !== undefined
+        ? { capacidade_teto_base: grupo.capacidadeTeto, ajuste_acompanhamentos: ajuste }
+        : {}),
     });
   }
 
@@ -368,7 +429,15 @@ async function carregarPreparosEHeadersOracle(preparoIds: number[]): Promise<{
 export async function resolverItensPorPreparoIds(
   preparoIds: number[],
   token: string
-): Promise<{ itensResolvidos: ItemResolvido[]; itensExcluidos: ItemExcluido[] }> {
+): Promise<{
+  itensResolvidos: ItemResolvido[];
+  itensExcluidos: ItemExcluido[];
+  /**
+   * Ajuste do teto por acompanhamentos (migração 0014). Só no caminho Oracle; ausente no legado
+   * NocoDB (ajuste desligado). `parametros` null = desligado (não configurado ou migração pendente).
+   */
+  ajusteAcompanhamentos?: { parametros: ParametrosAjusteAcompanhamentos | null; aviso: string | null };
+}> {
   const itensExcluidos: ItemExcluido[] = [];
   const itensResolvidos: ItemResolvido[] = [];
 
@@ -376,8 +445,12 @@ export async function resolverItensPorPreparoIds(
 
   let preparoPorId: Map<number, PreparoRegistro>;
   let headerEMacroPorPreparoId: Map<number, HeaderEMacroCategoria | null>;
+  let configAjuste: Awaited<ReturnType<typeof carregarAjusteAcompanhamentos>> | null = null;
   if (dataSource() === "oracle") {
-    ({ preparoPorId, headerEMacroPorPreparoId } = await carregarPreparosEHeadersOracle(preparoIds));
+    [{ preparoPorId, headerEMacroPorPreparoId }, configAjuste] = await Promise.all([
+      carregarPreparosEHeadersOracle(preparoIds),
+      carregarAjusteAcompanhamentos(),
+    ]);
   } else {
     const preparos = await Promise.all(
       preparoIds.map((id) => nocodbGet<PreparoRegistro>(`/tables/${TABELA_PREPAROS}/records/${id}`, token))
@@ -432,6 +505,7 @@ export async function resolverItensPorPreparoIds(
       continue;
     }
 
+    const macroAjuste = configAjuste?.macros.get(macroCategoria.Id);
     itensResolvidos.push({
       preparoId,
       preparoNome: preparo["Nome Do Preparo"],
@@ -446,10 +520,20 @@ export async function resolverItensPorPreparoIds(
       unidadeRendimentoPreparo,
       pesoMedioUnidadeG: preparo.Peso_Medio_Unidade_G,
       rendimentoPreparo: preparo.Rendimento,
+      pesoAcompanhamentoMacro: macroAjuste?.pesoAcompanhamento ?? 0,
+      macroAjustaPorAcompanhamentos: macroAjuste?.ajustaPorAcompanhamentos ?? false,
+      // D5: Carnes não têm hard cap. Vale mesmo antes da migração 0014 e no legado.
+      ignoraHardCap: preparo.Categoria === "Carnes",
     });
   }
 
-  return { itensResolvidos, itensExcluidos };
+  return {
+    itensResolvidos,
+    itensExcluidos,
+    ...(configAjuste
+      ? { ajusteAcompanhamentos: { parametros: configAjuste.parametros, aviso: configAjuste.aviso } }
+      : {}),
+  };
 }
 
 /** Mesma orquestração de calcularDimensionamentoOrcamento, lendo Orçamento e Itens via Drizzle (DATA_SOURCE=oracle). */
@@ -460,6 +544,7 @@ async function calcularDimensionamentoOrcamentoOracle(
   let pessoasProducao: number;
   let itensResolvidos: ItemResolvido[];
   let itensExcluidos: ItemExcluido[];
+  let ajusteAcompanhamentos: Awaited<ReturnType<typeof resolverItensPorPreparoIds>>["ajusteAcompanhamentos"];
   try {
     const { db } = await import("@/db/client");
     const { eq } = await import("drizzle-orm");
@@ -479,7 +564,7 @@ async function calcularDimensionamentoOrcamentoOracle(
       .from(itensOrcamento)
       .where(eq(itensOrcamento.orcamentoId, orcamentoId));
     const preparoIds = [...new Set(itens.map((i) => i.preparoId))];
-    ({ itensResolvidos, itensExcluidos } = await resolverItensPorPreparoIds(preparoIds, ""));
+    ({ itensResolvidos, itensExcluidos, ajusteAcompanhamentos } = await resolverItensPorPreparoIds(preparoIds, ""));
   } catch (erro) {
     return { erro: `Falha ao consultar Postgres: ${(erro as Error).message}`, status: 502 };
   }
@@ -488,7 +573,7 @@ async function calcularDimensionamentoOrcamentoOracle(
     orcamento_id: orcamentoId,
     num_convidados: numConvidados,
     pessoas_producao: pessoasProducao,
-    macro_categorias: distribuirPorcoes(itensResolvidos, pessoasProducao),
+    macro_categorias: distribuirPorcoes(itensResolvidos, pessoasProducao, ajusteAcompanhamentos?.parametros ?? null),
     itens_excluidos: itensExcluidos,
   };
 }
