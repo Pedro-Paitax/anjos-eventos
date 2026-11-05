@@ -2722,8 +2722,13 @@ Detalhes e motivo em `docs/DECISOES.md`, seção "Carne por pessoa, criança = m
 - **Código (falta deploy):** criança = meia porção no dimensionamento; tempero minúsculo não some mais da lista de compras.
 - **Para o Pedro decidir:** teto de Saladas Leves (30 g); rendimento dos outros arrozes.
 
-## 2026-11-04 — Teto de carne 315 g, ajuste por acompanhamentos e fim do hard cap em Carnes (banco APLICADO em 2026-11-05; código sem deploy)
+## 2026-11-04 — Teto de carne 315 g, ajuste por acompanhamentos e fim do hard cap em Carnes (banco APLICADO e código NO AR em 2026-11-05)
 
+- **Atualização de 2026-11-05 (fim do dia):** tudo concluído.
+  - A 0014 e os dados foram aplicados em 05/11 (registro abaixo).
+  - **PR #14** (teto de carne) e **PR #15** (ficha técnica do Simulador igual à da Agenda e "Ver cálculos" simplificado) foram mesclados na `master`.
+  - Deploy de `741f5b7` (PR #14) e depois de `a3b9152` (PR #15) em 05/11. O clone do `ender` (`/srv/share/anjos_eventos`) precisou de `git fetch` antes do build.
+  - As linhas "código sem deploy", "Falta: commit e merge" e "0014 não aplicada" mais abaixo e na seção seguinte são o registro de antes e não valem mais.
 - **2026-11-05:** a 0014 e os dados foram aplicados com o SQL aprovado pelo Pedro.
   - Dump: `~/backups-anjos-eventos/pre-0014-20261105-102842.dump`.
   - Transação única, contagens iguais antes e depois.

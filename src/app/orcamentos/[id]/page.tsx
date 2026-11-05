@@ -4,6 +4,7 @@ import { obterOrcamento } from "@/lib/orcamentos";
 import { aprovarConfirmarEventoAction } from "@/app/actions/orcamento";
 import { calcularPrecificacaoParaEvento } from "@/lib/precificacao-cardapio";
 import { CabecalhoPagina } from "@/components/cabecalho-pagina";
+import { BotaoRecusarOrcamento } from "@/components/botao-recusar-orcamento";
 import { FormularioConfirmarEvento } from "@/components/formulario-confirmar-evento";
 import { Painel } from "@/components/painel";
 import type { Metadata } from "next";
@@ -104,6 +105,10 @@ export default async function OrcamentoPage({ params }: PaginaOrcamentoProps) {
             action={confirmarComId}
             precificacaoChurrasco={precificacaoChurrasco}
           />
+
+          <div className="mt-6 flex justify-end border-t border-borda pt-4">
+            <BotaoRecusarOrcamento orcamentoId={orcamento.id} clienteNome={orcamento.clienteNome ?? "sem cliente"} />
+          </div>
         </Painel>
       )}
     </main>

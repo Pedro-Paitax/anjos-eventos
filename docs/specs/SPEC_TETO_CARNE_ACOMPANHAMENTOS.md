@@ -1,5 +1,11 @@
 # SPEC — Teto de carne 450 g, redução por acompanhamentos e fim do hard cap em Carnes
 
+> **DECISÃO FINAL (2026-11-05, em produção) — prevalece sobre os números deste texto.**
+> Onde a SPEC fala em "teto de 450 g" e "piso de 360 g", leia: **450 g comprados = 315 g servidos**,
+> **piso de 252 g** servidos, **referência de 5 acompanhamentos** e **redução de 5 % por acompanhamento**.
+> Valores gravados em `configuracoes_globais` (`teto_carne_piso_g` = 252, `acomp_referencia` = 5,
+> `acomp_reducao_por_item` = 0,05). Decisões e números em `docs/DECISOES.md`, seção "Teto de carne 450 g comprados…".
+
 > Pedido do Pedro em 04/11/2026. Destinatário: Claude Code no repositório `anjos-eventos`.
 > Base lida: branch `automacao-deploy` (commit `a6309ea`), `src/lib/dimensionamento-cardapio.ts`, `docs/REGRAS_NEGOCIO.md` (seções 8, 11 e 12), `src/db/schema/catalogo-complementar.ts`.
 
