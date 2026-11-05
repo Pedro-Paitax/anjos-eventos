@@ -160,6 +160,71 @@ export async function obterFichasTecnicasEvento(eventoId: number): Promise<Ficha
 }
 
 /**
+ * Fichas técnicas escaladas para uma lista de preparos do Simulador de Cardápio (sem evento): a
+ * quantidade de cada preparo vem do diagnóstico do cálculo. Só leitura, uma consulta por conjunto
+ * (preparos e composição em lote), mesma escala e mesmo buffer de calcularFichaTecnicaEscalada.
+ * Devolve na ordem recebida; preparo inexistente é omitido.
+ */
+export async function obterFichasTecnicasPorPreparos(
+  itens: { preparoId: number; quantidade: number }[]
+): Promise<FichaTecnicaEscalada[]> {
+  if (itens.length === 0) return [];
+  const { db } = await import("@/db/client");
+  const { eq, inArray } = await import("drizzle-orm");
+  const { preparos } = await import("@/db/schema/preparos");
+  const { composicao } = await import("@/db/schema/composicao");
+  const { insumos } = await import("@/db/schema/insumos");
+
+  const preparoIds = itens.map((i) => i.preparoId);
+  const [linhasPreparo, linhasComposicao] = await Promise.all([
+    db.select().from(preparos).where(inArray(preparos.id, preparoIds)),
+    db
+      .select({
+        preparoId: composicao.preparoId,
+        insumoId: composicao.insumoId,
+        quantidade: composicao.quantidade,
+        nomeInsumo: insumos.nome,
+        unidadeInsumo: insumos.unidade,
+      })
+      .from(composicao)
+      .innerJoin(insumos, eq(composicao.insumoId, insumos.id))
+      .where(inArray(composicao.preparoId, preparoIds)),
+  ]);
+
+  const preparoPorId = new Map(linhasPreparo.map((p) => [p.id, p]));
+  const composicaoPorPreparoId = new Map<number, typeof linhasComposicao>();
+  for (const linha of linhasComposicao) {
+    const atual = composicaoPorPreparoId.get(linha.preparoId) ?? [];
+    atual.push(linha);
+    composicaoPorPreparoId.set(linha.preparoId, atual);
+  }
+
+  const fichas: FichaTecnicaEscalada[] = [];
+  for (const item of itens) {
+    const preparo = preparoPorId.get(item.preparoId);
+    if (!preparo) continue;
+    fichas.push(
+      calcularFichaTecnicaEscalada({
+        preparoId: preparo.id,
+        nomePreparo: preparo.nomePreparo,
+        rendimentoOriginal: Number(preparo.rendimento),
+        unidadeRendimento: preparo.unidadeRendimento,
+        quantidadeConfirmada: item.quantidade,
+        composicao: (composicaoPorPreparoId.get(item.preparoId) ?? []).map((c) => ({
+          insumoId: c.insumoId,
+          nome: c.nomeInsumo,
+          unidade: c.unidadeInsumo,
+          quantidade: Number(c.quantidade),
+        })),
+        passos: preparo.passos,
+        modoPreparoBruto: preparo.modoPreparo,
+      })
+    );
+  }
+  return fichas;
+}
+
+/**
  * Cardápio confirmado (nomes de Preparo, distintos) — fallback de leitura na
  * tela do Evento (docs/PENDENCIAS_NOTURNAS.md, "Máquina de Estados
  * Orçamento → Evento Confirmado", item 5): eventos do fluxo novo não gravam
