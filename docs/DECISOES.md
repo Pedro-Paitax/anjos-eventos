@@ -1257,7 +1257,9 @@ SQL mostrado e aprovado pelo Pedro ("aprovado a migração"). Dois comandos: `DR
 
 Deploy do commit `2761330` (`SEM_SMOKE=1`, checagem mínima ok, contagens iguais). O processo do app tem `GEMINI_API_KEY` não vazia (conferida só a presença, valor nunca exibido); `GEMINI_MODEL` não definido → `gemini-3.5-flash-lite`. Chamada mínima a partir do Oracle, sem dado de lead e com `store: false`: `models.get` 200 e `interactions` 200 com `status: completed` (1 requisição da cota gratuita). Falta só o teste pela tela num lead real.
 
-### Envio automático de WhatsApp na prospecção (2026-10-29) — IMPLEMENTADO NO CÓDIGO, DESLIGADO, migração 0010 NÃO aplicada
+### Envio automático de WhatsApp na prospecção (2026-10-29) — IMPLEMENTADO NO CÓDIGO, DESLIGADO, migração 0010 APLICADA (conferido em 2026-11-05)
+
+> **Nota de 2026-11-05:** SELECT no Oracle confirmou as tabelas `prospeccao_envio_config` e `prospeccao_fila_envio` (0 linhas em ambas: o envio nunca foi ligado). A data exata da aplicação não está registrada. O texto abaixo é o registro original, de quando a 0010 ainda não estava aplicada.
 
 Pedido do Pedro (sessão não supervisionada): o Gemini escreve o WhatsApp de cada lead e o sistema envia pelo worker; **ele valida só a primeira mensagem gerada**, as demais podem sair sozinhas; **sem frase de saída**; **teto de 10 por dia**.
 
@@ -1311,7 +1313,9 @@ Ainda não existe tela de cotação; a leitura de PDF por IA é a próxima etapa
 - `aplicarPrecoAoInsumo` leva o preço ao cadastro (+10 %, data da cotação).
 - A lista de preços (`ListaPrecos`) passou a mostrar `unidade_fornecedor`, para o aviso do preço de peça aparecer na tela.
 
-### Teto de carne 450 g comprados, redução por acompanhamentos e fim do hard cap em Carnes (2026-11-04) — APROVADA; migração 0014 e dados APLICADOS (2026-11-05); código PENDENTE de deploy
+### Teto de carne 450 g comprados, redução por acompanhamentos e fim do hard cap em Carnes (2026-11-04) — APROVADA; migração 0014 e dados APLICADOS (2026-11-05); código no ar (deploy de 2026-11-05)
+
+> **Nota de 2026-11-05:** PR #14 mesclado e deploy feito no mesmo dia (`741f5b7`, depois `a3b9152` com o PR #15). Valores finais em produção: teto de 450 g comprados = **315 g servidos**, piso **252 g**, referência **5** acompanhamentos, redução de **5 %** por acompanhamento (conferido no banco em 2026-11-05).
 
 **Aplicação (2026-11-05, SQL aprovado pelo Pedro):**
 - Dump validado: `~/backups-anjos-eventos/pre-0014-20261105-102842.dump` (147.148 bytes, 34 tabelas com dados).
@@ -1339,7 +1343,9 @@ Implementação:
 
 Ordem de aplicação: dump validado → `drizzle/0014_teto_carne_acompanhamentos.sql` → deploy → script de dados. O teto 315 vale assim que o script de dados roda, mesmo sem o código novo; por isso ele vai por último.
 
-### Carne por pessoa, criança = meia porção e rendimentos de arroz e maionese (2026-11-04) — DADOS GRAVADOS, código PENDENTE de deploy
+### Carne por pessoa, criança = meia porção e rendimentos de arroz e maionese (2026-11-04) — DADOS GRAVADOS, código no ar (deploy de 2026-11-05)
+
+> **Nota de 2026-11-05:** o código foi para produção junto com o PR #14 (teto de carne) e o PR #15. **PR #15** (`befb844`, mesclado em `a3b9152`): a ficha técnica do Simulador passou a usar o mesmo componente da Agenda (`DocumentoFichasTecnicas`, página HTML em vez de PDF dedicado) e o "Ver cálculos" ficou simplificado, com os detalhes recolhidos.
 
 Origem: simulação de um cardápio real (54 adultos + 8 crianças) pedida pelo Pedro. O sistema pedia 45,6 kg de carne, cerca de 740 g crus por adulto. O Pedro: "estamos falando de um exército comendo". Decisões dele:
 - **Carne: 400 g crus comprados por pessoa.** O teto de Proteínas Principais era tratado como 400 g **servidos**. Depois da perda no fogo (rendimento da ficha, ex.: 1,2 kg cru → 1 kg assado), da limpeza (fator 0,85) e da folga de 10 %, isso virava ~620 g crus só de carne principal. O teto passou a **280 g servidos**, o equivalente assado de 400 g crus. Gravado em `macro_categorias` (id 1). No Oracle não há cache, então vale na hora. **O preço sugerido por pessoa dos próximos cálculos cai junto.** Orçamentos com preço congelado e eventos já confirmados (snapshot) não mudam.
@@ -1397,7 +1403,9 @@ Ativação, nesta ordem e com o ok do Pedro em cada passo:
 
 O comando `/cadastrar-preparo` deixou de usar o NocoDB (fonte legada desde o corte de 2026-09-22) e passou a gravar no Postgres pelo script `scripts/cadastrar-preparo.ts`: `--referencia` lista headers, insumos e fornecedores; sem flag simula e mostra o resumo; `--gravar` grava numa transação única (insumos novos + histórico de preço, preparos, composição, `header_preparo`). Regras checadas antes de gravar (`scripts/lib-cadastro-preparo.ts`, 9 testes): header obrigatório (sem ele o preparo sai do cálculo, ver PENDENCIAS "Achado complementar"), Carnes com subcategoria e sem peso de atratividade, demais com peso explícito, peso médio obrigatório para rendimento em Unidade, nome de preparo novo, insumo existente nunca alterado, insumo novo = fornecedor + 10 % com fonte/link/data (ou "estimado", que entra sem data). Testado num Postgres descartável (simulação, erros, gravação e recusa de duplicado).
 
-### Versões de preparo (2026-11-02) — IMPLEMENTADO NO CÓDIGO, migração 0012 NÃO aplicada
+### Versões de preparo (2026-11-02) — IMPLEMENTADO NO CÓDIGO, migração 0012 APLICADA (conferido em 2026-11-05)
+
+> **Nota de 2026-11-05:** SELECT no Oracle confirmou a tabela `preparo_variacoes` (28 linhas). A data exata da aplicação não está registrada. O texto abaixo é o registro original.
 
 Pedido do Pedro: em vez de três "Fraldinha" soltas (pura, com chimichurri, com manteiga), mostrar uma Fraldinha que ramifica em versões. Foram apresentados três caminhos (agrupar na tela; finalização como item separado no cardápio; variações dentro do preparo, com orçamento guardando preparo + variação) e o Pedro escolheu o **1: agrupar só na tela**.
 
@@ -1423,3 +1431,11 @@ Pedidos do Pedro, 2026-11-04.
 **Versões no modal "Adicionar ao cardápio".** No celular, o rótulo curto ("com Chimichurri") sozinho não dizia de quem era a versão, e o "+ Adicionar" quebrava em duas linhas. Agora o preparo com versões vira um bloco com borda, cada versão aparece com "↳" e o nome completo (parte igual ao base em texto suave, o que muda em destaque) e o botão não quebra. Componente único `src/components/lista-escolha-preparos.tsx`, usado pelos dois seletores (`seletor-cardapio.tsx`, `seletor-preparos.tsx`); a seleção continua pelo próprio preparo (mesmo nome e id no formulário). A lista de `/preparos` não mudou.
 
 **Correção (2026-11-04, mesmo dia): custo por item no "Ver cálculos" e no PDF.** `calcularDebugCardapio` arredondava o custo por unidade de rendimento a centavos antes de multiplicar pela quantidade (R$ 0,06918/g virava R$ 0,07/g). Em itens medidos em g/ml isso distorcia o custo do item: em produção, com 30 convidados, Alcatra Grelhada saía R$ 279,99 (certo: R$ 276,71), Bife Ancho R$ 439,99 (certo: R$ 421,95) e Contra-Filé R$ 279,99 (certo: R$ 297,75). Conferido contra o banco de produção (`app_db`, `DATA_SOURCE=oracle`). Agora o item usa `custoDoItem` (`src/lib/custo-item-cardapio.ts`, 5 testes): sem arredondamento intermediário, igual ao laço de `calcularPrecificacaoCardapio`. O Valor Sugerido e o custo por pessoa do Simulador **não** mudam: eles já faziam a conta certa. A tabela "Ver cálculos" passou a mostrar o custo por unidade com 4 casas.
+
+### Recusar orçamento (2026-11-05) — IMPLEMENTADO NO CÓDIGO, sem migração
+
+Pedido do Pedro. O enum `status_orcamento` já tinha `Recusado` (conferido no Oracle em 2026-11-05), então não há migração. Regra: **só orçamento em `Simulação` pode ser recusado**; `Aceito` e `Recusado` são finais. Orçamento recusado não pode ser aprovado nem virar evento (`aprovarEConfirmarEvento` recusa qualquer status diferente de `Simulação`).
+- `recusarOrcamento` (`src/lib/orcamentos.ts`) faz `UPDATE ... WHERE status = 'Simulação'`, então uma aprovação concorrente não é sobrescrita; a regra de transição fica em `erroTransicaoOrcamento`, usada também na confirmação.
+- Tela `/orcamentos/[id]`: botão "Recusar orçamento" com modal de confirmação (`src/components/botao-recusar-orcamento.tsx`), só visível em `Simulação`. Depois de recusado, a tela mostra o aviso de status e não oferece o formulário de confirmação.
+- Hoje não existe lista nem indicador de orçamentos "em aberto" no código; quando existir, "em aberto" = `Simulação` (e `Enviado`, se for usado), nunca `Recusado`.
+- Timeout do pool (`src/lib/db.ts`): `connectionTimeoutMillis: 5000`, para um banco fora do ar não travar o layout (que consulta o usuário em toda página; o `.catch` do layout cobre o erro).

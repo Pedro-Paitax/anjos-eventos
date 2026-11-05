@@ -1,12 +1,14 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { obterUsuarioAtual } from "@/lib/usuario-atual";
 import { listarEmpresas } from "@/lib/empresas";
 import {
   criarOrcamentoChurrasco,
   criarOrcamentoGenerico,
   aprovarEConfirmarEvento,
+  recusarOrcamento,
   type DadosOperacionaisEvento,
 } from "@/lib/orcamentos";
 import { sugerirQuantidadeGarcom, VALOR_GARCOM_PADRAO } from "@/lib/precificacao-constantes";
@@ -117,6 +119,23 @@ function extrairDadosOperacionais(formData: FormData): DadosOperacionaisEvento {
     caminhoContrato: paraTexto(formData.get("caminhoContrato")),
     observacoes: paraTexto(formData.get("observacoes")),
   };
+}
+
+/**
+ * Recusar Orçamento (Simulação → Recusado). Devolve { erro } em vez de lançar:
+ * em produção o Next oculta a mensagem de erros lançados por Server Actions.
+ */
+export async function recusarOrcamentoAction(orcamentoId: number): Promise<{ erro: string | null }> {
+  const usuarioAtual = await obterUsuarioAtual();
+  if (!usuarioAtual) {
+    redirect("/login");
+  }
+
+  const resultado = await recusarOrcamento(orcamentoId);
+  if (resultado) return { erro: resultado.erro };
+
+  revalidatePath(`/orcamentos/${orcamentoId}`);
+  return { erro: null };
 }
 
 /**

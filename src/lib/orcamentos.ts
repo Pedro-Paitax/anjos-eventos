@@ -1,6 +1,6 @@
 import "server-only";
 import { db } from "@/db/client";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { empresas, eventos } from "@/db/schema/nucleo-existente";
 import { orcamentos, itensOrcamento, itensEventoConfirmados } from "@/db/schema/orcamentos";
 import { preparos } from "@/db/schema/preparos";
@@ -309,6 +309,40 @@ export function montarValoresEvento(
 }
 
 /**
+ * Transições a partir de "Simulação": só ela pode ser recusada ou confirmada.
+ * Aceito e Recusado são finais (um Recusado nunca vira evento). Devolve a
+ * mensagem de erro, ou null se a transição é permitida.
+ */
+export function erroTransicaoOrcamento(status: string, acao: "recusar" | "confirmar"): string | null {
+  if (status === "Simulação") return null;
+  if (acao === "recusar") {
+    return `Só é possível recusar um orçamento em Simulação — este está em "${status}".`;
+  }
+  return `Orçamento já está em status "${status}" — não pode ser confirmado novamente.`;
+}
+
+/**
+ * Recusa o Orçamento (Simulação → Recusado). O UPDATE é condicionado a
+ * status = 'Simulação', então uma aprovação concorrente não é sobrescrita.
+ */
+export async function recusarOrcamento(orcamentoId: number): Promise<{ erro: string } | null> {
+  const orcamento = await obterOrcamento(orcamentoId);
+  if (!orcamento) return { erro: "Orçamento não encontrado." };
+  const erro = erroTransicaoOrcamento(orcamento.status, "recusar");
+  if (erro) return { erro };
+
+  const atualizados = await db
+    .update(orcamentos)
+    .set({ status: "Recusado", atualizadoEm: new Date() })
+    .where(and(eq(orcamentos.id, orcamentoId), eq(orcamentos.status, "Simulação")))
+    .returning({ id: orcamentos.id });
+  if (atualizados.length === 0) {
+    return { erro: "O orçamento mudou de status — nada foi alterado. Recarregue a página." };
+  }
+  return null;
+}
+
+/**
  * Ação de Conversão (Passo 3 — "Aprovar e Confirmar Evento"). Transação
  * atômica: cria o Evento confirmado, resolve o custo ATUAL de cada Preparo
  * (nunca cacheado) e grava o snapshot em itens_evento_confirmados, depois
@@ -322,9 +356,8 @@ export async function aprovarEConfirmarEvento(
 ): Promise<number | ConfirmarEventoErro> {
   const orcamento = await obterOrcamento(orcamentoId);
   if (!orcamento) return { erro: "Orçamento não encontrado." };
-  if (orcamento.status !== "Simulação") {
-    return { erro: `Orçamento já está em status "${orcamento.status}" — não pode ser confirmado novamente.` };
-  }
+  const erroStatus = erroTransicaoOrcamento(orcamento.status, "confirmar");
+  if (erroStatus) return { erro: erroStatus };
 
   const ehChurrasco = orcamento.itens.length > 0;
   if (ehChurrasco && orcamento.precoPessoa == null) {

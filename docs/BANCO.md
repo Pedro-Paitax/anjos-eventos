@@ -283,7 +283,11 @@ Sem DELETE pela aplicação: o histórico comercial é preservado.
 — este pela `drizzle/0009_lead_mensagens_gerador_gemini.sql`, aplicada em
 produção em 2026-10-28 (troca o CHECK, ver `docs/DECISOES.md`).
 
-### Envio automático (migração `0010`, NÃO aplicada — rascunho para revisão)
+### Envio automático (migração `0010`, APLICADA — conferido no banco em 2026-11-05; envio segue desligado)
+
+> Conferência de 2026-11-05 (SELECT no Oracle): as duas tabelas existem, com 0 linhas
+> (`prospeccao_envio_config` sem a linha única, `prospeccao_fila_envio` vazia), ou seja, o
+> envio automático nunca foi ligado. A data exata da aplicação não está registrada.
 
 `drizzle/0010_prospeccao_envio_automatico.sql`: só `CREATE TABLE`, FKs e índices.
 
@@ -298,8 +302,9 @@ produção em 2026-10-28 (troca o CHECK, ver `docs/DECISOES.md`).
 
 # Versões de preparo (`src/db/schema/preparo-variacoes.ts`)
 
-> Migração `drizzle/0012_preparo_variacoes.sql` — **NÃO aplicada** (aguarda o ok do Pedro;
-> aplicar com `scripts/aplicar-migracao-0012.sh` antes do deploy). Só aditiva.
+> Migração `drizzle/0012_preparo_variacoes.sql` — **APLICADA** (conferido no banco em
+> 2026-11-05: tabela `preparo_variacoes` existe, com 28 linhas; a data exata da aplicação não
+> está registrada). Só aditiva.
 
 ## `preparo_variacoes`
 
