@@ -68,7 +68,8 @@ function normalizarUnidade(unidade: string): string {
  */
 export async function calcularDebugCardapio(
   preparoIds: number[],
-  opcoes: OpcoesPrecificacao
+  /** pessoasProducao: base das quantidades (criança = meia porção, src/lib/pessoas-producao.ts); sem ela, numConvidados. */
+  opcoes: OpcoesPrecificacao & { pessoasProducao?: number }
 ): Promise<DebugCalculoResultado | DebugErro> {
   if (preparoIds.length === 0) {
     return { erro: "Informe ao menos um preparo_id em ?preparos=", status: 422 };
@@ -119,7 +120,10 @@ export async function calcularDebugCardapio(
   // Mesma função de dimensionamento usada em produção, chamada direto (sem
   // reimplementar a fórmula) pra expor o detalhe por item que ela calcula
   // internamente mas normalmente não retorna sozinha.
-  const macroCategoriasDimensionadas = distribuirPorcoes(itensComCusto, opcoes.numConvidados);
+  const macroCategoriasDimensionadas = distribuirPorcoes(
+    itensComCusto,
+    opcoes.pessoasProducao && opcoes.pessoasProducao > 0 ? opcoes.pessoasProducao : opcoes.numConvidados
+  );
 
   const itensParaPrecificacao: ItemCardapioPrecificacao[] = itensComCusto.map((item) => {
     const custo = custosPorPreparoId.get(item.preparoId)!;

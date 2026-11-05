@@ -52,6 +52,27 @@ export const cotacoes = pgTable(
   ],
 );
 
+/**
+ * Cada mudança de `insumos.preco` (preço de cadastro, já com a margem), gravada pelo gatilho
+ * `trg_insumos_alteracao_preco` da migration 0013 — vale para qualquer caminho (tela, botão
+ * "Usar no cadastro", scripts). Insumo novo entra com `preco_anterior` nulo.
+ * `enviado_em` nulo = ainda não saiu no resumo diário de preços pelo WhatsApp (src/lib/precos-resumo.ts).
+ */
+export const alteracoesPrecoInsumo = pgTable(
+  "alteracoes_preco_insumo",
+  {
+    id: serial("id").primaryKey(),
+    insumoId: integer("insumo_id")
+      .notNull()
+      .references(() => insumos.id),
+    precoAnterior: numeric("preco_anterior", { precision: 10, scale: 4 }),
+    precoNovo: numeric("preco_novo", { precision: 10, scale: 4 }),
+    alteradoEm: timestamp("alterado_em", { withTimezone: true }).notNull().defaultNow(),
+    enviadoEm: timestamp("enviado_em", { withTimezone: true }),
+  },
+  (t) => [index("idx_alteracoes_preco_pendentes").on(t.enviadoEm, t.alteradoEm)],
+);
+
 /** Um preço observado. Linha sem insumo = item da cotação ainda não ligado a um insumo. */
 export const historicoPrecos = pgTable(
   "historico_precos",

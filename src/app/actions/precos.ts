@@ -12,6 +12,7 @@ import {
   type DadosFornecedor,
 } from "@/lib/precos-insumo";
 import { FONTES_REGISTRO_MANUAL, ehUm, hojeNaEquipe } from "@/lib/precos-opcoes";
+import { executarResumoPrecos } from "@/lib/precos-resumo";
 
 export type EstadoFormularioPreco = { erro?: string; sucesso?: string; valores?: ValoresFormulario };
 
@@ -126,6 +127,39 @@ export async function registrarPrecoAction(
   revalidatePath(`/insumos/${insumoId}`);
   revalidatePath("/fornecedores");
   return { sucesso: "Preço registrado no histórico." };
+}
+
+export type ResultadoEnvioResumoPrecos = { ok: boolean; mensagem: string };
+
+const MENSAGEM_MOTIVO = {
+  destinatarios_nao_configurados: "Os números da família não estão configurados no servidor. Nada foi enviado.",
+  worker_desconectado: "O WhatsApp está desconectado. Conecte o aparelho e tente de novo. Nada foi enviado.",
+  migracao_pendente: "O registro de mudanças de preço ainda não está ativo no banco. Nada foi enviado.",
+  todos_os_envios_falharam: "O envio pelo WhatsApp falhou para todos os números. As mudanças continuam pendentes.",
+} as const;
+
+/**
+ * Botão "Enviar PDF de preços" em /insumos: envia na hora o resumo (o que mudou desde o último
+ * resumo + tabela completa) para os números da família. Sem mudança pendente, vai só a tabela.
+ */
+export async function enviarResumoPrecosAction(): Promise<ResultadoEnvioResumoPrecos> {
+  if (!(await obterUsuarioAtual())) redirect("/login");
+  try {
+    const r = await executarResumoPrecos({ manual: true });
+    if (!r.ok) return { ok: false, mensagem: MENSAGEM_MOTIVO[r.motivo] };
+    if (!("enviados" in r)) return { ok: false, mensagem: "Nada foi enviado." };
+    const total = r.enviados + r.falhas;
+    const conteudo = r.mudancas ? `${r.mudancas} ${r.mudancas === 1 ? "insumo mudou" : "insumos mudaram"} desde o último resumo` : "nenhuma mudança desde o último resumo; foi só a tabela completa";
+    return {
+      ok: r.falhas === 0,
+      mensagem: `PDF enviado para ${r.enviados} de ${total} ${total === 1 ? "número" : "números"} (${conteudo}).`,
+    };
+  } catch {
+    // Mensagem fixa: o erro bruto pode trazer URL do worker.
+    return { ok: false, mensagem: "Não foi possível enviar. Tente de novo." };
+  } finally {
+    revalidatePath("/insumos");
+  }
 }
 
 /**

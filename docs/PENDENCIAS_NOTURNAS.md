@@ -2572,3 +2572,152 @@ Pendente: deploy do app (`scripts/deploy-oracle.sh`); decisão sobre IA; pesquis
 Antes (somente leitura): CHECK `gerador IN ('modelo_local','manual','anthropic')`; 9 constraints em `lead_mensagens`; 0 mensagens, 0 leads; 26 tabelas. `pg_dump -Fc` validado: `~/backups-anjos-eventos/pre-0009-20261028-232255.dump` (máquina do Pedro), 107.401 bytes, 248 entradas, 27 tabelas com dados. Aplicada em transação única (2 comandos lidos de `drizzle/0009_lead_mensagens_gerador_gemini.sql`, script pontual com `pg` e trava exigindo o SQL idêntico ao aprovado; apagado depois). COMMIT sem erro.
 
 Depois: CHECK com `'gemini'`; 9 constraints em `lead_mensagens` (mesma quantidade); contagens iguais (usuarios 5, eventos 1, orcamentos 1, itens_evento_confirmados 12, preparos 54, insumos 122, leads 0, lead_mensagens 0); 26 tabelas.
+
+## 2026-11-04 — Preços de insumos: lote 1 (cotação Aroma da Carne) gravado em produção
+
+### Levantamento (somente leitura)
+
+- 141 insumos: 131 sem data, 0 desatualizados e 10 em dia.
+- Os 10 "em dia" eram `pesquisa_web` de 02/11, com fontes fora de Curitiba (Tenda, Pão de Açúcar, Zoom, Buscapé). A Picanha Suína tinha sido cotada como temperada.
+
+### Gravação
+
+- Cotação: catálogo da Aroma da Carne de 03/11/2026, aprovado pelo Pedro com as regras do menor preço e da caixa fechada (`docs/REGRAS_NEGOCIO.md`, seção 7).
+- Dump: `~/backups-anjos-eventos/pre-precos-2026-11-04.dump` (máquina do Pedro), 137.621 bytes, 33 tabelas com dados (`pg_restore --list`).
+- Primeiro rodou um ensaio com ROLLBACK; depois o COMMIT, em transação única, pelas funções do app (`precos-pesquisa/gravar-lote.mts`, fora do git).
+- Foram criados o fornecedor 2, "Aroma da Carne", e a cotação 2, aprovada pelo usuário 2, Pedro.
+- 27 linhas foram gravadas em `historico_precos` (`cotacao_pdf`) e 27 insumos tiveram o preço atualizado (bruto + 10 %, data 03/11).
+
+### Conferência
+
+- 141 insumos antes e depois; só os 27 do lote mudaram.
+- Nome, unidade e fator ficaram iguais em todos.
+
+Variações acima de 30 %:
+
+| Insumo | Variação |
+|---|---|
+| Filé Mignon | +57 % |
+| Tulipa | +60 % |
+| Panceta | −53 % |
+| Costelinha Suína | −46 % |
+| Picanha Suína | −45 % (agora a temperada) |
+| Bacon | −41 % (cubos) |
+| Copa Lombo | −35 % |
+| Carne Moída | −33 % |
+| Presunto | −30 % |
+
+Custo das fichas mais usadas, antes → depois:
+
+| Preparo | Antes | Depois | Variação |
+|---|---|---|---|
+| Alcatra Grelhada | 69,18 | 71,28 | +3 % |
+| Copa Lombo | 36,38 | 23,57 | −35 % |
+| Escarola com Bacon | 11,24 | 8,35 | −26 % |
+| Contra-Filé | 74,43 | 82,04 | +10 % |
+
+Orçamentos fechados não mudam: o preço deles é congelado.
+
+### Não atualizados
+
+- **Fora do catálogo:** Costela Bovina (peça inteira; o catálogo só tem os cortes), Paleta Suína e Linguiça Pernil.
+- **Pedro disse que não precisa:** Linguiça Cuiabana e Tutano.
+
+### Pendente
+
+- **Código:** branch `feat/precos-cotacao-fornecedor` (client opcional nas funções de preço, `registrarCotacaoAprovada`, aviso do preço de peça na tela). Falta merge e deploy.
+- **Testes de integração novos:** não rodaram. O `docker run` do Postgres descartável no `ender` foi bloqueado pelo classificador de permissões. O caminho foi validado pelo ensaio com ROLLBACK em produção.
+- **Lotes seguintes:** pesquisa web dos insumos restantes (hortifruti, mercearia e frios). O lote 2 (25 insumos: Super Muffato e boletim do CEASA Curitiba de 04/11) aguarda aprovação.
+
+### Estrutura (aprovada pelo Pedro, mesmo dia)
+
+Dump antes: `~/backups-anjos-eventos/pre-estrutura-costela-sobrecoxa-2026-11-04.dump` (139.168 bytes, 33 tabelas com dados).
+
+**Cortes de costela.** Via `scripts/cadastrar-preparo.ts`, em transação única, foram criados três insumos e três preparos, como versões de "Costela" e com a ficha dela copiada:
+
+| Preparo (id) | Insumo | Bruto Aroma da Carne (R$/kg) | Cadastro (R$/kg) |
+|---|---|---|---|
+| Costela Janela (99) | Costela Janela | 22,80 | 25,08 |
+| Costela Ponta (100) | Costela Ponta | 23,40 | 25,74 |
+| Costela Ripa (101) | Costela Ripa | 21,96 | 24,16 |
+
+- Fator 0,7 nos três: o mesmo da costela inteira, por decisão do Pedro.
+- O insumo "Costela Bovina" (peça inteira) continua com o preço antigo.
+
+**Coxa → sobrecoxa.** Feito em transação única, com ensaio antes:
+- Na ficha "Coxa de Frango Desossada" (27), o insumo 96 (coxa desossada) foi trocado pelo 150 (sobrecoxa desossada).
+- O insumo 101 e o preparo 33 passaram de "Coxa de Frango" para "Sobrecoxa de Frango".
+- Contagens iguais (144 insumos, 94 preparos, 441 linhas de composição). Nada foi apagado; o insumo 96 ficou sem uso.
+
+### Lote 2 (mercearia, frios e hortifruti) — gravado
+
+- **Fonte:** site do Super Muffato, varejo, visto em 04/11. O Pedro aprovou tudo, menos azeite, parmesão e queijo coalho, que ficam para conferência dele.
+- **Dump:** `~/backups-anjos-eventos/pre-precos-lote2-2026-11-04.dump` (139.793 bytes, 33 tabelas com dados).
+- **Gravação:** ensaio com ROLLBACK e depois COMMIT, em transação única, por `precos-pesquisa/gravar-precos.mts` (`registrarPreco` + `aplicarPrecoAoInsumo`).
+- **Fornecedores criados:** "Super Muffato" (5) e "CEASA Curitiba" (6, só referência).
+- **Insumos atualizados (17):** Provolone (fatiado), Manteiga, Mostarda Dijon, Cream Cheese, Geleia de Pimenta, Arroz Agulhinha, Queijo Prato, Gorgonzola, Farinha de Mandioca, Palmito, Salame, Tomate, Tomate Cereja, Manga, Batata Inglesa, Abacaxi (unidade) e Salsinha (maço).
+- **Referência do CEASA:** 4 linhas, só no histórico (tomate, tomate cereja, manga e batata).
+- **Conferência:** 144 insumos; só os 17 mudaram; nome, unidade e fator iguais.
+
+Custo das fichas, antes → depois:
+
+| Preparo | Antes | Depois | Variação |
+|---|---|---|---|
+| Vinagrete | 16,95 | 19,39 | +14 % |
+| Bruschetta com Provolone | 77,82 | 56,38 | −28 % |
+| Mix de Folhas | 48,41 | 47,92 | −1 % |
+| Arroz Branco | 7,07 | 6,04 | −15 % |
+
+Ficaram sem preço novo:
+- **Para o Pedro conferir:**
+  - Azeite: R$ 65,80/L no Muffato; o cadastro está em 29,90.
+  - Parmesão Ralado: R$ 118,00/kg.
+  - Queijo Coalho: espeto Quatá, R$ 92,33/kg.
+- **Não encontrados:**
+  - Pão de Alho: o pacote não diz quantos pães tem.
+  - Sorvete de Flocos: vem em litros; o insumo é em kg.
+  - Brownie e Pão de Baguete: não há no Muffato.
+  - Alho Crispy: não há.
+
+### Lote 3 (mercearia e hortifruti) — gravado
+
+- **Aprovação:** o Pedro aprovou o lote inteiro.
+- **Dump:** `~/backups-anjos-eventos/pre-precos-lote3-2026-11-04.dump` (141.379 bytes, 33 tabelas com dados).
+- **Gravação:** ensaio com ROLLBACK e depois COMMIT, em transação única (`precos-pesquisa/gravar-precos.mts`, com `lote3-aprovado.json`).
+- **Insumos atualizados (20), todos pelo Super Muffato em varejo, vistos em 04/11:** Coca Cola, Batata Doce, Cenoura, Massa de Lasanha, Alho, Creme de Leite, Pepino em Conserva, Pimentão Vermelho, Orégano, Cebola Branca, Leite Integral, Arroz Arbóreo, Geleia de Damasco, Rúcula, Batata Palha, Ovo de Codorna, Alho Triturado, Óleo de Soja, Molho Barbecue e Proteína de Soja.
+- **Conferência:** 144 insumos; só os 20 mudaram; nome, unidade e fator iguais.
+- **Situação depois do lote:** 69 insumos com data e 75 sem data.
+- **Não encontrados:**
+  - Uva Itália: só há uvas sem semente.
+  - Laranja Bahia: só há laranja Pera.
+  - Brócolis: o fresco é vendido por unidade, sem peso.
+  - Alecrim fresco: não há.
+  - Cebola Roxa: não há.
+
+## 2026-11-04 — Migração 0013 (resumo de preços) aplicada em produção
+
+- **SQL:** aprovado pelo Pedro e aplicado com `scripts/aplicar-migracao-0013.sh` (apagado depois de rodar).
+- **Dump:** `~/backups-anjos-eventos/pre-0013-20261104-124512.dump` (142.630 bytes, 33 tabelas com dados).
+- **Antes e depois:** `insumos=144 soma_precos=4363.7500 historico=81`, igual nos dois; gatilho = 1; tabela nova vazia.
+- **Gatilho:** testado em produção com ROLLBACK.
+- **Código:** branch `feat/precos-cotacao-fornecedor`, com o resumo diário, o botão em `/insumos` e o aviso do preço de peça.
+
+### Pendente (Pedro)
+
+1. Merge e deploy.
+2. Primeiro envio de teste só para o número do Pedro, pelo botão.
+3. Instalar a linha das 18h do crontab.
+
+### Build local quebrado (já era assim na `master`)
+
+`next build` no Windows falha ao pré-renderizar `/_global-error` ou `/agenda/novo`, com `InvariantError: Expected workStore to be initialized`.
+- Acontece também na `master` (2 de 2 tentativas). Não é causado pela branch.
+- O deploy faz o build no `ender`.
+
+## 2026-11-04 — Carne por pessoa, criança = meia porção, arroz e maionese
+
+Detalhes e motivo em `docs/DECISOES.md`, seção "Carne por pessoa, criança = meia porção…".
+- **Banco (gravado):** teto de Proteínas Principais 400 → 280 g; Arroz Branco 1.000 → 2.700 G; Maionese Tradicional 500 ML → 1.500 G.
+  - Dump: `~/backups-anjos-eventos/pre-dimensionamento-20261104-175015.dump`.
+- **Código (falta deploy):** criança = meia porção no dimensionamento; tempero minúsculo não some mais da lista de compras.
+- **Para o Pedro decidir:** teto de Saladas Leves (30 g); rendimento dos outros arrozes.

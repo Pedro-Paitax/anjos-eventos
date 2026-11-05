@@ -4,6 +4,7 @@ import { nocodbGet } from "@/lib/nocodb";
 import { buscarPesosPadraoPorSubcategoria } from "@/lib/hierarquia-proteina";
 import { TAG_MACRO_CATEGORIAS } from "@/lib/cache-tags";
 import { dataSource } from "@/lib/data-source";
+import { pessoasParaProducaoOrcamento } from "@/lib/pessoas-producao";
 
 // IDs de tabela do NocoDB (base Senhor_Churrasco_DB), confirmados via
 // /api/v2/meta/bases/.../tables — não inventar, checar o schema real antes
@@ -113,6 +114,8 @@ export type ItemExcluido = {
 export type DimensionamentoResultado = {
   orcamento_id: number;
   num_convidados: number;
+  /** Base das quantidades: adultos + metade das crianças (src/lib/pessoas-producao.ts). No legado NocoDB, igual a num_convidados. */
+  pessoas_producao: number;
   macro_categorias: MacroCategoriaDimensionada[];
   itens_excluidos: ItemExcluido[];
 };
@@ -454,6 +457,7 @@ async function calcularDimensionamentoOrcamentoOracle(
   orcamentoId: number
 ): Promise<DimensionamentoResultado | DimensionamentoErro> {
   let numConvidados: number;
+  let pessoasProducao: number;
   let itensResolvidos: ItemResolvido[];
   let itensExcluidos: ItemExcluido[];
   try {
@@ -467,6 +471,8 @@ async function calcularDimensionamentoOrcamentoOracle(
     if (!numConvidados || numConvidados <= 0) {
       return { erro: "Orçamento está sem Num_Convidados válido cadastrado.", status: 422 };
     }
+    // Criança = meia porção na produção (src/lib/pessoas-producao.ts).
+    pessoasProducao = pessoasParaProducaoOrcamento(orcamento);
 
     const itens = await db
       .select({ preparoId: itensOrcamento.preparoId })
@@ -481,7 +487,8 @@ async function calcularDimensionamentoOrcamentoOracle(
   return {
     orcamento_id: orcamentoId,
     num_convidados: numConvidados,
-    macro_categorias: distribuirPorcoes(itensResolvidos, numConvidados),
+    pessoas_producao: pessoasProducao,
+    macro_categorias: distribuirPorcoes(itensResolvidos, pessoasProducao),
     itens_excluidos: itensExcluidos,
   };
 }
@@ -547,6 +554,7 @@ export async function calcularDimensionamentoOrcamento(
   return {
     orcamento_id: orcamentoId,
     num_convidados: numConvidados,
+    pessoas_producao: numConvidados,
     macro_categorias: distribuirPorcoes(itensResolvidos, numConvidados),
     itens_excluidos: itensExcluidos,
   };

@@ -154,6 +154,25 @@ custo_por_unidade_rendimento × porção_por_pessoa
 
 Regra de borda: se `Fator de Correção` for 0 ou vazio, ou `Custo Médio` estiver vazio, o custo do insumo é tratado como R$0 (evita divisão por zero).
 
+**Preço do insumo a partir de cotação (decisão do Pedro, 2026-11-04):**
+- Entre as opções de uma cotação para o **mesmo produto** (marcas, resfriado ou congelado), vale **sempre a mais barata**.
+- **Alcatra:** vale o **corte** mais barato (miolo, completa ou com maminha).
+- Nos outros produtos, corte diferente não vale. Exemplos: diafragma não é fraldinha; contra-filé com osso não é contra-filé.
+- Usa-se o **preço KG da caixa fechada** (CX). O preço da peça (PC) fica registrado como aviso no histórico (`unidade_fornecedor`).
+- Preço de cadastro = bruto + 10 % (`precoComMargem`).
+- Equivalências confirmadas pelo Pedro:
+  - panceta = barriga suína natural;
+  - picanha suína pode ser a temperada (a natural é difícil de achar);
+  - filé argentino = contra-filé;
+  - "coxa e sobrecoxa" do fornecedor vale como sobrecoxa;
+  - bacon em cubos;
+  - queijo coalho é o pacote de espetos (vem com 6).
+
+**Hortifruti usa preço de varejo (decisão do Pedro, 2026-11-04).** A Anjos compra de um hortifruti, que por sua vez compra no CEASA. Por isso:
+- O preço vem do varejo (Super Muffato).
+- O boletim do CEASA Curitiba entra no histórico só como referência (fornecedor "CEASA Curitiba") e **não** vai para o cadastro.
+- Para comparação: o varejo ficou de 13 % a mais de 200 % acima do CEASA, conforme o item.
+
 ---
 
 # 8. Motor de dimensionamento
@@ -169,8 +188,14 @@ Porcao_Final =
 MIN(Porcao_Calculada, Porcao_Maxima_Individual)   [quando houver Hard Cap]
 
 Volume_Necessário_Total =
-Porcao_Final × Num_Convidados
+Porcao_Final × Pessoas_Producao
+
+Pessoas_Producao = Adultos + (Crianças até 5 + Crianças de 5 a 10) / 2
 ```
+
+**Criança = meia porção na produção (decisão do Pedro, 2026-11-04).** As quantidades, a ficha técnica e a lista de compras contam cada criança como meia pessoa. Isso não muda o número de convidados, a equipe sugerida nem o preço (criança paga meia, seção 3). Um orçamento sem a divisão entre adultos e crianças usa o total de convidados. Código: `src/lib/pessoas-producao.ts`.
+
+**Os tetos são porção SERVIDA (já pronta).** A ficha técnica converte esse valor para o peso cru: perda no fogo pelo rendimento do preparo, perda na limpeza pelo fator de correção e +10 % de folga. Por isso o teto de Proteínas Principais é **280 g servidos**, o equivalente a **~400 g de carne crua comprada por pessoa**: a referência "400 g por pessoa" do Pedro e do sócio é carne comprada. Até 2026-11-04 o teto era 400 g servidos, e o sistema comprava ~620 g crus de carne principal por pessoa.
 
 ---
 
@@ -205,7 +230,7 @@ Isso é intencional. Não inventar peso padrão para resolver dado ausente.
 
 A hierarquia automática existe SOMENTE para a categoria Carnes.
 
-Pesos (fonte: `docs/DECISOES.md`, calibrados com o Pedro e o sócio a partir da proporção real 2:1:1 = Carne Vermelha:Suíno:Aves em 400g de proteína por evento típico):
+Pesos (fonte: `docs/DECISOES.md`, calibrados com o Pedro e o sócio a partir da proporção real 2:1:1 = Carne Vermelha:Suíno:Aves em 400g de proteína **crua comprada** por evento típico. No sistema isso equivale ao teto de 280 g servidos, ver seção 8):
 
 ```text
 Carne Vermelha = 2,0

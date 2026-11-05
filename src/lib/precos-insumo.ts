@@ -1,6 +1,13 @@
 import "server-only";
+import type { PoolClient } from "pg";
 import { pool } from "@/lib/db";
 import { precoComMargem, type CanalCompra, type FontePreco } from "@/lib/precos-opcoes";
+
+/**
+ * Onde a escrita roda: o pool (padrão, cada comando por si) ou um client com transação aberta
+ * pelo chamador (lote de preços em transação única).
+ */
+type Executor = Pick<PoolClient, "query">;
 
 /**
  * Fornecedores e histórico de preços (tabelas e colunas da migration 0011).
@@ -140,11 +147,14 @@ export async function obterFornecedor(id: number): Promise<Fornecedor | null> {
 export type DadosFornecedor = { nome: string; telefone: string | null; observacoes: string | null; ativo: boolean };
 
 /** Nome repetido (ignorando maiúsculas e espaços) devolve erro em vez de duplicar. */
-export async function criarFornecedor(dados: DadosFornecedor): Promise<{ id: number } | { erro: string }> {
-  const repetido = await pool.query(`SELECT 1 FROM fornecedores WHERE lower(trim(nome)) = lower(trim($1))`, [dados.nome]);
+export async function criarFornecedor(
+  dados: DadosFornecedor,
+  db: Executor = pool,
+): Promise<{ id: number } | { erro: string }> {
+  const repetido = await db.query(`SELECT 1 FROM fornecedores WHERE lower(trim(nome)) = lower(trim($1))`, [dados.nome]);
   if (repetido.rowCount) return { erro: `Já existe um fornecedor chamado "${dados.nome}".` };
   try {
-    const { rows } = await pool.query<{ id: number }>(
+    const { rows } = await db.query<{ id: number }>(
       `INSERT INTO fornecedores (nome, telefone, observacoes, ativo) VALUES ($1, $2, $3, $4) RETURNING id`,
       [dados.nome, dados.telefone, dados.observacoes, dados.ativo],
     );
@@ -276,14 +286,28 @@ export type DadosRegistroPreco = {
   fonte: FontePreco;
   observadoEm: string;
   urlFonte: string | null;
+  /** Linha de uma cotação (ver registrarCotacaoAprovada); omitido = registro avulso. */
+  cotacaoId?: number | null;
+  /** Como o fornecedor vende (ex.: "CX ~24 kg · peça R$ 56,12/kg"); o preço continua na unidade do insumo. */
+  unidadeFornecedor?: string | null;
+  observacao?: string | null;
 };
 
-/** Registro avulso (sem cotação): nota fiscal, pesquisa, Ceasa ou digitação. Não mexe em `insumos.preco`. */
-export async function registrarPreco(dados: DadosRegistroPreco, usuarioId: number): Promise<void> {
-  await pool.query(
+/**
+ * Registra um preço observado (bruto do fornecedor) e devolve o id da linha. Não mexe em `insumos.preco`:
+ * para levar ao cadastro, aplicarPrecoAoInsumo.
+ */
+export async function registrarPreco(
+  dados: DadosRegistroPreco,
+  usuarioId: number | null,
+  db: Executor = pool,
+): Promise<number> {
+  const { rows } = await db.query<{ id: number }>(
     `INSERT INTO historico_precos
-       (insumo_id, fornecedor_id, nome_no_fornecedor, preco, fonte, observado_em, url_fonte, registrado_por)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+       (insumo_id, fornecedor_id, nome_no_fornecedor, preco, fonte, observado_em, url_fonte, registrado_por,
+        cotacao_id, unidade_fornecedor, observacao)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+     RETURNING id`,
     [
       dados.insumoId,
       dados.fornecedorId,
@@ -293,8 +317,31 @@ export async function registrarPreco(dados: DadosRegistroPreco, usuarioId: numbe
       dados.observadoEm,
       dados.urlFonte,
       usuarioId,
+      dados.cotacaoId ?? null,
+      dados.unidadeFornecedor ?? null,
+      dados.observacao ?? null,
     ],
   );
+  return rows[0].id;
+}
+
+/**
+ * Cotação já conferida e aprovada por uma pessoa (ex.: catálogo em PDF lido e revisado com o Pedro).
+ * As linhas registradas com este `cotacaoId` entram nas leituras de preço na hora.
+ */
+export async function registrarCotacaoAprovada(
+  dados: { fornecedorId: number; dataCotacao: string; origem: "pdf_ia" | "planilha" | "manual"; arquivoNome: string | null; observacoes: string | null },
+  aprovadaPor: number,
+  db: Executor = pool,
+): Promise<number> {
+  const { rows } = await db.query<{ id: number }>(
+    `INSERT INTO cotacoes
+       (fornecedor_id, data_cotacao, origem, arquivo_nome, status, observacoes, registrado_por, aprovada_por, aprovada_em)
+     VALUES ($1, $2, $3, $4, 'aprovada', $5, $6, $6, now())
+     RETURNING id`,
+    [dados.fornecedorId, dados.dataCotacao, dados.origem, dados.arquivoNome, dados.observacoes, aprovadaPor],
+  );
+  return rows[0].id;
 }
 
 export type OrigemResumo = {
@@ -327,36 +374,45 @@ export async function listarOrigensInsumos(): Promise<Map<number, OrigemResumo> 
 export async function aplicarPrecoAoInsumo(
   insumoId: number,
   historicoId: number,
+  /** Client com transação já aberta pelo chamador (lote). Omitido: abre e fecha a própria transação. */
+  transacao?: Executor,
 ): Promise<{ preco: number } | { erro: string }> {
+  if (transacao) return aplicarNaTransacao(transacao, insumoId, historicoId);
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
-    const { rows } = await client.query<{ preco: string; fonte: FontePreco; observadoEm: string }>(
-      `SELECT h.preco, h.fonte, h.observado_em::text AS "observadoEm"
-         FROM historico_precos h
-         LEFT JOIN cotacoes c ON c.id = h.cotacao_id
-        WHERE h.id = $1 AND h.insumo_id = $2 AND ${FILTRO_VALIDO}`,
-      [historicoId, insumoId],
-    );
-    const linha = rows[0];
-    if (!linha) {
-      await client.query("ROLLBACK");
-      return { erro: "Esse preço não pertence a este insumo ou não está aprovado." };
-    }
-    const preco = precoComMargem(Number(linha.preco));
-    await client.query(
-      `UPDATE insumos
-          SET preco = $2, fonte_preco = $3,
-              preco_atualizado_em = ($4::date)::timestamp AT TIME ZONE 'America/Sao_Paulo'
-        WHERE id = $1`,
-      [insumoId, preco, linha.fonte, linha.observadoEm],
-    );
-    await client.query("COMMIT");
-    return { preco };
+    const r = await aplicarNaTransacao(client, insumoId, historicoId);
+    await client.query("erro" in r ? "ROLLBACK" : "COMMIT");
+    return r;
   } catch (erro) {
     await client.query("ROLLBACK");
     throw erro;
   } finally {
     client.release();
   }
+}
+
+async function aplicarNaTransacao(
+  db: Executor,
+  insumoId: number,
+  historicoId: number,
+): Promise<{ preco: number } | { erro: string }> {
+  const { rows } = await db.query<{ preco: string; fonte: FontePreco; observadoEm: string }>(
+    `SELECT h.preco, h.fonte, h.observado_em::text AS "observadoEm"
+       FROM historico_precos h
+       LEFT JOIN cotacoes c ON c.id = h.cotacao_id
+      WHERE h.id = $1 AND h.insumo_id = $2 AND ${FILTRO_VALIDO}`,
+    [historicoId, insumoId],
+  );
+  const linha = rows[0];
+  if (!linha) return { erro: "Esse preço não pertence a este insumo ou não está aprovado." };
+  const preco = precoComMargem(Number(linha.preco));
+  await db.query(
+    `UPDATE insumos
+        SET preco = $2, fonte_preco = $3,
+            preco_atualizado_em = ($4::date)::timestamp AT TIME ZONE 'America/Sao_Paulo'
+      WHERE id = $1`,
+    [insumoId, preco, linha.fonte, linha.observadoEm],
+  );
+  return { preco };
 }

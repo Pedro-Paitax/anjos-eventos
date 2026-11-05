@@ -1296,6 +1296,75 @@ Código: `src/db/schema/fornecedores.ts`, `src/db/schema/precos.ts`, colunas nov
 
 **Migração `drizzle/0011_precos_fornecedores.sql`** (gerada com drizzle-kit; SQL aprovado pelo Pedro em 2026-11-02; aplicação pelo script pontual `scripts/aplicar-migracao-0011.sh`, que faz o dump validado, aplica em transação única e confere tabelas, colunas e que os insumos não mudaram — testado em Postgres descartável; apagar o script depois de aplicar): `CREATE TABLE fornecedores`, `cotacoes`, `historico_precos`; `ALTER TABLE insumos ADD COLUMN` (4 colunas nulas) + 2 CHECKs que aceitam NULL + 1 FK; 4 índices. Só aditiva; nenhuma linha existente é alterada. A migração vai antes do deploy do app.
 
+### Cotação de fornecedor gravada pelo Claude Code: menor preço e caixa fechada (2026-11-04)
+
+O Pedro enviou o catálogo em PDF da **Aroma da Carne** (fornecedor de carnes, sistema SisAtak, 03/11/2026) e decidiu:
+- **Sempre o menor preço** entre as opções do mesmo produto. **Alcatra:** sempre o corte mais barato.
+- **Preço da caixa fechada** (CX); o da peça fica como aviso.
+- Regra completa em `docs/REGRAS_NEGOCIO.md`, seção 7.
+
+Ainda não existe tela de cotação; a leitura de PDF por IA é a próxima etapa. Enquanto isso, o lote é gravado pelas funções de `src/lib/precos-insumo.ts`:
+- Elas passaram a aceitar um `client` opcional, para o lote inteiro rodar em transação única. Sem esse parâmetro, o app continua igual.
+- Função nova: `registrarCotacaoAprovada`.
+- Campos novos em `registrarPreco`: `cotacaoId`, `unidadeFornecedor` e `observacao`. A função agora devolve o id da linha.
+- Fluxo: a cotação é gravada já `aprovada` pelo Pedro; cada linha vai para o histórico com `fonte = cotacao_pdf`, o nome do item no catálogo e `unidade_fornecedor = "CX ~24 kg · peça R$ 56,12/kg"`; o canal fica em `observacao`.
+- `aplicarPrecoAoInsumo` leva o preço ao cadastro (+10 %, data da cotação).
+- A lista de preços (`ListaPrecos`) passou a mostrar `unidade_fornecedor`, para o aviso do preço de peça aparecer na tela.
+
+### Carne por pessoa, criança = meia porção e rendimentos de arroz e maionese (2026-11-04) — DADOS GRAVADOS, código PENDENTE de deploy
+
+Origem: simulação de um cardápio real (54 adultos + 8 crianças) pedida pelo Pedro. O sistema pedia 45,6 kg de carne, cerca de 740 g crus por adulto. O Pedro: "estamos falando de um exército comendo". Decisões dele:
+- **Carne: 400 g crus comprados por pessoa.** O teto de Proteínas Principais era tratado como 400 g **servidos**. Depois da perda no fogo (rendimento da ficha, ex.: 1,2 kg cru → 1 kg assado), da limpeza (fator 0,85) e da folga de 10 %, isso virava ~620 g crus só de carne principal. O teto passou a **280 g servidos**, o equivalente assado de 400 g crus. Gravado em `macro_categorias` (id 1). No Oracle não há cache, então vale na hora. **O preço sugerido por pessoa dos próximos cálculos cai junto.** Orçamentos com preço congelado e eventos já confirmados (snapshot) não mudam.
+- **Criança = meia porção na produção** (`src/lib/pessoas-producao.ts`). Usado no dimensionamento do orçamento, que alimenta o snapshot da confirmação, a ficha técnica, a lista de compras e o custo da margem. Também no "Ver cálculos" e no PDF de quantidades do Simulador. Não muda convidados, equipe nem preço. Limitação conhecida: a receita da margem projetada continua sem a meia-entrada (seção 2 de `REGRAS_NEGOCIO.md`); agora o custo já conta a criança como meia.
+- **Arroz Branco (51): rendimento 1.000 → 2.700 G.** A ficha usa 1 kg cru + 2 L de água; 100 g de arroz cru rendem 260–280 g cozidos (TudoGostoso, Receiteria, Omni Calculator).
+- **Maionese Tradicional (55): 500 ML → 1.500 G.** É a soma dos ingredientes da própria ficha (0,8 kg de batata, 0,15 de cenoura, 0,1 de ervilha, 0,36 L de óleo, 0,15 L de leite). A unidade foi para G, igual à da macro Guarnições Leves.
+- **Tempero minúsculo sumia da lista de compras.** A ficha arredonda cada insumo a 2 casas, então 0,07 g de noz-moscada virava 0. A ficha agora também guarda `quantidadeExata`, e a lista de compras usa esse valor; a exibição da ficha não muda.
+
+Gravação: `pg_dump` validado (`~/backups-anjos-eventos/pre-dimensionamento-20261104-175015.dump`, 147.037 bytes, 34 tabelas com dados), transação única com cada UPDATE condicionado ao valor antigo, contagens iguais antes e depois (10 macros, 94 preparos, 441 composições, 144 insumos).
+
+Resultado no cardápio simulado (54 + 8, ou seja 58 pessoas para a produção): carne de 45,6 → **32,5 kg** (24,1 kg de carnes principais + 8,4 kg de entradas), arroz de 10,3 → 3,6 kg, batata de 12,3 → 3,9 kg. A compra total caiu de R$ 2.429 para **R$ 1.705**.
+
+Não mudou e fica para o Pedro decidir: o teto de Saladas Leves (30 g, abaixo dos 80–100 g das referências de churrasco) e outros preparos de arroz (à Grega, Carreteiro, com Alho Crispy), que podem ter o mesmo erro de rendimento.
+
+### Resumo diário de preços pelo WhatsApp (2026-11-04) — IMPLEMENTADO NO CÓDIGO, migração 0013 APLICADA (2026-11-04), deploy e cron PENDENTES
+
+Pedido do Pedro: "envio de PDF toda vez que os preços forem atualizados, pelo WhatsApp conectado no sistema". As escolhas dele:
+- **Destino:** os números da família (`FAMILIA_WHATSAPP_NUMEROS`, os mesmos da Ordem de Ação e do lembrete de 7 dias).
+- **Frequência:** **uma vez por dia**, e só se algum preço mudou desde o último resumo. Assim um lote de 20 insumos ou vários cliques não viram vários PDFs.
+- **Conteúdo:** **o que mudou + a tabela completa**.
+
+Como ficou:
+- **Registro das mudanças.** A migração 0013 cria a tabela `alteracoes_preco_insumo` (insumo, preço anterior, preço novo, alterado em, enviado em) e um gatilho em `insumos`.
+  - O gatilho grava uma linha a cada mudança de `preco` e a cada insumo novo, este com preço anterior nulo.
+  - Foi feito no banco, e não no app, para pegar **qualquer** caminho: a tela, o botão "Usar no cadastro" e os scripts de lote. O gatilho só insere na tabela nova; não altera nem bloqueia o UPDATE.
+- **O PDF** (`src/lib/precos-resumo-pdf.ts`, funções puras, `pdf-lib` como a lista de compras) tem duas partes:
+  1. **O que mudou.** As mudanças de cada insumo são juntadas: o "antes" é o da primeira mudança e o "depois", o da última. Quem voltou ao mesmo preço sai da lista. A ordem é da maior variação para a menor, com destaque acima de 30 %, e cada linha mostra a fonte e o fornecedor.
+  2. **Tabela completa.** Preço, origem, data e situação (em dia, desatualizado ou sem data) de todos os insumos.
+  - O fornecedor é o da linha do histórico que gerou o preço atual: mesmo dia e bruto + 10 % igual ao preço de cadastro. Linhas só de referência, como as do CEASA, não batem.
+- **Envio** (`src/lib/precos-resumo.ts`, rota `POST /api/cron/precos-resumo` protegida por `CRON_TOKEN`):
+  - Sai um PDF com legenda para cada número, um de cada vez.
+  - As linhas só ficam marcadas como enviadas se pelo menos um envio der certo; se todos falharem, saem no dia seguinte.
+  - Sem números configurados, com o worker desconectado ou com a 0013 ainda não aplicada, a rota não envia nada e responde 503.
+- **Crontab:** linha comentada em `scripts/crontab-whatsapp.example`, às 18:00.
+- **Botão "Enviar PDF de preços" em `/insumos`** (pedido do Pedro, mesmo dia): envia o resumo **na hora** para os mesmos números (`enviarResumoPrecosAction`).
+  - Antes de enviar, abre uma janela que mostra os números mascarados (•••• 1234) e quantos insumos mudaram desde o último resumo.
+  - Sem mudança pendente, o envio manual sai só com a tabela completa; o automático, nesse caso, não envia nada.
+  - O envio manual marca as mudanças como enviadas, para elas não se repetirem no resumo das 18h.
+
+**Migração 0013 aplicada** em 2026-11-04 (SQL aprovado pelo Pedro), por `scripts/aplicar-migracao-0013.sh`:
+- **Dump:** `~/backups-anjos-eventos/pre-0013-20261104-124512.dump` (142.630 bytes, 33 tabelas com dados).
+- **Conferência:** insumos iguais (144, mesma soma de preços), gatilho presente e tabela vazia.
+- **Gatilho testado em produção** numa transação com ROLLBACK: mesmo preço não grava, outra coluna não grava, preço novo grava antes e depois.
+- As 66 mudanças de 04/11 aconteceram antes da 0013 e **não** estão na tabela.
+
+Testes: 8 de regras puras e PDF; 3 de integração (gatilho, falha de envio, marcação), que só rodam com `TEST_DATABASE_URL`.
+
+Ativação, nesta ordem e com o ok do Pedro em cada passo:
+1. Aprovar o SQL da 0013 e rodar `scripts/aplicar-migracao-0013.sh`.
+2. Merge e deploy.
+3. Primeiro envio de teste só para o número do Pedro (`docs/AUTONOMIA.md`).
+4. Instalar a linha do crontab.
+
 ### Cadastro de fichas técnicas pelo Claude Code (2026-11-02)
 
 O comando `/cadastrar-preparo` deixou de usar o NocoDB (fonte legada desde o corte de 2026-09-22) e passou a gravar no Postgres pelo script `scripts/cadastrar-preparo.ts`: `--referencia` lista headers, insumos e fornecedores; sem flag simula e mostra o resumo; `--gravar` grava numa transação única (insumos novos + histórico de preço, preparos, composição, `header_preparo`). Regras checadas antes de gravar (`scripts/lib-cadastro-preparo.ts`, 9 testes): header obrigatório (sem ele o preparo sai do cálculo, ver PENDENCIAS "Achado complementar"), Carnes com subcategoria e sem peso de atratividade, demais com peso explícito, peso médio obrigatório para rendimento em Unidade, nome de preparo novo, insumo existente nunca alterado, insumo novo = fornecedor + 10 % com fonte/link/data (ou "estimado", que entra sem data). Testado num Postgres descartável (simulação, erros, gravação e recusa de duplicado).

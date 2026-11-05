@@ -92,16 +92,25 @@ describe("calcularListaCompras", () => {
   });
 
   it("mesmo insumo em dois preparos soma antes de arredondar", () => {
-    // 0,41 x 1,1 = 0,451 -> escala 0,45 cada; soma 0,9 -> 0,9 (arredondar antes daria 0,5 + 0,5 = 1,0)
+    // 0,4 x 1,1 = 0,44 cada; soma 0,88 -> 0,9 (arredondar antes daria 0,5 + 0,5 = 1,0)
     const lista = calcularListaCompras(
       [
-        ficha(1, 10, 10, [{ insumoId: 1, nome: "Cebola", unidade: "KG", quantidade: 0.41 }]),
-        ficha(2, 10, 10, [{ insumoId: 1, nome: "Cebola", unidade: "KG", quantidade: 0.41 }]),
+        ficha(1, 10, 10, [{ insumoId: 1, nome: "Cebola", unidade: "KG", quantidade: 0.4 }]),
+        ficha(2, 10, 10, [{ insumoId: 1, nome: "Cebola", unidade: "KG", quantidade: 0.4 }]),
       ],
       dados({ 1: { preco: 1, fatorCorrecao: 1 } }),
     );
     expect(lista).toHaveLength(1);
     expect(lista[0].quantidadeCompra).toBe(0.9);
+  });
+
+  it("usa a quantidade exata: tempero minúsculo não some (vira o mínimo de compra)", () => {
+    // 0,001 KG x (62 x 1,1 / 1050) = 0,000065 KG: exibido na ficha como 0, mas entra na compra como 0,1.
+    const [noz] = calcularListaCompras(
+      [ficha(1, 1050, 62, [{ insumoId: 1, nome: "Noz-Moscada", unidade: "KG", quantidade: 0.001 }])],
+      dados({ 1: { preco: 250, fatorCorrecao: 1 } }),
+    );
+    expect(noz.quantidadeCompra).toBe(0.1);
   });
 
   it("evento sem itens confirmados: lista vazia", () => {

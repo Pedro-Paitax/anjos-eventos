@@ -9,6 +9,10 @@ import { botaoClasse } from "@/components/botao";
 import { calcularPrecoCorrigido, arredondarCentavos } from "@/lib/custo-preparo";
 import { CabecalhoPagina } from "@/components/cabecalho-pagina";
 import { ListaInsumos } from "@/components/lista-insumos";
+import { BotaoEnviarResumoPrecos } from "@/components/precos/botao-enviar-resumo-precos";
+import { contarInsumosComMudancaPendente } from "@/lib/precos-resumo";
+import { numerosFamilia } from "@/lib/automacao-whatsapp";
+import { mascararDestino } from "@/lib/lista-compras-envio";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = { title: "Insumos" };
@@ -19,11 +23,16 @@ export default async function InsumosPage() {
     redirect("/login");
   }
 
-  const [insumosDetalhado, origens] = await Promise.all([
+  const oracle = dataSource() === "oracle";
+  const [insumosDetalhado, origens, pendentes] = await Promise.all([
     listarInsumosDetalhado(),
     // Fornecedor, canal e fonte do preço (migração 0011); null = ainda não ativo no banco.
-    dataSource() === "oracle" ? listarOrigensInsumos() : null,
+    oracle ? listarOrigensInsumos() : null,
+    // Mudanças de preço ainda não enviadas no resumo (migração 0013); null = ainda não ativo.
+    oracle ? contarInsumosComMudancaPendente() : null,
   ]);
+  // Só os 4 últimos dígitos chegam ao navegador.
+  const destinos = numerosFamilia().map(mascararDestino);
   // Preço corrigido calculado aqui (Server Component) porque
   // calcularPrecoCorrigido depende de "server-only" — não pode ser
   // importado no ListaInsumos ("use client").
@@ -43,9 +52,12 @@ export default async function InsumosPage() {
         voltarPara={{ href: "/senhor-churrasco", rotulo: "← Senhor Churrasco" }}
         acao={
           origens ? (
-            <Link href="/fornecedores" className={`${botaoClasse("secundario")} self-start sm:self-auto`}>
-              Fornecedores
-            </Link>
+            <div className="flex flex-wrap gap-3 self-start sm:self-auto">
+              <BotaoEnviarResumoPrecos destinos={destinos} pendentes={pendentes} />
+              <Link href="/fornecedores" className={botaoClasse("secundario")}>
+                Fornecedores
+              </Link>
+            </div>
           ) : undefined
         }
       />

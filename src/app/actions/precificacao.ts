@@ -57,12 +57,13 @@ export async function calcularPrecificacaoEventoAction(entrada: EntradaPrecifica
  * calcularPrecificacaoCardapio sem alteração — ver
  * src/lib/debug-calculo-cardapio.ts.
  */
-export async function calcularDebugCardapioAction(entrada: EntradaPrecificacao) {
+export async function calcularDebugCardapioAction(entrada: EntradaPrecificacao & { pessoasProducao?: number }) {
   const usuarioAtual = await obterUsuarioAtual();
   if (!usuarioAtual) redirect("/login");
 
   return calcularDebugCardapio(entrada.preparoIds, {
     numConvidados: entrada.numConvidados,
+    pessoasProducao: entrada.pessoasProducao,
     regiaoMetropolitanaCuritiba: entrada.regiaoMetropolitanaCuritiba,
     quantidadeGarcom: entrada.quantidadeGarcom,
     valorGarcom: entrada.valorGarcom,

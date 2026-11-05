@@ -156,6 +156,48 @@ describe.skipIf(!seguro)("histórico de preços — integração", () => {
     expect(await lib.aplicarPrecoAoInsumo(arroz, linha.id)).toEqual({ erro: expect.any(String) });
   });
 
+  it("lote em transação única: cotação aprovada + registro + cadastro; ROLLBACK desfaz tudo", async () => {
+    const lote = async (fim: "COMMIT" | "ROLLBACK") => {
+      const client = await pool.connect();
+      try {
+        await client.query("BEGIN");
+        const cot = await lib.registrarCotacaoAprovada(
+          { fornecedorId: fornB, dataCotacao: "2026-11-03", origem: "pdf_ia", arquivoNome: "catalogo.pdf", observacoes: null },
+          usuario,
+          client,
+        );
+        const id = await lib.registrarPreco(
+          {
+            insumoId: arroz, fornecedorId: fornB, nomeNoFornecedor: "ARROZ T1", preco: 5, fonte: "cotacao_pdf",
+            observadoEm: "2026-11-03", urlFonte: null, cotacaoId: cot, unidadeFornecedor: "CX ~30 kg · peça R$ 5,20/kg",
+          },
+          usuario,
+          client,
+        );
+        const r = await lib.aplicarPrecoAoInsumo(arroz, id, client);
+        await client.query(fim);
+        return r;
+      } finally {
+        client.release();
+      }
+    };
+    const precoArroz = async () => Number((await pool.query("SELECT preco FROM insumos WHERE id = $1", [arroz])).rows[0].preco);
+
+    const antes = await precoArroz();
+    expect(await lote("ROLLBACK")).toEqual({ preco: 5.5 });
+    expect(await precoArroz()).toBe(antes);
+    expect((await pool.query("SELECT count(*)::int n FROM cotacoes WHERE data_cotacao = '2026-11-03'")).rows[0].n).toBe(0);
+
+    expect(await lote("COMMIT")).toEqual({ preco: 5.5 });
+    expect(await precoArroz()).toBe(5.5);
+    const doInsumo = (await lib.obterPrecosDoInsumo(arroz))!;
+    expect(doInsumo.origem).toMatchObject({ fontePreco: "cotacao_pdf", precoAtualizadoEm: "2026-11-03" });
+    expect(doInsumo.porFornecedor.find((p) => p.fornecedorId === fornB)).toMatchObject({
+      preco: 5,
+      unidadeFornecedor: "CX ~30 kg · peça R$ 5,20/kg",
+    });
+  });
+
   it("CHECK do banco barra canal e fonte fora da lista", async () => {
     await expect(pool.query("UPDATE insumos SET canal = 'feira' WHERE id = $1", [arroz])).rejects.toThrow();
     await expect(
