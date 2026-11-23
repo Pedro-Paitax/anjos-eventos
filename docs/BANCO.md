@@ -340,8 +340,10 @@ Leituras de preço só consideram linhas avulsas ou de cotação `aprovada`.
 
 # Checklist de carregamento (`src/db/schema/itens-carga.ts`, `insumos.ts`)
 
-> Migração `drizzle/0016_checklist_carregamento.sql` — **NÃO APLICADA** (gerada em 2026-11-23 pelo
-> drizzle-kit; SQL e script de dados aprovados pelo Pedro em 2026-11-23). Só aditiva: 2 tabelas novas e 1 coluna com default em
+> Migração `drizzle/0016_checklist_carregamento.sql` — **APLICADA em 2026-11-23** junto com a 0015
+> (mesma transação), e os dados logo depois (62 itens, 6 temperos fixos ligados, 13 `eh_tempero`).
+> SQL e dados aprovados pelo Pedro em 2026-11-23. Dump antes:
+> `~/backups-anjos-eventos/pre-0015-0016-20261123-151915.dump`. Só aditiva: 2 tabelas novas e 1 coluna com default em
 > `insumos`. Dados iniciais em `scripts/dados-0016-checklist-carregamento.sql` (também não aplicado,
 > roda depois da 0016). Spec: `docs/specs/SPEC_CHECKLIST_CARREGAMENTO.md`; decisões em
 > `docs/DECISOES.md`, "Checklist de carregamento do Senhor Churrasco". Lidas e gravadas só por

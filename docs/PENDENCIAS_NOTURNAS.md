@@ -2768,3 +2768,19 @@ Spec `docs/specs/SPEC_CHECKLIST_CARREGAMENTO.md`; decisões em `docs/DECISOES.md
 - **Ordem em produção:** dump → 0015 (ainda não aplicada) → 0016 → dados → deploy. Sem a 0016, a tela do evento abre e o checklist explica que falta a migração.
 - **Depois:** carga inicial dos itens de carga ficha por ficha (seção 8.3 do spec), proposta a partir do `apresentacao_utensilio` e gravada só com o ok do Pedro.
 - **Verificação:** `next typegen`, `tsc --noEmit`, `eslint .` e `vitest run` verdes (422 testes passaram, 34 pulados que já existiam).
+
+## 2026-11-23 — 0015 + 0016 aplicadas e deploy da `master` `803783c` (checklist de carregamento)
+
+Autorizado pelo Pedro em 2026-11-23 ("faça todos esses passos").
+- **Merge:** a `checklist-carregamento` (`d61d26b`) entrou na `master` com `git merge --no-ff`, gerando `803783c`, e foi enviada ao GitHub. Não houve PR: nesta máquina não há `gh`, e o conector do GitHub estava sem autenticação.
+- **Banco:** dump validado `~/backups-anjos-eventos/pre-0015-0016-20261123-151915.dump` (34 tabelas com dados).
+  - 0015 e 0016 foram aplicadas numa transação única.
+  - Depois rodou `scripts/dados-0016-checklist-carregamento.sql`: 62 itens, 6 temperos fixos ligados e 13 `eh_tempero`.
+  - Contagens (eventos, preparos, composição, insumos, itens confirmados, decisões) e o hash das colunas antigas de `insumos` ficaram iguais antes e depois. Nenhum texto saiu com acento quebrado.
+- **Não aplicado:** `scripts/dados-0015-embalagens-compra.sql`. As colunas de embalagem existem e estão vazias; a lista de compras continua como antes até esse script rodar com o ok do Pedro.
+- **Deploy:** `803783c` no ar.
+  - `/login` 200 por localhost e IP Tailscale, escuta em `0.0.0.0:3001`, contagens iguais antes e depois.
+  - A rota do checklist sem sessão responde 401.
+  - Backup do app: `/home/opc/anjos-eventos-app-backup-20261123-152420.tgz`. Dump: `pre-deploy-803783c-20261123-152032.dump`.
+- **Ender:** o DNS voltou a falhar (o `ender` não resolve `github.com`). O commit foi enviado desta máquina direto para `refs/remotes/origin/master` do clone `/srv/share/anjos_eventos`. O working tree de lá e as mudanças locais em `.claude/` não foram tocados.
+- **Pendente:** carga inicial dos itens de carga nas fichas (seção 8.3 do spec), proposta ao Pedro e aguardando aprovação. Até lá, todas as fichas saem no aviso "Fichas sem itens de carga".
