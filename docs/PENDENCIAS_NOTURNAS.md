@@ -2784,3 +2784,24 @@ Autorizado pelo Pedro em 2026-11-23 ("faça todos esses passos").
   - Backup do app: `/home/opc/anjos-eventos-app-backup-20261123-152420.tgz`. Dump: `pre-deploy-803783c-20261123-152032.dump`.
 - **Ender:** o DNS voltou a falhar (o `ender` não resolve `github.com`). O commit foi enviado desta máquina direto para `refs/remotes/origin/master` do clone `/srv/share/anjos_eventos`. O working tree de lá e as mudanças locais em `.claude/` não foram tocados.
 - **Pendente:** carga inicial dos itens de carga nas fichas (seção 8.3 do spec), proposta ao Pedro e aguardando aprovação. Até lá, todas as fichas saem no aviso "Fichas sem itens de carga".
+
+## 2026-11-23 — Carga inicial dos itens de carga nas fichas (aplicada)
+
+- Proposta tirada do `apresentacao_utensilio` e aprovada pelo Pedro em 2026-11-23. Script `scripts/dados-0016-carga-fichas.sql`:
+
+  | Texto antigo | Item de carga | Fichas |
+  |---|---|---|
+  | Réchaud Redondo | Rechauds | 48 |
+  | Travessa (Salada) | Saladeiras | 10 |
+  | Jarras | Jarras grandes | 1 |
+  | Taça de Mesa de Vidro | Taças de vidro grandes (para comida) | 1 |
+  | Tábua pra Frios | Tábuas padrão | 2 |
+
+- Dump `~/backups-anjos-eventos/pre-carga-fichas-20261123-152642.dump`. Foram 62 marcações em 62 fichas. O texto antigo não mudou (mesmo hash antes e depois).
+- 32 fichas ficaram sem marcação e saem no aviso do PDF:
+  - só espetos, parrilla, brasa ou servido frio;
+  - ou itens que não estão cadastrados (ramequin, taça descartável 170 ml, cuba GN, bisnaga).
+- Ficaram em aberto, sem resposta do Pedro:
+  - marcar "Tábuas de carne" nas fichas de espeto e parrilla só para tirá-las do aviso;
+  - "Travessas de lasanha" ou "Formas" nas lasanhas e na batata gratinada.
+- Conferido em produção, só leitura: o checklist dos 4 eventos com cardápio confirmado sai sem erro.
