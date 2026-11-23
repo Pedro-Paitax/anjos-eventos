@@ -12,7 +12,7 @@
  * aplicação/Drizzle deve continuar sendo a única responsável por esse
  * cálculo.
  */
-import { pgTable, serial, text, numeric, pgEnum, integer, timestamp, check } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, numeric, pgEnum, integer, timestamp, boolean, check } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { fornecedores } from "./fornecedores";
 
@@ -43,6 +43,11 @@ export const insumos = pgTable("insumos", {
    */
   embalagemCompraNome: text("embalagem_compra_nome"),
   embalagemCompraQtd: numeric("embalagem_compra_qtd", { precision: 10, scale: 3 }),
+  /**
+   * Migração 0016 — insumo que é tempero (checklist de carregamento, C12). Os temperos das fichas do
+   * cardápio entram no checklist. Lida só por src/lib/checklist-carregamento-dados.ts, com try/catch.
+   */
+  ehTempero: boolean("eh_tempero").notNull().default(false),
 }, (t) => [
   check(
     "insumos_embalagem_compra_check",

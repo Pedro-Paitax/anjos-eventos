@@ -1458,3 +1458,30 @@ Decisões do Pedro, 2026-11-05. Problema: o insumo só tem a unidade de uso, e a
 - **Sem a 0015 no banco** a lista e a tela de insumo funcionam como antes (consulta própria com try/catch em `src/lib/embalagem-insumo.ts`).
 - **Dados:** `scripts/dados-0015-embalagens-compra.sql` (14 insumos, valores do Pedro). Sem valor definido, ficam sem embalagem: Pão de Alho Tradicional, Ovo, Pão de Baguete, Pão Francês.
 - **Aplicação:** dump validado, 0015, depois os dados, depois o deploy, com o ok do Pedro em cada passo.
+
+## Checklist de carregamento do Senhor Churrasco (2026-11-21) — IMPLEMENTADO NO CÓDIGO, migração 0016 e dados NÃO aplicados
+
+Decisões do Pedro em 21/11/2026 (C1 a C24, spec `docs/specs/SPEC_CHECKLIST_CARREGAMENTO.md`); Fase 0 aprovada em 23/11/2026. Protótipo aprovado: `docs/specs/checklist-carregamento-exemplo.pdf`.
+
+**Escopo (C1–C8).** Só eventos do Senhor Churrasco. Sai em PDF por evento; a tela touch fica para depois e o modelo de dados já serve para ela. Na tela do evento: "Emitir checklist (PDF)" e "Enviar no WhatsApp", este para os números da família (`FAMILIA_WHATSAPP_NUMEROS`), só pelo botão, sem cron. Confere só presença, sem quantidade. Sem conferência da volta. Um carro leva tudo; o veículo vem das Decisões Operacionais e sai no cabeçalho. Tudo sai do depósito com cozinha embutida; ainda não há local de armazenamento. Não há caixa térmica nem cooler.
+
+**Itens (C9–C15).**
+- Pegadores ou colheres: 2 por preparo do cardápio (C9), mostrado como conta ("2 x 15 preparos"). A conferência continua sendo de presença.
+- Espátula de bolo só em casamento (C10).
+- Limpeza sem papel-alumínio e sem papel-toalha (C11).
+- Temperos (C12): fixos, buffet e os das fichas técnicas. O tempero das fichas que já está nos fixos não se repete.
+- Descartáveis (C13), Churrasco em todo evento, sem grelhas e sem luva (C14), e Equipe com uniformes (C15).
+
+**Decisões Operacionais (C16, C17).** Pratos, Talheres dos convidados e Taças e copos saem do que estiver marcado nas decisões, com a quantidade de taças em cinza. Decisão vazia sai como "a definir", em vez de sumir. Gás, fogão, extensão e churrasqueira do local vão nas observações do evento, que saem no cabeçalho.
+
+**Fichas técnicas (C18–C21).** O texto livre `preparos.apresentacao_utensilio` continua como estava (C20): não é apagado nem migrado e aparece na ficha só como referência, ao lado da lista de marcar. Os itens de carga são marcados em cada ficha (N:N, C19). Cada item marcado entra uma vez na categoria dele, com os preparos de origem em cinza. Ficha sem item marcado não trava: vai para o aviso no fim do PDF (C21).
+
+**Comida (C22, C24).** Uma linha por preparo do cardápio confirmado, nos subgrupos Carnes, Saladas e Outros. Não há regra de caixa no sistema.
+
+**Implementação (decisões da Fase 0 e desta entrega).**
+- Casamento = `tipo_evento` contém "casamento", sem diferenciar maiúsculas e acentos. Em 23/11/2026 produção só tinha `NULL` e `a` nesse campo.
+- Temperos: coluna `insumos.eh_tempero`. O grupo A aprovado é marcado no script de dados: Açafrão, Caldo De Galinha, Canela Em Pó, Colorau, Creme de Cebola, Gergelim Branco e Preto, Mostarda Dijon, Noz-Moscada, Orégano Seco, Páprica, Pimenta Calabresa e Pimenta do Reino.
+  - Os 6 temperos fixos ficam ligados ao insumo (`itens_carga.insumo_id`) e não se repetem.
+  - O grupo C (ervas frescas, crispy, vinagres, molho inglês) e os 6 itens fora da lista da C19 (maçarico, ramequins, taça descartável 170 ml, cuba GN, bisnaga, réchaud quadrado) ficaram de fora e estão comentados no script.
+- O checklist exige cardápio confirmado: sem ele, os botões ficam desligados e explicam o motivo.
+- PDF igual ao protótipo. A diferença é só com nomes longos de preparo: a origem em cinza desce para a linha de baixo quando não cabe ao lado do item. Comida e temperos saem em ordem alfabética.

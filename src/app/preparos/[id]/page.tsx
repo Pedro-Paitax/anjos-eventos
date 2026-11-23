@@ -11,6 +11,9 @@ import { FormularioPreparo, type VariacaoFormularioPreparo } from "@/components/
 import { Alerta } from "@/components/alerta";
 import { botaoClasse } from "@/components/botao";
 import { Painel } from "@/components/painel";
+import { ItensCargaFicha } from "@/components/itens-carga-ficha";
+import { obterItensCargaFicha } from "@/lib/checklist-carregamento-dados";
+import { salvarItensCargaFichaAction } from "@/app/actions/checklist-carregamento";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = { title: "Editar preparo" };
@@ -34,11 +37,13 @@ export default async function PreparoPage({ params, searchParams }: PaginaPrepar
 
   const { erroVersao } = await searchParams;
   const oracle = dataSource() === "oracle";
-  const [preparo, insumos, situacao, todos] = await Promise.all([
+  const [preparo, insumos, situacao, todos, itensCarga] = await Promise.all([
     obterPreparoComComposicao(idNumero),
     listarInsumos(),
     oracle ? situacaoVariacao(idNumero) : null,
     oracle ? listarPreparos() : null,
+    // Migração 0016: sem as tabelas, null e a seção não aparece. Erro de banco não derruba a ficha.
+    oracle ? obterItensCargaFicha(idNumero).catch(() => null) : null,
   ]);
 
   if (!preparo) {
@@ -93,6 +98,22 @@ export default async function PreparoPage({ params, searchParams }: PaginaPrepar
           variacao={variacao}
         />
       </Painel>
+
+      {itensCarga && (
+        <Painel como="section" id="itens-carga" className="flex flex-col gap-4">
+          <h2 className="font-titulo text-xl font-semibold leading-[1.2] tracking-[-0.01em]">Itens de carga</h2>
+          <p className="text-sm text-texto-suave">
+            O que esta ficha precisa levar no carro. Cada item marcado entra uma vez no checklist de
+            carregamento dos eventos que têm este preparo no cardápio.
+          </p>
+          <ItensCargaFicha
+            itens={itensCarga.itens}
+            marcados={itensCarga.marcados}
+            textoAntigo={itensCarga.textoAntigo}
+            action={salvarItensCargaFichaAction.bind(null, preparo.id)}
+          />
+        </Painel>
+      )}
     </main>
   );
 }
