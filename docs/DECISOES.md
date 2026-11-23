@@ -1485,3 +1485,9 @@ Decisões do Pedro em 21/11/2026 (C1 a C24, spec `docs/specs/SPEC_CHECKLIST_CARR
   - O grupo C (ervas frescas, crispy, vinagres, molho inglês) e os 6 itens fora da lista da C19 (maçarico, ramequins, taça descartável 170 ml, cuba GN, bisnaga, réchaud quadrado) ficaram de fora e estão comentados no script.
 - O checklist exige cardápio confirmado: sem ele, os botões ficam desligados e explicam o motivo.
 - PDF igual ao protótipo. A diferença é só com nomes longos de preparo: a origem em cinza desce para a linha de baixo quando não cabe ao lado do item. Comida e temperos saem em ordem alfabética.
+
+**Atualização (2026-11-23, Pedro).**
+- Fichas de espeto e parrilla recebem "Tábuas de carne". Como o item já vai sempre, isso só as tira do aviso.
+- Lasanhas e batata gratinada levam "Formas".
+- As embalagens de compra da 0015 foram aplicadas.
+- Detalhes em `docs/PENDENCIAS_NOTURNAS.md`.

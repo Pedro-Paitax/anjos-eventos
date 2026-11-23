@@ -2805,3 +2805,15 @@ Autorizado pelo Pedro em 2026-11-23 ("faça todos esses passos").
   - marcar "Tábuas de carne" nas fichas de espeto e parrilla só para tirá-las do aviso;
   - "Travessas de lasanha" ou "Formas" nas lasanhas e na batata gratinada.
 - Conferido em produção, só leitura: o checklist dos 4 eventos com cardápio confirmado sai sem erro.
+
+## 2026-11-23 — Tábuas de carne, formas e embalagens da 0015 (aplicados)
+
+Decisões do Pedro em 2026-11-23. Dump antes: `~/backups-anjos-eventos/pre-embalagens-tabuas-20261123-153026.dump`.
+- **`scripts/dados-0016-carga-fichas-2.sql`:**
+  - Tábuas de carne nas 22 fichas de espeto e parrilla que estavam sem marcação, incluindo queijos coalho, pães de alho tradicionais e abacaxi assado. O item já vai sempre, então só tira essas fichas do aviso.
+  - Formas nas duas lasanhas e na Batata Gratinada com Bacon, além dos Rechauds.
+  - Total: 87 marcações. 10 fichas seguem sem item e saem no aviso: as de servido frio, Linguiça Toscana, Pão de Alho Caseiro e as que usam itens não cadastrados.
+  - A primeira tentativa parou numa conferência com erro de sintaxe, sem gravar nada (transação). O script foi corrigido e rodou limpo.
+- **`scripts/dados-0015-embalagens-compra.sql`:** aplicado, com 14 insumos com embalagem de compra. O hash das demais colunas de `insumos` e o texto antigo das fichas ficaram iguais.
+- **Conferido em produção, só leitura:** nos 4 eventos com cardápio confirmado, a lista de compras sai por embalagem (por exemplo, "Arroz Agulinha: 3 pacotes (10,4 kg)") e o checklist sai com 1 ou 2 fichas no aviso.
+- **Ainda sem embalagem**, à espera dos valores: Pão de Alho Tradicional (unidades por bandeja), Ovo (12 ou 30), Pão de Baguete e Pão Francês.
