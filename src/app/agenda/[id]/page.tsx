@@ -32,7 +32,21 @@ import {
 } from "@/lib/lista-compras-envio";
 import { Painel } from "@/components/painel";
 import { Alerta } from "@/components/alerta";
+import { ChecklistCarregamentoEvento } from "@/components/checklist-carregamento-evento";
+import { MENSAGEM_SITUACAO, situacaoChecklist } from "@/lib/checklist-carregamento-dados";
+import { numerosFamilia } from "@/lib/automacao-whatsapp";
 import type { Metadata } from "next";
+
+/** Por que o checklist de carregamento não pode sair agora; null = pode. Nunca derruba a tela. */
+async function bloqueioChecklist(temCardapioConfirmado: boolean): Promise<string | null> {
+  try {
+    const situacao = await situacaoChecklist();
+    if (situacao !== "ok") return MENSAGEM_SITUACAO[situacao];
+  } catch {
+    return "Não foi possível consultar o cadastro de itens de carga agora. Recarregue a página.";
+  }
+  return temCardapioConfirmado ? null : "Este evento não tem cardápio confirmado.";
+}
 
 export const metadata: Metadata = { title: "Evento" };
 
@@ -75,6 +89,8 @@ export default async function EventoPage({ params }: PaginaEventoProps) {
   const pendencias = ehChurrasco
     ? ((await itensPendenciaPorEvento([evento.id])).get(evento.id) ?? [])
     : [];
+  // Consulta própria (migração 0016): sem ela, a tela abre igual e o checklist explica o bloqueio.
+  const bloqueioDoChecklist = ehChurrasco ? await bloqueioChecklist(temCardapioConfirmado) : null;
   const ativosPorFuncao: AtivosPorFuncao = { copeira: 0, assador: 0, garcom: 0 };
   for (const c of colaboradoresAtivos) ativosPorFuncao[c.funcao] += 1;
 
@@ -164,6 +180,23 @@ export default async function EventoPage({ params }: PaginaEventoProps) {
             garconsNecessarios={evento.qtd_garcons}
             valoresIniciais={decisoes}
             action={salvarDecisoesOperacionaisAction.bind(null, evento.id)}
+          />
+        </Painel>
+      )}
+
+      {ehChurrasco && (
+        <Painel como="section" id="checklist-carregamento" className="flex flex-col gap-4">
+          <h2 className="font-titulo text-xl font-semibold leading-[1.2] tracking-[-0.01em]">
+            Checklist de carregamento
+          </h2>
+          <p className="text-sm text-texto-suave">
+            PDF para conferir o carro antes de sair: itens fixos, itens das fichas do cardápio e as
+            decisões operacionais acima.
+          </p>
+          <ChecklistCarregamentoEvento
+            eventoId={evento.id}
+            bloqueio={bloqueioDoChecklist}
+            qtdNumerosFamilia={numerosFamilia().length}
           />
         </Painel>
       )}

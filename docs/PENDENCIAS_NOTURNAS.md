@@ -2758,3 +2758,13 @@ Spec `docs/specs/SPEC_TETO_CARNE_ACOMPANHAMENTOS.md`; decisões e números em `d
 - **Deploy:** `scripts/deploy-oracle.sh` usa a checagem mínima como padrão e não exige `SMOKE_TOKEN`. A divergência entre o token local e o do Oracle deixou de ser pendência (só afeta o `SMOKE_COMPLETO=1` opcional).
 - **Crontab:** nenhum será instalado por enquanto. Resumo de preços, Ordem de Ação, lembrete de 7 dias e lista de compras saem só pelos botões. Não há mais "instalar crontab" pendente; as rotas `/api/cron` e o arquivo de exemplo ficam como estão.
 - Detalhes em `docs/DECISOES.md`, seção "Deploy sem smoke token e crontab fora (2026-11-05)".
+
+## 2026-11-23 — Checklist de carregamento (branch `checklist-carregamento`, sem commit)
+
+Spec `docs/specs/SPEC_CHECKLIST_CARREGAMENTO.md`; decisões em `docs/DECISOES.md`, seção "Checklist de carregamento do Senhor Churrasco".
+- **Branch:** `checklist-carregamento`, a partir da `master` `ccefd27`, sem commit (o Pedro faz o commit e o merge).
+- **Migração 0016** gerada (`drizzle/0016_checklist_carregamento.sql`, só CREATE TABLE e ADD COLUMN com default) e **não aplicada**.
+- **SQL de dados:** `scripts/dados-0016-checklist-carregamento.sql`. A 0016 e este SQL foram **aprovados pelo Pedro em 2026-11-23**, mas continuam **não aplicados**. Os dois SQLs foram testados num Postgres descartável local, com o schema e os insumos copiados de produção (só leitura). O script aborta e não grava nada se rodar duas vezes ou se um id e nome de insumo não baterem.
+- **Ordem em produção:** dump → 0015 (ainda não aplicada) → 0016 → dados → deploy. Sem a 0016, a tela do evento abre e o checklist explica que falta a migração.
+- **Depois:** carga inicial dos itens de carga ficha por ficha (seção 8.3 do spec), proposta a partir do `apresentacao_utensilio` e gravada só com o ok do Pedro.
+- **Verificação:** `next typegen`, `tsc --noEmit`, `eslint .` e `vitest run` verdes (422 testes passaram, 34 pulados que já existiam).

@@ -338,6 +338,44 @@ Leituras de preço só consideram linhas avulsas ou de cotação `aprovada`.
 
 ---
 
+# Checklist de carregamento (`src/db/schema/itens-carga.ts`, `insumos.ts`)
+
+> Migração `drizzle/0016_checklist_carregamento.sql` — **NÃO APLICADA** (gerada em 2026-11-23 pelo
+> drizzle-kit; SQL e script de dados aprovados pelo Pedro em 2026-11-23). Só aditiva: 2 tabelas novas e 1 coluna com default em
+> `insumos`. Dados iniciais em `scripts/dados-0016-checklist-carregamento.sql` (também não aplicado,
+> roda depois da 0016). Spec: `docs/specs/SPEC_CHECKLIST_CARREGAMENTO.md`; decisões em
+> `docs/DECISOES.md`, "Checklist de carregamento do Senhor Churrasco". Lidas e gravadas só por
+> `src/lib/checklist-carregamento-dados.ts`, com try/catch: sem a migração, a tela do evento e a
+> ficha abrem normalmente e o checklist explica que falta a migração.
+
+## `itens_carga` (cadastro de itens; o Pedro acrescenta itens sem mexer no código)
+
+| Coluna | Tipo | Constraints |
+|---|---|---|
+| id | serial | PK |
+| nome | text | NOT NULL, UNIQUE |
+| categoria | text | NOT NULL, CHECK em Talheres de serviço, Churrasco, Limpeza, Temperos, Louças e servir, Bebidas, Equipamentos, Descartáveis, Equipe |
+| subgrupo | text | nullable ("Fixos", "Buffet", "Sempre") |
+| sempre | boolean | NOT NULL, default false — vai em todo evento |
+| marcavel_ficha | boolean | NOT NULL, default false — aparece na lista de marcar da ficha |
+| regra | text | nullable, CHECK em `so_casamento`, `dois_por_preparo` |
+| insumo_id | integer | FK → `insumos.id`, ON DELETE SET NULL — tempero fixo ligado ao insumo (não repete o do cardápio) |
+| ordem | integer | NOT NULL, default 0 — ordem dentro da categoria |
+| ativo | boolean | NOT NULL, default true |
+
+Local de armazenamento (seção 7 do spec, planejado): entra depois só com `ALTER TABLE itens_carga ADD COLUMN local text`.
+
+## `preparo_itens_carga` (N:N ficha ↔ item de carga)
+
+| Coluna | Tipo | Constraints |
+|---|---|---|
+| preparo_id | integer | PK (com item_carga_id), FK → `preparos.id`, ON DELETE CASCADE |
+| item_carga_id | integer | PK, FK → `itens_carga.id` (NO ACTION); índice |
+
+Coluna nova em `insumos`: `eh_tempero` boolean NOT NULL default false — os temperos das fichas do cardápio entram no checklist.
+
+---
+
 # Regras de ON DELETE (resumo)
 
 | Tabela filha | FK | Regra |
