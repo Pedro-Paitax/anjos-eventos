@@ -2817,3 +2817,10 @@ Decisões do Pedro em 2026-11-23. Dump antes: `~/backups-anjos-eventos/pre-embal
 - **`scripts/dados-0015-embalagens-compra.sql`:** aplicado, com 14 insumos com embalagem de compra. O hash das demais colunas de `insumos` e o texto antigo das fichas ficaram iguais.
 - **Conferido em produção, só leitura:** nos 4 eventos com cardápio confirmado, a lista de compras sai por embalagem (por exemplo, "Arroz Agulinha: 3 pacotes (10,4 kg)") e o checklist sai com 1 ou 2 fichas no aviso.
 - **Ainda sem embalagem**, à espera dos valores: Pão de Alho Tradicional (unidades por bandeja), Ovo (12 ou 30), Pão de Baguete e Pão Francês.
+
+## 2026-11-23 — Embalagens que faltavam (aplicadas)
+
+Valores do Pedro em 2026-11-23. Script `scripts/dados-0015-embalagens-compra-2.sql`; dump antes: `~/backups-anjos-eventos/pre-embalagens-2-20261123-153300.dump`.
+- **Embalagens gravadas:** Pão De Alho Tradicional em bandeja de 5 baguetes e Ovo em bandeja de 30. Agora são 16 insumos com embalagem; o hash das demais colunas de `insumos` ficou igual.
+- **Sem embalagem, por decisão do Pedro:** Pão de Baguete e Pão Francês. Não é pendência.
+- **Falta o cadastro:** o Pedro informou "Pão de Alho Zinho" em bandeja de 12 bolinhas, mas esse insumo não existe no banco em 2026-11-23. Ao cadastrá-lo, a embalagem pode ser preenchida na tela do insumo.
