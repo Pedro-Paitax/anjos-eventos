@@ -92,7 +92,7 @@ describe("calcularListaCompras", () => {
   });
 
   it("mesmo insumo em dois preparos soma antes de arredondar", () => {
-    // 0,4 x 1,1 = 0,44 cada; soma 0,88 -> 0,9 (arredondar antes daria 0,5 + 0,5 = 1,0)
+    // 0,4 x 1,1 = 0,44 cada; soma 0,88 (arredondar antes, a 0,01, daria 0,44 + 0,44 igual; a 0,1 daria 0,5 + 0,5 = 1,0)
     const lista = calcularListaCompras(
       [
         ficha(1, 10, 10, [{ insumoId: 1, nome: "Cebola", unidade: "KG", quantidade: 0.4 }]),
@@ -101,16 +101,16 @@ describe("calcularListaCompras", () => {
       dados({ 1: { preco: 1, fatorCorrecao: 1 } }),
     );
     expect(lista).toHaveLength(1);
-    expect(lista[0].quantidadeCompra).toBe(0.9);
+    expect(lista[0].quantidadeCompra).toBe(0.88);
   });
 
-  it("usa a quantidade exata: tempero minúsculo não some (vira o mínimo de compra)", () => {
-    // 0,001 KG x (62 x 1,1 / 1050) = 0,000065 KG: exibido na ficha como 0, mas entra na compra como 0,1.
+  it("usa a quantidade exata: tempero minúsculo não some (vira o mínimo de compra, 0,01)", () => {
+    // 0,001 KG x (62 x 1,1 / 1050) = 0,000065 KG: exibido na ficha como 0, mas entra na compra como 0,01.
     const [noz] = calcularListaCompras(
       [ficha(1, 1050, 62, [{ insumoId: 1, nome: "Noz-Moscada", unidade: "KG", quantidade: 0.001 }])],
       dados({ 1: { preco: 250, fatorCorrecao: 1 } }),
     );
-    expect(noz.quantidadeCompra).toBe(0.1);
+    expect(noz.quantidadeCompra).toBe(0.01);
   });
 
   it("evento sem itens confirmados: lista vazia", () => {
@@ -133,10 +133,79 @@ describe("calcularListaCompras", () => {
 });
 
 describe("arredondarCompra", () => {
-  it("Maço, Pacote e Lata sobem para inteiro; ruído de float não sobe um passo extra", () => {
+  it("Unidade e Maço sobem para inteiro; ruído de float não sobe um passo extra", () => {
     expect(arredondarCompra(2.01, "Maço")).toBe(3);
-    expect(arredondarCompra(1.2, "Pacote")).toBe(2);
-    expect(arredondarCompra(3, "Lata")).toBe(3);
+    expect(arredondarCompra(68.2, "Unidade")).toBe(69);
+    expect(arredondarCompra(3, "Unidade")).toBe(3);
     expect(arredondarCompra(0.30000000000000004, "KG")).toBe(0.3);
+  });
+
+  it("KG e Litro abaixo de 1: passos de 0,01", () => {
+    expect(arredondarCompra(0.001, "KG")).toBe(0.01);
+    expect(arredondarCompra(0.234, "KG")).toBe(0.24);
+    expect(arredondarCompra(0.9, "Litro")).toBe(0.9);
+    expect(arredondarCompra(0.951, "Litro")).toBe(0.96);
+    expect(arredondarCompra(0.9999, "KG")).toBe(1);
+  });
+
+  it("KG e Litro a partir de 1: passos de 0,1", () => {
+    expect(arredondarCompra(1, "KG")).toBe(1);
+    expect(arredondarCompra(1.01, "KG")).toBe(1.1);
+    expect(arredondarCompra(2.31, "Litro")).toBe(2.4);
+  });
+
+  it("Pacote e Lata não são mais unidades inteiras (ramos mortos removidos): caem na regra de 0,01", () => {
+    expect(arredondarCompra(1.2, "Pacote")).toBe(1.2);
+  });
+});
+
+describe("embalagem de compra na lista", () => {
+  const umaFicha = (qtd: number, unidade: string) =>
+    ficha(1, 10, 10, [{ insumoId: 1, nome: "Pão de Alho", unidade, quantidade: qtd }]);
+
+  it("sobe para embalagem inteira e mantém a quantidade na unidade do insumo", () => {
+    // escala 1,1: 57 x 1,1 = 62,7 -> 63 un ; bandeja de 6: 10,5 -> 11 bandejas
+    const [item] = calcularListaCompras(
+      [umaFicha(57, "Unidade")],
+      dados({ 1: { preco: 3, fatorCorrecao: 1, embalagem: { nome: "bandeja", quantidade: 6 } } }),
+    );
+    expect(item.quantidadeCompra).toBe(63);
+    expect(item.embalagem).toEqual({ nome: "bandeja", tamanho: 6, embalagens: 11 });
+  });
+
+  it("quantidade exata em múltiplo da embalagem não ganha uma a mais", () => {
+    // 60 x 1,1 = 66 un ; 66 / 6 = 11 exato
+    const [item] = calcularListaCompras(
+      [umaFicha(60, "Unidade")],
+      dados({ 1: { preco: 3, fatorCorrecao: 1, embalagem: { nome: "bandeja", quantidade: 6 } } }),
+    );
+    expect(item.quantidadeCompra).toBe(66);
+    expect(item.embalagem?.embalagens).toBe(11);
+  });
+
+  it("embalagem fracionada em KG: 0,28 kg de caixas de 0,2 kg = 2 caixas", () => {
+    // 0,25 x 1,1 = 0,275 -> 0,28 ; 0,28 / 0,2 = 1,4 -> 2
+    const [item] = calcularListaCompras(
+      [umaFicha(0.25, "KG")],
+      dados({ 1: { preco: 3, fatorCorrecao: 1, embalagem: { nome: "caixa", quantidade: 0.2 } } }),
+    );
+    expect(item.quantidadeCompra).toBe(0.28);
+    expect(item.embalagem?.embalagens).toBe(2);
+  });
+
+  it("insumo sem embalagem (ausente ou null) continua como hoje, sem o campo", () => {
+    for (const d of [{ preco: 3, fatorCorrecao: 1 }, { preco: 3, fatorCorrecao: 1, embalagem: null }]) {
+      const [item] = calcularListaCompras([umaFicha(57, "Unidade")], dados({ 1: d }));
+      expect(item.embalagem).toBeUndefined();
+      expect(item.quantidadeCompra).toBe(63);
+    }
+  });
+
+  it("embalagem com quantidade inválida é ignorada (não divide por zero)", () => {
+    const [item] = calcularListaCompras(
+      [umaFicha(57, "Unidade")],
+      dados({ 1: { preco: 3, fatorCorrecao: 1, embalagem: { nome: "bandeja", quantidade: 0 } } }),
+    );
+    expect(item.embalagem).toBeUndefined();
   });
 });

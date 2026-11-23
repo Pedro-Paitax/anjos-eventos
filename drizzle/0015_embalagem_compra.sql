@@ -1,0 +1,3 @@
+ALTER TABLE "insumos" ADD COLUMN "embalagem_compra_nome" text;--> statement-breakpoint
+ALTER TABLE "insumos" ADD COLUMN "embalagem_compra_qtd" numeric(10, 3);--> statement-breakpoint
+ALTER TABLE "insumos" ADD CONSTRAINT "insumos_embalagem_compra_check" CHECK (("insumos"."embalagem_compra_nome" IS NULL AND "insumos"."embalagem_compra_qtd" IS NULL) OR ("insumos"."embalagem_compra_nome" IS NOT NULL AND "insumos"."embalagem_compra_qtd" > 0));

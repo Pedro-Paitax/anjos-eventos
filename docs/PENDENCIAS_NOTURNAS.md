@@ -2706,7 +2706,7 @@ Ficaram sem preço novo:
 
 1. Merge e deploy.
 2. Primeiro envio de teste só para o número do Pedro, pelo botão.
-3. Instalar a linha das 18h do crontab.
+3. ~~Instalar a linha das 18h do crontab.~~ Fora por decisão de 2026-11-05: o resumo sai só pelo botão.
 
 ### Build local quebrado (já era assim na `master`)
 
@@ -2744,7 +2744,7 @@ Detalhes e motivo em `docs/DECISOES.md`, seção "Carne por pessoa, criança = m
 - **Tentativas anteriores:**
   - 1ª: o DNS do `ender` estava fora (o Pedro corrigiu). O clone `/srv/share/anjos_eventos` estava 81 commits atrás e foi atualizado com `git fetch`, sem mexer nas mudanças locais de `.claude/agents/`.
   - 2ª: o smoke completo falhou só nas 3 checagens com token (401), e o rollback automático funcionou.
-- **🔴 Pendente (Pedro):** o `~/.anjos/smoke-token` local (68 caracteres) não é igual ao `SMOKE_TOKEN` do Oracle (48 caracteres). Enquanto não forem iguais, o smoke completo falha. Mexer no token é com o Pedro (`docs/AUTONOMIA.md`).
+- **Resolvido em 2026-11-05:** o deploy passou a usar só a checagem mínima, sem token (só o `SMOKE_COMPLETO=1` precisa dele). Registro original: o `~/.anjos/smoke-token` local (68 caracteres) não é igual ao `SMOKE_TOKEN` do Oracle (48 caracteres). Enquanto não forem iguais, o smoke completo falha. Mexer no token é com o Pedro (`docs/AUTONOMIA.md`).
 - O Tailscale SSH pediu confirmação de login no passo 2 (scp).
 
 Spec `docs/specs/SPEC_TETO_CARNE_ACOMPANHAMENTOS.md`; decisões e números em `docs/DECISOES.md`, seção "Teto de carne 450 g comprados…".
@@ -2752,3 +2752,9 @@ Spec `docs/specs/SPEC_TETO_CARNE_ACOMPANHAMENTOS.md`; decisões e números em `d
 - **Migração 0014** gerada (`drizzle/0014_teto_carne_acompanhamentos.sql`, só ADD COLUMN) e **não aplicada**.
 - **SQL de dados:** `scripts/dados-0014-teto-carne-acompanhamentos.sql`, aguardando aprovação do Pedro.
 - **Ordem em produção:** dump → 0014 → deploy → dados.
+
+## 2026-11-05 — Deploy sem token e crontab fora (sem pendência)
+
+- **Deploy:** `scripts/deploy-oracle.sh` usa a checagem mínima como padrão e não exige `SMOKE_TOKEN`. A divergência entre o token local e o do Oracle deixou de ser pendência (só afeta o `SMOKE_COMPLETO=1` opcional).
+- **Crontab:** nenhum será instalado por enquanto. Resumo de preços, Ordem de Ação, lembrete de 7 dias e lista de compras saem só pelos botões. Não há mais "instalar crontab" pendente; as rotas `/api/cron` e o arquivo de exemplo ficam como estão.
+- Detalhes em `docs/DECISOES.md`, seção "Deploy sem smoke token e crontab fora (2026-11-05)".

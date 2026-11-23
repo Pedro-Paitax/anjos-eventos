@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { obterUsuarioAtual } from "@/lib/usuario-atual";
 import { carregarDocumentoListaCompras } from "@/lib/lista-compras-documento";
 import { formatarQuantidadeCompra } from "@/lib/lista-compras-pdf";
+import { linhaDeCompra } from "@/lib/lista-compras-exibicao";
 import { formatarData } from "@/lib/formatacao";
 import { CabecalhoPagina } from "@/components/cabecalho-pagina";
 import { botaoClasse } from "@/components/botao";
@@ -63,8 +64,8 @@ export default async function PaginaListaCompras({ params }: { params: Promise<{
                       {i.semPreco && <span className="ml-2 text-xs text-texto-suave">sem preço</span>}
                       {i.semFator && <span className="ml-2 text-xs text-texto-suave">sem fator</span>}
                     </td>
-                    <td className="py-2 pr-3 text-right tabular-nums">{formatarQuantidadeCompra(i.quantidadeCompra)}</td>
-                    <td className="py-2">{i.unidade}</td>
+                    <td className="py-2 pr-3 text-right tabular-nums">{formatarQuantidadeCompra(linhaDeCompra(i).quantidadeCompra)}</td>
+                    <td className="py-2">{linhaDeCompra(i).unidade}</td>
                   </tr>
                 ))}
               </tbody>

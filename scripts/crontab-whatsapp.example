@@ -1,3 +1,7 @@
+# SEM USO POR ENQUANTO: decisão do Pedro em 2026-11-05, nenhum crontab será instalado.
+# Resumo de preços, Ordem de Ação, lembrete de 7 dias e lista de compras saem só pelos
+# botões. Arquivo e rotas /api/cron/* mantidos para uso futuro; não é pendência.
+#
 # Exemplo de crontab (usuário opc, Oracle). NÃO contém segredos: o token fica em
 # ~/.anjos-cron.env (chmod 600) com uma linha:  CRON_TOKEN=...
 # Fuso do negócio: America/Sao_Paulo.
