@@ -1439,3 +1439,22 @@ Pedido do Pedro. O enum `status_orcamento` já tinha `Recusado` (conferido no Or
 - Tela `/orcamentos/[id]`: botão "Recusar orçamento" com modal de confirmação (`src/components/botao-recusar-orcamento.tsx`), só visível em `Simulação`. Depois de recusado, a tela mostra o aviso de status e não oferece o formulário de confirmação.
 - Hoje não existe lista nem indicador de orçamentos "em aberto" no código; quando existir, "em aberto" = `Simulação` (e `Enviado`, se for usado), nunca `Recusado`.
 - Timeout do pool (`src/lib/db.ts`): `connectionTimeoutMillis: 5000`, para um banco fora do ar não travar o layout (que consulta o usuário em toda página; o `.catch` do layout cobre o erro).
+
+## Deploy sem smoke token e crontab fora (2026-11-05)
+
+Decisões do Pedro em 2026-11-05.
+
+**1. Deploy sem token.** A checagem mínima (antes `SEM_SMOKE=1`) passou a ser o padrão de `scripts/deploy-oracle.sh`: `/login` 200 por localhost e IP Tailscale, `HOSTNAME=0.0.0.0` (`pm2 env` e socket na 3001) e rollback automático se falhar. O deploy não exige mais `SMOKE_TOKEN` nem `~/.anjos/smoke-token`, para não depender de confirmação manual. O smoke completo continua como opcional (`SMOKE_COMPLETO=1`, exige o token). Não mudaram: `pg_dump` validado antes, contagens antes e depois, verificação do `HOSTNAME` e rollback. A variável `SEM_SMOKE` deixou de existir; as menções a ela nas seções acima são o registro histórico. Limite: a checagem não prova APIs nem páginas protegidas.
+
+**2. Crontab fora por enquanto.** Nenhum crontab será instalado. Resumo de preços, Ordem de Ação, lembrete de 7 dias e lista de compras saem só pelos botões. As rotas `/api/cron/*` e `scripts/crontab-whatsapp.example` continuam no código, sem uso. Onde as seções acima dizem "instalar a linha do crontab", vale esta decisão: não é mais pendência.
+
+## Lista de compras por embalagem de compra (2026-11-05) — IMPLEMENTADO NO CÓDIGO, migração 0015 e dados NÃO aplicados
+
+Decisões do Pedro, 2026-11-05. Problema: o insumo só tem a unidade de uso, e a lista dizia "Pão de Alho: 69 Unidade".
+- **Modelo:** duas colunas nulas em `insumos`, `embalagem_compra_nome` e `embalagem_compra_qtd` (na unidade do insumo), com CHECK (as duas nulas ou nome preenchido e quantidade > 0). Migração `drizzle/0015_embalagem_compra.sql`, só aditiva. Insumo sem embalagem segue como antes.
+- **Lista (tela e PDF; o WhatsApp só leva o PDF):** "12 | bandejas (69 unidades)". As embalagens são `ceil(quantidade já arredondada / quantidade da embalagem)`. A sobra não aparece. Custo, ficha técnica e dimensionamento não mudam (a lista nem mostra valor).
+- **Arredondamento em KG e Litro:** abaixo de 1, passos de 0,01; a partir de 1, passos de 0,1. Unidade e Maço continuam inteiros. "Pacote" e "Lata" saíram de `UNIDADES_INTEIRAS` (não existem no enum).
+- **Formulário de insumo (edição):** campos opcionais "Nome da embalagem" e "Quantidade por embalagem"; os dois vazios ou os dois preenchidos. Só aparecem com a migração aplicada. A criação rápida de insumo dentro do preparo não tem os campos.
+- **Sem a 0015 no banco** a lista e a tela de insumo funcionam como antes (consulta própria com try/catch em `src/lib/embalagem-insumo.ts`).
+- **Dados:** `scripts/dados-0015-embalagens-compra.sql` (14 insumos, valores do Pedro). Sem valor definido, ficam sem embalagem: Pão de Alho Tradicional, Ovo, Pão de Baguete, Pão Francês.
+- **Aplicação:** dump validado, 0015, depois os dados, depois o deploy, com o ok do Pedro em cada passo.

@@ -36,7 +36,18 @@ export const insumos = pgTable("insumos", {
   /** De onde veio o valor atual de `preco` (mesma lista de historico_precos.fonte). */
   fontePreco: text("fonte_preco"),
   precoAtualizadoEm: timestamp("preco_atualizado_em", { withTimezone: true }),
+  /**
+   * Migração 0015 — embalagem de COMPRA (só a lista de compras usa; custo e dimensionamento não).
+   * Nome (ex.: "bandeja") e quantidade por embalagem na unidade do insumo (ex.: 6 Unidade, 0,5 KG).
+   * Lidas e gravadas só por src/lib/embalagem-insumo.ts, com try/catch (fora das consultas de src/lib/insumos.ts).
+   */
+  embalagemCompraNome: text("embalagem_compra_nome"),
+  embalagemCompraQtd: numeric("embalagem_compra_qtd", { precision: 10, scale: 3 }),
 }, (t) => [
+  check(
+    "insumos_embalagem_compra_check",
+    sql`(${t.embalagemCompraNome} IS NULL AND ${t.embalagemCompraQtd} IS NULL) OR (${t.embalagemCompraNome} IS NOT NULL AND ${t.embalagemCompraQtd} > 0)`,
+  ),
   check("insumos_canal_check", sql`${t.canal} IS NULL OR ${t.canal} IN ('atacado', 'varejo')`),
   check(
     "insumos_fonte_preco_check",

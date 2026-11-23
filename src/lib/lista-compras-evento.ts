@@ -1,5 +1,6 @@
 import "server-only";
 import type { FichaTecnicaEscalada } from "@/lib/ficha-tecnica-evento";
+import { converterParaEmbalagens, type CompraEmEmbalagens, type EmbalagemCompra } from "@/lib/embalagem-compra";
 
 /**
  * Lista de compras do evento. Parte da MESMA escala da Ficha Técnica
@@ -12,6 +13,8 @@ export type DadosInsumoCompra = {
   preco: number | null;
   /** null/vazio/<= 0 = usa 1 e marca "sem fator". */
   fatorCorrecao: number | null;
+  /** Embalagem de compra (migração 0015). Ausente/null = sem embalagem, a lista mostra só a unidade do insumo. */
+  embalagem?: EmbalagemCompra | null;
 };
 
 export type ItemListaCompras = {
@@ -22,9 +25,11 @@ export type ItemListaCompras = {
   quantidadeCompra: number;
   semPreco: boolean;
   semFator: boolean;
+  /** Presente só quando o insumo tem embalagem de compra. `quantidadeCompra` segue na unidade do insumo. */
+  embalagem?: CompraEmEmbalagens;
 };
 
-const UNIDADES_INTEIRAS = new Set(["unidade", "maço", "maco", "pacote", "lata"]);
+const UNIDADES_INTEIRAS = new Set(["unidade", "maço", "maco"]);
 const UNIDADES_DECIMAIS = new Set(["kg", "litro"]);
 
 /** Sobe para o múltiplo de `passo`, ignorando ruído de ponto flutuante. */
@@ -33,11 +38,14 @@ function subirPara(valor: number, passo: number): number {
   return Number((passos * passo).toFixed(6));
 }
 
-/** Unidade, Maço, Pacote e Lata: inteiro. KG e Litro: passos de 0,1. Outra: 0,01 (não inventa regra). */
+/**
+ * Unidade e Maço: inteiro. KG e Litro: abaixo de 1, passos de 0,01 (tempero de gramas não vira 0,1 kg);
+ * a partir de 1, passos de 0,1. Outra: 0,01 (não inventa regra).
+ */
 export function arredondarCompra(quantidade: number, unidade: string): number {
   const u = unidade.trim().toLowerCase();
   if (UNIDADES_INTEIRAS.has(u)) return subirPara(quantidade, 1);
-  if (UNIDADES_DECIMAIS.has(u)) return subirPara(quantidade, 0.1);
+  if (UNIDADES_DECIMAIS.has(u)) return subirPara(quantidade, quantidade < 1 ? 0.01 : 0.1);
   return subirPara(quantidade, 0.01);
 }
 
@@ -71,13 +79,16 @@ export function calcularListaCompras(
   return [...bruto.entries()]
     .map(([insumoId, v]) => {
       const preco = dadosInsumo.get(insumoId)?.preco;
+      const quantidadeCompra = arredondarCompra(v.soma, v.unidade);
+      const embalagem = converterParaEmbalagens(quantidadeCompra, dadosInsumo.get(insumoId)?.embalagem);
       return {
         insumoId,
         nome: v.nome,
         unidade: v.unidade,
-        quantidadeCompra: arredondarCompra(v.soma, v.unidade),
+        quantidadeCompra,
         semPreco: preco == null || !Number.isFinite(preco),
         semFator: v.semFator,
+        ...(embalagem ? { embalagem } : {}),
       };
     })
     .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
@@ -111,8 +122,18 @@ export async function obterListaComprasEvento(eventoId: number): Promise<ListaCo
         .from(insumos)
         .where(inArray(insumos.id, ids))
     : [];
+  // Embalagem em consulta própria, com try/catch: sem a migração 0015 a lista sai como antes.
+  const { obterEmbalagensCompra } = await import("@/lib/embalagem-insumo");
+  const embalagens = await obterEmbalagensCompra(ids);
   const dados = new Map(
-    linhas.map((l) => [l.id, { preco: numeroOuNull(l.preco), fatorCorrecao: numeroOuNull(l.fatorCorrecao) }]),
+    linhas.map((l) => [
+      l.id,
+      {
+        preco: numeroOuNull(l.preco),
+        fatorCorrecao: numeroOuNull(l.fatorCorrecao),
+        embalagem: embalagens.get(l.id) ?? null,
+      },
+    ]),
   );
   return { itens: calcularListaCompras(fichas, dados), temCardapioConfirmado: true };
 }

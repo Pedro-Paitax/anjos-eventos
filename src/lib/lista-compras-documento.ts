@@ -2,6 +2,7 @@ import "server-only";
 import { obterEvento, type Evento } from "@/lib/eventos";
 import { formatarData } from "@/lib/formatacao";
 import { obterListaComprasEvento, type ItemListaCompras } from "@/lib/lista-compras-evento";
+import { linhaDeCompra } from "@/lib/lista-compras-exibicao";
 import { gerarListaComprasPdf } from "@/lib/lista-compras-pdf";
 
 export type DocumentoListaCompras = {
@@ -43,8 +44,7 @@ export function gerarPdfDoDocumento(doc: DocumentoListaCompras): Promise<Uint8Ar
     geradoEm,
     itens: doc.itens.map((i) => ({
       nome: i.nome,
-      unidade: i.unidade,
-      quantidadeCompra: i.quantidadeCompra,
+      ...linhaDeCompra(i),
       semPreco: i.semPreco,
       semFator: i.semFator,
     })),

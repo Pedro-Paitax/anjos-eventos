@@ -18,6 +18,7 @@ import {
 import { atualizarInsumoAction } from "@/app/actions/insumo";
 import { aplicarPrecoAction, registrarPrecoAction } from "@/app/actions/precos";
 import { CabecalhoPagina } from "@/components/cabecalho-pagina";
+import { obterEmbalagemCompraDoInsumo } from "@/lib/embalagem-insumo";
 import { FormularioInsumo, type OrigemFormularioInsumo } from "@/components/formulario-insumo";
 import { FormularioRegistroPreco } from "@/components/precos/formulario-registro-preco";
 import { ListaPrecos } from "@/components/precos/visual";
@@ -58,6 +59,7 @@ export default async function InsumoPage({ params, searchParams }: PaginaInsumoP
     dataSource() === "oracle"
       ? await Promise.all([obterPrecosDoInsumo(insumo.id), listarFornecedoresOpcoes()])
       : [null, null];
+  const embalagem = dataSource() === "oracle" ? await obterEmbalagemCompraDoInsumo(insumo.id) : undefined;
   const hoje = hojeNaEquipe();
 
   const atualizarComId = atualizarInsumoAction.bind(null, insumo.id);
@@ -81,7 +83,7 @@ export default async function InsumoPage({ params, searchParams }: PaginaInsumoP
   const menorPreco = precos?.porFornecedor[0]?.preco ?? null;
   const precoAplicadoNumero = precoAplicado ? Number(precoAplicado) : null;
   // Remonta o formulário quando o preço muda por fora dele (campos não controlados guardam o valor antigo).
-  const chaveFormulario = `${insumo.preco}-${precos?.origem.precoAtualizadoEm ?? ""}`;
+  const chaveFormulario = `${insumo.preco}-${precos?.origem.precoAtualizadoEm ?? ""}-${embalagem?.nome ?? ""}-${embalagem?.quantidade ?? ""}`;
 
   return (
     <main className="mx-auto flex w-full max-w-pagina-documento flex-col gap-8">
@@ -106,6 +108,7 @@ export default async function InsumoPage({ params, searchParams }: PaginaInsumoP
           action={atualizarComId}
           rotuloEnvio="Salvar alterações"
           origem={origem}
+          embalagem={embalagem}
         />
       </Painel>
 

@@ -35,9 +35,9 @@ const LARGURA = 595;
 const ALTURA = 842;
 const MARGEM = 40;
 const LARGURA_UTIL = LARGURA - MARGEM * 2;
-const COL_INSUMO = 285;
+const COL_INSUMO = 215;
 const COL_QTD = 85;
-const COL_UNIDADE = 80;
+const COL_UNIDADE = 150; // cabe "bandejas (69 unidades)"
 const TAMANHO_TEXTO = 10;
 const ENTRELINHA = 13;
 const PADDING_LINHA = 6;
@@ -140,7 +140,8 @@ export async function gerarListaComprasPdf(d: DadosListaComprasPdf): Promise<Uin
       .join(" | ");
     const larguraMarcas = marcas ? normal.widthOfTextAtSize(marcas, 7) + 8 : 0;
     const linhasNome = quebrar(item.nome, normal, TAMANHO_TEXTO, COL_INSUMO - 8 - larguraMarcas);
-    const altura = Math.max(linhasNome.length * ENTRELINHA + PADDING_LINHA * 2 - 2, LADO_CAIXA + PADDING_LINHA * 2);
+    const linhasUnidade = quebrar(item.unidade, normal, TAMANHO_TEXTO, COL_UNIDADE - 14);
+    const altura = Math.max(Math.max(linhasNome.length, linhasUnidade.length) * ENTRELINHA + PADDING_LINHA * 2 - 2, LADO_CAIXA + PADDING_LINHA * 2);
 
     // Nunca corta a linha entre páginas: se não cabe, a linha inteira vai para a próxima.
     if (y - altura < LIMITE_INFERIOR) {
@@ -154,7 +155,7 @@ export async function gerarListaComprasPdf(d: DadosListaComprasPdf): Promise<Uin
 
     const qtd = formatarQuantidadeCompra(item.quantidadeCompra);
     texto(qtd, x2 + COL_QTD - 4 - normal.widthOfTextAtSize(qtd, TAMANHO_TEXTO), topo - 9, normal);
-    texto(item.unidade, x3 + 10, topo - 9, normal);
+    linhasUnidade.forEach((t, i) => texto(t, x3 + 10, topo - 9 - i * ENTRELINHA, normal));
     pagina.drawRectangle({
       x: x4 + 16,
       y: y - altura / 2 - LADO_CAIXA / 2,

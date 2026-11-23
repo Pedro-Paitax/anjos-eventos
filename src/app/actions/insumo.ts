@@ -7,6 +7,8 @@ import { atualizarOrigemInsumo } from "@/lib/precos-insumo";
 import { CANAIS_COMPRA, ehUm } from "@/lib/precos-opcoes";
 import { obterUsuarioAtual } from "@/lib/usuario-atual";
 import { valoresEnviados, type ValoresFormulario } from "@/lib/formulario-valores";
+import { validarEmbalagem } from "@/lib/embalagem-compra";
+import { gravarEmbalagemCompra } from "@/lib/embalagem-insumo";
 import { UNIDADES_INSUMO, type UnidadeInsumo } from "@/lib/preparos-opcoes";
 
 export type EstadoFormularioInsumo = { erro?: string; valores?: ValoresFormulario };
@@ -42,6 +44,14 @@ export async function atualizarInsumoAction(
   const dados = extrairDadosInsumo(formData);
   if ("erro" in dados) return { ...dados, valores: valoresEnviados(formData) };
 
+  // Embalagem de compra (migração 0015): os campos só vêm no formulário quando a coluna existe.
+  const temEmbalagem = formData.has("embalagemNome");
+  const embalagem = validarEmbalagem(
+    String(formData.get("embalagemNome") ?? ""),
+    String(formData.get("embalagemQtd") ?? ""),
+  );
+  if (temEmbalagem && "erro" in embalagem) return { erro: embalagem.erro, valores: valoresEnviados(formData) };
+
   // Campos da migração 0011: só vêm no formulário quando o histórico de preços está ativo no banco.
   const temOrigem = formData.has("canal");
   const fornecedorBruto = String(formData.get("fornecedorPrincipalId") ?? "");
@@ -55,6 +65,7 @@ export async function atualizarInsumoAction(
   try {
     const anterior = temOrigem ? await obterInsumo(id) : null;
     await atualizarInsumo(id, dados);
+    if (temEmbalagem && "embalagem" in embalagem) await gravarEmbalagemCompra(id, embalagem.embalagem);
     if (temOrigem) {
       // Preço digitado aqui = fonte "manual", atualizado agora. Comparação em centavos (numeric(10,4) vs. campo de 2 casas).
       const precoMudou = Math.round((anterior?.preco ?? -1) * 100) !== Math.round(dados.preco * 100);
