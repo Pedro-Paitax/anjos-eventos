@@ -2831,3 +2831,14 @@ Branch `fix/erros-preco-exclusao`. Nada aplicado em produção.
 - **Validado localmente** (Postgres 16 descartável com migrações 0000–0016 e seed de auditoria): `tsc`, `eslint` nos arquivos alterados, `vitest` com TZ=UTC e TZ=America/Sao_Paulo e `next build`. Também 13 cenários no navegador: erro preserva campos, preço sem cardápio, hora gravada, exclusão com e sem bloqueio.
 - **Pendente (Pedro):** conferir em produção, só leitura, os eventos criados pela confirmação de orçamento antes do deploy. Podem estar com a hora +3h. Corrigir só com aprovação.
 - **Pendente (baixa):** a edição de evento ainda depende do fuso do servidor. Em São Paulo está certa; se o servidor mudar para UTC, ela desloca a hora.
+
+## 2026-11-24 — Deploy do PR #18 (D4, D5, D6 e hora da confirmação)
+
+Commit `3df3978` (merge do PR #18, fix `fc988cc`) em produção. Sem migração (`git diff a013d21..HEAD -- drizzle/ src/db/schema/` vazio).
+- **Verificador:** typegen, `tsc`, `eslint` e `vitest` (430 passaram, 34 ignorados) verdes antes do deploy.
+- **Dump pré-deploy:** `~/backups-anjos-eventos/pre-deploy/pre-deploy-3df3978-20261124-083800.dump` (a 1ª tentativa, que abortou no build antes de tocar em produção, deixou `...-083658.dump`).
+- **Contagens:** antes e depois iguais — eventos=4, orcamentos=4, itens_evento_confirmados=48.
+- **Checagem mínima:** `/login` 200 por localhost e IP Tailscale, `HOSTNAME=0.0.0.0`, socket em `0.0.0.0:3001`. Smoke completo não executado. Sem rollback.
+- **Backup do bundle no Oracle:** `/home/opc/anjos-eventos-app-backup-20261124-084542.tgz`.
+- **Ender:** sem acesso ao GitHub; o commit foi enviado desta máquina para `refs/remotes/origin/master` do clone `/srv/share/anjos_eventos`, sem tocar na working tree.
+- **Consulta só leitura dos eventos de orçamentos Aceitos** (4): ids 14, 16, 17 e 18, nenhum editado depois da criação. Decisão de corrigir a hora (+3h) é do Pedro; nenhum dado foi alterado.
