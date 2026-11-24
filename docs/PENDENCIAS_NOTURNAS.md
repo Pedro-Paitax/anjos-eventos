@@ -2842,3 +2842,9 @@ Commit `3df3978` (merge do PR #18, fix `fc988cc`) em produção. Sem migração 
 - **Backup do bundle no Oracle:** `/home/opc/anjos-eventos-app-backup-20261124-084542.tgz`.
 - **Ender:** sem acesso ao GitHub; o commit foi enviado desta máquina para `refs/remotes/origin/master` do clone `/srv/share/anjos_eventos`, sem tocar na working tree.
 - **Consulta só leitura dos eventos de orçamentos Aceitos** (4): ids 14, 16, 17 e 18, nenhum editado depois da criação. Decisão de corrigir a hora (+3h) é do Pedro; nenhum dado foi alterado.
+
+## 2026-11-24 — Contrato do Senhor Churrasco (branch, sem deploy)
+
+Branch `contrato-senhor-churrasco`. Nada aplicado em produção; não há migração.
+- **Pendente (Pedro):** decidir se a precificação deve deixar criança até 5 anos de graça, como diz o contrato (`docs/REGRAS_NEGOCIO.md`, seção 21, "Conflito conhecido"). Até lá, a tela do evento avisa quando o total não bate com os itens.
+- **Pendente (Pedro):** revisão do texto por um advogado.

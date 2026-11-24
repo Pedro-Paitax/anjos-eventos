@@ -1,6 +1,6 @@
 import { PDFDocument } from "pdf-lib";
 import type { Evento } from "@/lib/eventos";
-import { montarDadosContratoSenhorChurrasco } from "@/lib/contrato-senhor-churrasco-dados";
+import { contratoDivergeDoTotal, montarDadosContratoSenhorChurrasco } from "@/lib/contrato-senhor-churrasco-dados";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const { obterUsuarioAtual, obterEvento, listarPreparosConfirmadosEvento } = vi.hoisted(() => ({
@@ -75,7 +75,7 @@ describe("GET /agenda/[id]/contrato/pdf", () => {
     expect(resposta.headers.get("cache-control")).toBe("private, no-store");
 
     const documento = await PDFDocument.load(await resposta.arrayBuffer());
-    expect(documento.getTitle()).toBe("Contrato de reserva de evento | Senhor Churrasco | Evento 42");
+    expect(documento.getTitle()).toBe("Contrato de prestação de serviços de buffet | Senhor Churrasco | Evento 42");
     expect(documento.getPageCount()).toBeGreaterThanOrEqual(1);
   });
 
@@ -86,37 +86,83 @@ describe("GET /agenda/[id]/contrato/pdf", () => {
     expect(documento.getTitle()).toBe("Minuta de contrato - Evento 42");
   });
 
-  it("apresenta dados salvos, agrupa o cardápio e preserva o total do evento", () => {
-    const dados = montarDadosContratoSenhorChurrasco({
-      ...evento,
-      qtd_adultos: 50,
-      qtd_criancas_ate_5: 4,
-      qtd_criancas_5_a_10: 6,
-      preco_pessoa: "100",
-      preco_crianca_meia: "50",
-      qtd_garcons: 2,
-      valor_garcom: "200",
-      taxa_deslocamento: "150",
-      valor: "6050",
-      chave_pix: "pagamento@example.com",
-    } as Evento, [
-      { preparoNome: "Farofa", categoria: "Guarnições" },
-      { preparoNome: "Salada de folhas", categoria: "Saladas" },
+  const completo = {
+    ...evento,
+    qtd_adultos: 50,
+    qtd_criancas_ate_5: 4,
+    qtd_criancas_5_a_10: 6,
+    preco_pessoa: "100",
+    preco_crianca_meia: "50",
+    qtd_garcons: 2,
+    valor_garcom: "200",
+    taxa_deslocamento: "150",
+    valor: "5850",
+    chave_pix: "pagamento@example.com",
+  } as Evento;
+  const preparosCompleto = [
+    { preparoNome: "Farofa", categoria: "Guarnições" },
+    { preparoNome: "Salada de folhas", categoria: "Saladas" },
+  ];
+  const textoDe = (dados: ReturnType<typeof montarDadosContratoSenhorChurrasco>) =>
+    dados.secoes.flatMap((s) => s.blocos.map((b) => b.rotulo + " " + b.texto)).join("\n").replace(/\u00a0/g, " ");
+
+  it("monta o contrato com cardápio, sinal de 25% e anexo com crianças até 5 anos gratuitas", () => {
+    const dados = montarDadosContratoSenhorChurrasco(completo, preparosCompleto);
+    const texto = textoDe(dados);
+    expect(dados.servicoCompleto).toBe(true);
+    expect(dados.partes[1][1]).toContain("12.693.950/0001-28");
+    expect(texto).toContain("contará com 60 convidados: 50 adultos, 6 crianças de 5 a 10 anos e 4 crianças até 5 anos.");
+    expect(texto).toContain("Saladas e acompanhamentos: Farofa, Salada de folhas.");
+    expect(texto).toContain("R$ 100,00 (cem reais) por pessoa");
+    expect(texto).toContain("2 (dois) garçons, pelo valor de R$ 400,00 (quatrocentos reais)");
+    expect(texto).toContain("quantia total de R$ 5.850,00 (cinco mil oitocentos e cinquenta reais), já incluída a taxa de deslocamento de R$ 150,00");
+    expect(texto).toContain("na chave pagamento@example.com");
+    expect(texto).toContain("no valor de R$ 1.462,50 (mil quatrocentos e sessenta e dois reais e cinquenta centavos)");
+    expect(texto).toContain("R$ 4.387,50");
+    expect(texto).toContain("ou seja, até 11/12/2026.");
+    expect(texto).toContain("R$ 28,00, R$ 24,00 e R$ 16,00");
+    expect(texto).toContain("Cláusula 5ª. A CONTRATANTE deverá efetuar o pagamento na forma e nas condições estabelecidas na Cláusula 9ª.");
+    expect(texto).toContain("pelo número confirmado na Cláusula 2ª.");
+    expect(texto).toContain("receberá de volta 50% (cinquenta por cento) do sinal");
+    expect(texto).toContain("Cláusula 19ª. Para dirimir");
+    expect(dados.anexo.itens).toContainEqual(["Crianças até 5 anos", 4, 0, 0]);
+    expect(dados.anexo.itens).toContainEqual(["Garçons", 2, 200, 400]);
+    expect(dados.anexo.total).toMatch(/5\.850,00/);
+    expect(dados.anexo.parcelas).toEqual([
+      ["Sinal (25%) · na assinatura", expect.stringMatching(/1\.462,50/)],
+      ["Restante · até 11/12/2026", expect.stringMatching(/4\.387,50/)],
     ]);
-    expect(dados.principais).toContainEqual(["Convidados", "60 pessoas", true]);
-    expect(dados.cardapio).toContainEqual(["Saladas e acompanhamentos", "Farofa, Salada de folhas"]);
-    expect(dados.itens).toContainEqual(["Crianças de 0 a 5 anos", 4, 50, 200]);
-    expect(dados.itens).toContainEqual(["Garçons", 2, 200, 400]);
-    expect(dados.total).toMatch(/6\.050,00/);
-    expect(dados.detalhamentoDiverge).toBe(false);
-    expect(dados.pagamento).toContainEqual(["Vencimento", "15/12/2026"]);
+    expect(contratoDivergeDoTotal(completo)).toBe(false);
   });
 
-  it("mantém em aberto o preço da faixa menor em registros legados", () => {
-    const dados = montarDadosContratoSenhorChurrasco({
-      ...evento, qtd_criancas_ate_5: 4, preco_crianca_meia: "50",
-    } as Evento, []);
-    expect(dados.itens).toContainEqual(["Crianças de 0 a 5 anos", 4, null, null]);
+  it("sem cardápio é só taxa: pagamento integral no dia, sem sinal, sem cláusulas de sinal", () => {
+    const dados = montarDadosContratoSenhorChurrasco({ ...completo, cardapio_entrada: null }, []);
+    const texto = textoDe(dados);
+    expect(dados.servicoCompleto).toBe(false);
+    expect(dados.secoes.map((s) => s.titulo)).not.toContain("Do cardápio");
+    expect(texto).toContain("será pago integralmente no dia do evento, por PIX, na chave pagamento@example.com, sem sinal.");
+    expect(texto).not.toContain("sinal de 25%");
+    expect(texto).not.toContain("Do inadimplemento");
+    expect(texto).toContain("poderá ser remarcada, sem custo");
+    expect(texto).toContain("Cláusula 4ª. A CONTRATANTE deverá efetuar o pagamento na forma e nas condições estabelecidas na Cláusula 8ª.");
+    expect(dados.anexo.parcelas).toEqual([["Pagamento integral · no dia do evento", expect.stringMatching(/5\.850,00/)]]);
+  });
+
+  it("deixa lacunas quando faltam total, chave PIX e endereço", () => {
+    const dados = montarDadosContratoSenhorChurrasco(
+      { ...completo, valor: null, chave_pix: null, endereco_evento: null },
+      preparosCompleto,
+    );
+    const texto = textoDe(dados);
+    expect(texto).toContain("no endereço ____");
+    expect(texto).toContain("quantia total de R$ ____");
+    expect(texto).toContain("na chave informada pela CONTRATADA");
+    expect(dados.anexo.parcelas[0][1]).toBe("A preencher");
+  });
+
+  it("acusa a divergência só fora do PDF quando o total não bate com os itens", () => {
+    expect(contratoDivergeDoTotal({ ...completo, valor: "6050" })).toBe(true);
+    expect(contratoDivergeDoTotal({ ...completo, valor: null })).toBe(false);
   });
 
   it("pagina cardápios extensos e aceita dados opcionais ausentes", async () => {

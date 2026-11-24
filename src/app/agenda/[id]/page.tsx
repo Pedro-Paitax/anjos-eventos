@@ -35,6 +35,7 @@ import { Alerta } from "@/components/alerta";
 import { ChecklistCarregamentoEvento } from "@/components/checklist-carregamento-evento";
 import { MENSAGEM_SITUACAO, situacaoChecklist } from "@/lib/checklist-carregamento-dados";
 import { numerosFamilia } from "@/lib/automacao-whatsapp";
+import { contratoDivergeDoTotal } from "@/lib/contrato-senhor-churrasco-dados";
 import type { Metadata } from "next";
 
 /** Por que o checklist de carregamento não pode sair agora; null = pode. Nunca derruba a tela. */
@@ -135,6 +136,13 @@ export default async function EventoPage({ params }: PaginaEventoProps) {
           </div>
         }
       />
+
+      {ehChurrasco && evento.status === "confirmado" && contratoDivergeDoTotal(evento) && (
+        <Alerta tipo="aviso">
+          O valor do evento não bate com a soma dos itens do contrato (convidados, garçons e taxa de deslocamento;
+          crianças até 5 anos não pagam). O contrato usa o valor do evento como total: confira antes de gerar.
+        </Alerta>
+      )}
 
       <Painel>
         {ehChurrasco ? (
