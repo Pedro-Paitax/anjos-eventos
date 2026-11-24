@@ -2848,3 +2848,13 @@ Commit `3df3978` (merge do PR #18, fix `fc988cc`) em produção. Sem migração 
 Branch `contrato-senhor-churrasco`. Nada aplicado em produção; não há migração.
 - **Pendente (Pedro):** decidir se a precificação deve deixar criança até 5 anos de graça, como diz o contrato (`docs/REGRAS_NEGOCIO.md`, seção 21, "Conflito conhecido"). Até lá, a tela do evento avisa quando o total não bate com os itens.
 - **Pendente (Pedro):** revisão do texto por um advogado.
+
+## 2026-11-24 — Deploy do PR #19 (contrato do Senhor Churrasco)
+
+Commit `19732f8` (merge do PR #19) em produção. Sem migração (`git diff 4bb7698..HEAD -- drizzle/ src/db/schema/` vazio).
+- **Verificador:** typegen, `tsc`, `eslint` e `vitest` (457 passaram, 34 ignorados) verdes.
+- **Dump pré-deploy:** `~/backups-anjos-eventos/pre-deploy/pre-deploy-19732f8-20261124-185111.dump`. Backup do bundle: `/home/opc/anjos-eventos-app-backup-20261124-185401.tgz`.
+- **Contagens:** antes e depois iguais — eventos=6, orcamentos=7, itens_evento_confirmados=66.
+- **Checagem mínima:** `/login` 200 por localhost e IP Tailscale, `HOSTNAME=0.0.0.0`, socket em `0.0.0.0:3001`. Smoke completo não executado. Sem rollback.
+- **Script de deploy:** havia uma alteração local sem commit em `scripts/deploy-oracle.sh` (`cd` para a raiz e checagem do `.env`/`DATABASE_URL`). Descartada por ordem do Pedro; cópia do diff no scratchpad da sessão.
+- **Fuso (só leitura):** `eventos.data_evento` é `timestamp without time zone`; `SHOW timezone` do Postgres = `GMT`; o processo do app no pm2 não define `TZ` e o sistema do Oracle está em GMT. Evento 19: `data_evento` = `2026-11-28 04:30:00`, `created_at` = `2026-11-24 12:15:01.242939`.
