@@ -1,17 +1,24 @@
 "use client";
 
+import { useActionState } from "react";
+import type { EstadoFormularioOrcamento } from "@/app/actions/orcamento";
+import { Alerta } from "@/components/alerta";
 import { secaoTituloClasse } from "@/components/formulario-evento";
 import { Campo } from "@/components/campo";
 import { BotaoEnviar } from "@/components/botao-enviar";
 
 type FormularioOrcamentoGenericoProps = {
   empresaId: number;
-  action: (formData: FormData) => void;
+  action: (estadoAnterior: EstadoFormularioOrcamento, formData: FormData) => Promise<EstadoFormularioOrcamento>;
 };
 
 export function FormularioOrcamentoGenerico({ empresaId, action }: FormularioOrcamentoGenericoProps) {
+  // Em erro, a ação devolve o que foi digitado e o formulário mostra de novo (D4).
+  const [estado, formAction] = useActionState(action, {});
+  const v = (campo: string) => estado.valores?.[campo];
+
   return (
-    <form action={action} className="flex flex-col gap-8">
+    <form action={formAction} className="flex flex-col gap-8">
       <input type="hidden" name="empresaId" value={empresaId} />
 
       <p className="text-sm text-texto-suave">
@@ -23,7 +30,7 @@ export function FormularioOrcamentoGenerico({ empresaId, action }: FormularioOrc
         <h3 className={secaoTituloClasse}>Dados do cliente</h3>
         <Campo rotulo="Cliente">
           {(p) => (
-            <input {...p} name="clienteNome" type="text" required />
+            <input {...p} name="clienteNome" type="text" required defaultValue={v("clienteNome")} />
           )}
         </Campo>
       </section>
@@ -33,7 +40,7 @@ export function FormularioOrcamentoGenerico({ empresaId, action }: FormularioOrc
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
           <Campo rotulo="Adultos">
             {(p) => (
-              <input {...p} name="qtdAdultos" type="number" min={0} defaultValue={0} />
+              <input {...p} name="qtdAdultos" type="number" min={0} defaultValue={v("qtdAdultos") ?? 0} />
             )}
           </Campo>
           <Campo rotulo="Crianças até 5 anos">
@@ -42,7 +49,7 @@ export function FormularioOrcamentoGenerico({ empresaId, action }: FormularioOrc
                 name="qtdCriancasAte5"
                 type="number"
                 min={0}
-                defaultValue={0}
+                defaultValue={v("qtdCriancasAte5") ?? 0}
               />
             )}
           </Campo>
@@ -52,7 +59,7 @@ export function FormularioOrcamentoGenerico({ empresaId, action }: FormularioOrc
                 name="qtdCriancas5a10"
                 type="number"
                 min={0}
-                defaultValue={0}
+                defaultValue={v("qtdCriancas5a10") ?? 0}
               />
             )}
           </Campo>
@@ -69,10 +76,17 @@ export function FormularioOrcamentoGenerico({ empresaId, action }: FormularioOrc
               min={0}
               step="0.01"
               required
+              defaultValue={v("valorNegociado")}
             />
           )}
         </Campo>
       </section>
+
+      {estado.erro && (
+        <div role="alert">
+          <Alerta tipo="perigo">{estado.erro}</Alerta>
+        </div>
+      )}
 
       <BotaoEnviar rotulo="Gerar Orçamento" className="w-full sm:w-auto sm:self-start" />
     </form>

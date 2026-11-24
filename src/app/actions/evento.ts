@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import {
   atualizarEvento,
   excluirEvento,
@@ -110,12 +111,26 @@ export async function atualizarEventoAction(id: number, formData: FormData) {
  * confirmação ("tem certeza?") acontece no client, antes desta action ser
  * chamada (ver BotaoExcluirEvento).
  */
-export async function excluirEventoAction(id: number) {
+/**
+ * Devolve { erro } quando a exclusão é recusada ou falha (em produção o Next
+ * oculta a mensagem de erros lançados por Server Actions). Sucesso → /agenda.
+ */
+export async function excluirEventoAction(id: number): Promise<{ erro: string }> {
   const usuarioAtual = await obterUsuarioAtual();
   if (!usuarioAtual) {
     redirect("/login");
   }
 
-  await excluirEvento(id);
+  let resultado: { erro: string } | null;
+  try {
+    resultado = await excluirEvento(id);
+  } catch (e) {
+    console.error("[excluirEventoAction]", e);
+    return { erro: "Não foi possível excluir o evento. Nada foi apagado; tente de novo." };
+  }
+  if (resultado) return resultado;
+
+  revalidatePath("/agenda");
+  revalidatePath("/");
   redirect("/agenda");
 }

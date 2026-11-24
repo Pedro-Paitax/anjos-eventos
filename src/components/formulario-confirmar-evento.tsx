@@ -1,6 +1,10 @@
 "use client";
 
+import { useActionState } from "react";
+import { Alerta } from "@/components/alerta";
+import type { EstadoFormularioOrcamento } from "@/app/actions/orcamento";
 import { campoClasse, rotuloClasse, secaoTituloClasse } from "@/components/formulario-evento";
+import { ehEmpresaSenhorChurrasco } from "@/lib/empresa-buffet";
 import { Campo } from "@/components/campo";
 import type { OrcamentoResumo } from "@/lib/orcamentos";
 import { sugerirQuantidadeAssador } from "@/lib/precificacao-constantes";
@@ -17,7 +21,7 @@ type PrecificacaoChurrasco = {
 
 type FormularioConfirmarEventoProps = {
   orcamento: OrcamentoResumo;
-  action: (formData: FormData) => void;
+  action: (estadoAnterior: EstadoFormularioOrcamento, formData: FormData) => Promise<EstadoFormularioOrcamento>;
   /**
    * Calculada no servidor (mesma calcularPrecificacaoParaEvento usada na
    * confirmação de verdade, src/lib/orcamentos.ts) a partir do preço já
@@ -40,34 +44,39 @@ function formatarMoeda(valor: number): string {
  * preço fixo não respeitado, 2026-09-28).
  */
 export function FormularioConfirmarEvento({ orcamento, action, precificacaoChurrasco }: FormularioConfirmarEventoProps) {
-  const ehChurrasco = orcamento.itens.length > 0;
+  const ehChurrasco = ehEmpresaSenhorChurrasco(orcamento.empresaNome);
+  // Em erro, a ação devolve o que foi digitado e o formulário mostra de novo
+  // (antes a tela caía e tudo se perdia — auditoria de 23/11, D4).
+  const [estado, formAction] = useActionState(action, {});
+  const v = (campo: string) => estado.valores?.[campo];
 
   return (
-    <form action={action} className="flex flex-col gap-8">
+    <form action={formAction} className="flex flex-col gap-8">
+      {estado.erro && <Alerta tipo="perigo">{estado.erro}</Alerta>}
       <section className="flex flex-col gap-5">
         <h3 className={secaoTituloClasse}>Dados do cliente</h3>
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
           <Campo rotulo="Contato (se diferente do cliente)">
             {(p) => (
-              <input {...p} name="contato" type="text" />
+              <input {...p} name="contato" defaultValue={v("contato")} type="text" />
             )}
           </Campo>
           <Campo rotulo="Celular">
             {(p) => (
-              <input {...p} name="telefone" type="text" />
+              <input {...p} name="telefone" defaultValue={v("telefone")} type="text" />
             )}
           </Campo>
         </div>
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
           <Campo rotulo="Endereço do evento">
             {(p) => (
-              <input {...p} name="enderecoEvento" type="text" />
+              <input {...p} name="enderecoEvento" defaultValue={v("enderecoEvento")} type="text" />
             )}
           </Campo>
           <Campo rotulo="Tipo de evento">
             {(p) => (
               <input {...p}
-                name="tipoEvento"
+                name="tipoEvento" defaultValue={v("tipoEvento")}
                 type="text"
                 placeholder="Casamento, aniversário, corporativo..."
               />
@@ -80,28 +89,28 @@ export function FormularioConfirmarEvento({ orcamento, action, precificacaoChurr
         <h3 className={secaoTituloClasse}>Datas e horários</h3>
         <Campo rotulo="Data e hora">
           {(p) => (
-            <input {...p} name="dataEvento" type="datetime-local" required />
+            <input {...p} name="dataEvento" defaultValue={v("dataEvento")} type="datetime-local" required />
           )}
         </Campo>
         <div className="grid grid-cols-2 gap-5 sm:grid-cols-4">
           <Campo rotulo="Chegada da equipe">
             {(p) => (
-              <input {...p} name="horaChegadaEquipe" type="time" />
+              <input {...p} name="horaChegadaEquipe" defaultValue={v("horaChegadaEquipe")} type="time" />
             )}
           </Campo>
           <Campo rotulo="Aperitivo">
             {(p) => (
-              <input {...p} name="horaAperitivo" type="time" />
+              <input {...p} name="horaAperitivo" defaultValue={v("horaAperitivo")} type="time" />
             )}
           </Campo>
           <Campo rotulo="Almoço">
             {(p) => (
-              <input {...p} name="horaAlmoco" type="time" />
+              <input {...p} name="horaAlmoco" defaultValue={v("horaAlmoco")} type="time" />
             )}
           </Campo>
           <Campo rotulo="Limpeza/encerramento">
             {(p) => (
-              <input {...p} name="horaEncerramento" type="time" />
+              <input {...p} name="horaEncerramento" defaultValue={v("horaEncerramento")} type="time" />
             )}
           </Campo>
         </div>
@@ -142,7 +151,7 @@ export function FormularioConfirmarEvento({ orcamento, action, precificacaoChurr
                 type="number"
                 min={0}
                 step="0.01"
-                defaultValue={orcamento.valorNegociado ?? ""}
+                defaultValue={v("valor") ?? orcamento.valorNegociado ?? ""}
               />
             )}
           </Campo>
@@ -154,19 +163,19 @@ export function FormularioConfirmarEvento({ orcamento, action, precificacaoChurr
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
           <Campo rotulo="Fornecedores">
             {(p) => (
-              <input {...p} name="qtdFornecedores" type="number" min={0} />
+              <input {...p} name="qtdFornecedores" defaultValue={v("qtdFornecedores")} type="number" min={0} />
             )}
           </Campo>
           {!ehChurrasco && (
             <Campo rotulo="Quantidade de garçons">
               {(p) => (
-                <input {...p} name="qtdGarcons" type="number" min={0} />
+                <input {...p} name="qtdGarcons" defaultValue={v("qtdGarcons")} type="number" min={0} />
               )}
             </Campo>
           )}
           <Campo rotulo="Quantidade de copeiras">
             {(p) => (
-              <input {...p} name="qtdCopeiras" type="number" min={0} />
+              <input {...p} name="qtdCopeiras" defaultValue={v("qtdCopeiras")} type="number" min={0} />
             )}
           </Campo>
         </div>
@@ -184,12 +193,12 @@ export function FormularioConfirmarEvento({ orcamento, action, precificacaoChurr
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
           <Campo rotulo="Prazo de pagamento">
             {(p) => (
-              <input {...p} name="prazoPagamento" type="date" />
+              <input {...p} name="prazoPagamento" defaultValue={v("prazoPagamento")} type="date" />
             )}
           </Campo>
           <Campo rotulo="Chave PIX">
             {(p) => (
-              <input {...p} name="chavePix" type="text" />
+              <input {...p} name="chavePix" defaultValue={v("chavePix")} type="text" />
             )}
           </Campo>
         </div>
@@ -197,7 +206,7 @@ export function FormularioConfirmarEvento({ orcamento, action, precificacaoChurr
           <label htmlFor="observacoes" className={rotuloClasse}>
             Observações gerais
           </label>
-          <textarea id="observacoes" name="observacoes" rows={4} className={campoClasse} />
+          <textarea id="observacoes" name="observacoes" defaultValue={v("observacoes")} rows={4} className={campoClasse} />
         </div>
       </section>
 
@@ -205,10 +214,12 @@ export function FormularioConfirmarEvento({ orcamento, action, precificacaoChurr
         <h3 className={secaoTituloClasse}>Contrato</h3>
         <Campo rotulo="Caminho do contrato (opcional)">
           {(p) => (
-            <input {...p} name="caminhoContrato" type="text" />
+            <input {...p} name="caminhoContrato" defaultValue={v("caminhoContrato")} type="text" />
           )}
         </Campo>
       </section>
+
+      {estado.erro && <Alerta tipo="perigo">{estado.erro}</Alerta>}
 
       <BotaoEnviar rotulo="Aprovar e Confirmar Evento" className="w-full sm:w-auto sm:self-start" />
     </form>

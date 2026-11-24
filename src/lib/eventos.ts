@@ -1,5 +1,6 @@
 import "server-only";
 import { pool } from "@/lib/db";
+import { motivoBloqueioExclusao } from "@/lib/exclusao-evento";
 
 export type StatusEvento = "orcado" | "confirmado" | "realizado" | "cancelado";
 
@@ -216,8 +217,68 @@ export async function criarEvento(dados: DadosEvento): Promise<number> {
   return rows[0].id;
 }
 
-export async function excluirEvento(id: number): Promise<void> {
-  await pool.query(`DELETE FROM eventos WHERE id = $1`, [id]);
+/**
+ * Exclui o evento e o que só existe por causa dele, numa transação:
+ * quantidades congeladas (itens_evento_confirmados), orçamentos ligados e
+ * seus itens. Decisões operacionais, equipe e contratos caem em cascata.
+ *
+ * Antes era um DELETE simples, que falhava na chave estrangeira de
+ * itens_evento_confirmados/orcamentos para todo evento criado pelo fluxo de
+ * orçamento (auditoria de 23/11, defeito D6). Recusa, sem apagar nada,
+ * depois de lista de compras ou Ordem de Ação enviadas (motivoBloqueioExclusao).
+ */
+export async function excluirEvento(id: number): Promise<{ erro: string } | null> {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const evento = await client.query(`SELECT id FROM eventos WHERE id = $1 FOR UPDATE`, [id]);
+    if (evento.rowCount === 0) {
+      await client.query("ROLLBACK");
+      return { erro: "Evento não encontrado. Talvez já tenha sido excluído." };
+    }
+
+    const { rows: marcas } = await client.query<{
+      lista_compras_enviada_em: Date | null;
+      ordens_disparadas_em: Date | null;
+    }>(
+      `SELECT lista_compras_enviada_em, ordens_disparadas_em
+         FROM decisoes_operacionais_evento WHERE evento_id = $1`,
+      [id]
+    );
+    const motivo = motivoBloqueioExclusao(
+      marcas[0]
+        ? { listaComprasEnviadaEm: marcas[0].lista_compras_enviada_em, ordensDisparadasEm: marcas[0].ordens_disparadas_em }
+        : null
+    );
+    if (motivo) {
+      await client.query("ROLLBACK");
+      return { erro: motivo };
+    }
+
+    const { rows: orcs } = await client.query<{ id: number }>(
+      `SELECT id FROM orcamentos WHERE evento_id = $1`,
+      [id]
+    );
+    const orcamentoIds = orcs.map((o) => o.id);
+
+    await client.query(
+      `DELETE FROM itens_evento_confirmados WHERE evento_id = $1 OR orcamento_origem_id = ANY($2::int[])`,
+      [id, orcamentoIds]
+    );
+    if (orcamentoIds.length > 0) {
+      await client.query(`DELETE FROM itens_orcamento WHERE orcamento_id = ANY($1::int[])`, [orcamentoIds]);
+      await client.query(`DELETE FROM orcamento_itens_adicionais WHERE orcamento_id = ANY($1::int[])`, [orcamentoIds]);
+      await client.query(`DELETE FROM orcamentos WHERE id = ANY($1::int[])`, [orcamentoIds]);
+    }
+    await client.query(`DELETE FROM eventos WHERE id = $1`, [id]);
+    await client.query("COMMIT");
+    return null;
+  } catch (e) {
+    await client.query("ROLLBACK").catch(() => {});
+    throw e;
+  } finally {
+    client.release();
+  }
 }
 
 export async function atualizarEvento(
