@@ -390,3 +390,22 @@ Regras completas em `docs/PROSPECCAO.md`. As que não podem ser quebradas:
 - personalização só com fato verificado; inferência nunca é apresentada como fato;
 - dimensão sem dado é "desconhecida" (não vale zero) e deixa a pontuação provisória;
 - taxa de resposta = leads que responderam ÷ leads com envio confirmado.
+
+---
+
+# 21. Contrato do Senhor Churrasco
+
+Decisões do Pedro em 2026-11-24. O botão "Gerar Contrato" (evento `confirmado`) gera o **Contrato de Prestação de Serviços de Buffet**, com o texto adaptado do contrato em Word que o Pedro usava, seguido do **Anexo I – Resumo do evento**. Código: `src/lib/contrato-senhor-churrasco-dados.ts` (texto e valores) e `src/lib/contrato-senhor-churrasco-pdf.ts` (PDF). As outras empresas continuam com a minuta antiga (`src/lib/contrato-evento-pdf.ts`).
+
+- **Contratada:** Senhor Churrasco (Pedro Paitax), CNPJ 12.693.950/0001-28, Rua Henrique Correia, nº 1399, Bairro Alto, CEP 82.840-270, Curitiba – PR, inscrição estadual isenta. Sem RG nem CPF do Pedro.
+- **Contratante:** nome do evento; CPF e endereço ficam em linha para preencher à mão. O sistema não guarda esses dados.
+- **Serviço completo × só taxa:** evento **com cardápio** (preparos confirmados ou texto de cardápio antigo) é serviço completo. **Sem cardápio** é só a taxa de serviço: pagamento integral no dia, sem sinal, sem as cláusulas de inadimplemento e cancelamento.
+- **Pagamento (serviço completo):** sinal de 25% do total, já com a taxa de deslocamento, na assinatura; o restante até 7 dias antes do evento (data calculada pela data do evento; o campo `prazo_pagamento` não entra no contrato). PIX na chave cadastrada no evento.
+- **Cancelamento:** pela contratante até 2 dias antes, devolve 50% do sinal e todo valor pago além dele; com menos de 2 dias, perde o sinal. Pela contratada, devolve 100%.
+- **Remarcação:** sem custo, com no mínimo 7 dias de antecedência e se houver data disponível.
+- **Quebras:** R$ 28 (prato), R$ 24 (pratinho) e R$ 16 (copo).
+- **Crianças:** até 5 anos não pagam; de 5 a 10 pagam meia. Profissionais pagam inteira.
+- **Tempo de serviço:** até 4 horas contadas do início do serviço; hora extra de R$ 50 por funcionário.
+- **Total:** o contrato usa sempre o valor do evento. Se ele não bater com a soma dos itens, o aviso aparece só na tela do evento, nunca no PDF.
+
+**Conflito conhecido:** a seção 3 ("Criança paga meia") não separa as faixas, e o contrato diz que criança até 5 anos não paga. Se o valor do evento foi calculado com meia para essa faixa, a tela do evento mostra o aviso de divergência. A precificação não foi alterada; isso precisa de decisão do Pedro.

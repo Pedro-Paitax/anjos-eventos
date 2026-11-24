@@ -1502,3 +1502,14 @@ Aprovado pelo Pedro em 2026-11-24, a partir da auditoria e do redesign da criaç
 - **Preço sem cardápio (D5).** O dimensionamento só roda para o Buffet Senhor Churrasco com cardápio. Antes, confirmar sem cardápio zerava o valor negociado. A regra "é Senhor Churrasco" ficou num lugar só (`src/lib/empresa-buffet.ts`).
 - **Exclusão (D6).** Transacional e bloqueada depois de lista de compras ou Ordem de Ação enviada. Ver `docs/REGRAS_NEGOCIO.md` §6.
 - **Hora do evento ao confirmar.** Com o servidor em São Paulo, a confirmação gravava a hora 3h adiantada (12:00 digitado virava 15:00). Agora grava o horário digitado, do mesmo jeito que a edição já fazia (`src/lib/data-evento.ts`). Eventos de produção criados pela confirmação de orçamento antes desta correção podem estar com +3h e precisam ser conferidos.
+
+---
+
+## Contrato do Senhor Churrasco a partir do contrato em Word (2026-11-24)
+
+O contrato gerado pelo botão "Gerar Contrato" (commit `561cd0b`) parecia uma reserva: sem qualificação das partes, sem cláusulas, sem sinal definido, e com uma mensagem interna ("o total difere da soma") impressa para o cliente. O Pedro pediu para juntar o resumo do evento com o texto do contrato em Word que ele já usava, adaptado.
+
+- O contrato em Word vira o corpo, preenchido com os dados do evento; o resumo vira o Anexo I.
+- As regras aprovadas estão em `docs/REGRAS_NEGOCIO.md`, seção 21.
+- Mudou em relação ao Word: rescisão (antes, 50% do contrato para o cliente e 50% de multa para o buffet; agora, 50% do sinal até 2 dias antes e devolução integral pelo buffet), sinal (10% → 25%), quebras (R$ 26/22/16 → R$ 28/24/16, como já estava no sistema), tempo de serviço (estava em branco; agora 4 horas, contadas do início do serviço) e a nova cláusula de remarcação.
+- Antes de usar com clientes, vale a revisão de um advogado.
