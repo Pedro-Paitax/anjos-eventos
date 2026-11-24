@@ -1,4 +1,5 @@
 import "server-only";
+import type { categoriaPreparoEnum } from "@/db/schema/preparos";
 import { passosPreparoSchema, type PassosPreparo } from "@/lib/passos-preparo";
 
 /**
@@ -233,14 +234,14 @@ export async function obterFichasTecnicasPorPreparos(
  */
 export async function listarPreparosConfirmadosEvento(
   eventoId: number
-): Promise<{ preparoId: number; preparoNome: string }[]> {
+): Promise<{ preparoId: number; preparoNome: string; categoria: (typeof categoriaPreparoEnum.enumValues)[number] }[]> {
   const { db } = await import("@/db/client");
   const { eq } = await import("drizzle-orm");
   const { itensEventoConfirmados } = await import("@/db/schema/orcamentos");
   const { preparos } = await import("@/db/schema/preparos");
 
   const linhas = await db
-    .selectDistinct({ preparoId: preparos.id, preparoNome: preparos.nomePreparo })
+    .selectDistinct({ preparoId: preparos.id, preparoNome: preparos.nomePreparo, categoria: preparos.categoria })
     .from(itensEventoConfirmados)
     .innerJoin(preparos, eq(itensEventoConfirmados.preparoId, preparos.id))
     .where(eq(itensEventoConfirmados.eventoId, eventoId));

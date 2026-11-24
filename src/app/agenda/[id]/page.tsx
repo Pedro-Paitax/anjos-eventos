@@ -121,6 +121,16 @@ export default async function EventoPage({ params }: PaginaEventoProps) {
                 Exportar Fichas Técnicas
               </Link>
             )}
+            {evento.status === "confirmado" && (
+              <a
+                href={`/agenda/${evento.id}/contrato/pdf`}
+                target="_blank"
+                rel="noopener"
+                className={botaoClasse("secundario")}
+              >
+                Gerar Contrato
+              </a>
+            )}
             <BotaoExcluirEvento eventoId={evento.id} clienteNome={evento.cliente} />
           </div>
         }
