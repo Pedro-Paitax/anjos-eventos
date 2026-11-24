@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
+import type { EstadoFormularioOrcamento } from "@/app/actions/orcamento";
 import type { Preparo, CategoriaCardapio } from "@/lib/cardapio";
 import Link from "next/link";
 import { campoClasse, rotuloClasse } from "@/components/formulario-evento";
@@ -26,7 +27,7 @@ type FormularioOrcamentoChurrascoProps = {
   empresaId: number;
   preparosPorCategoria: Record<CategoriaCardapio, Preparo[]>;
   cardapiosModelo: CardapioModeloResumo[];
-  action: (formData: FormData) => void;
+  action: (estadoAnterior: EstadoFormularioOrcamento, formData: FormData) => Promise<EstadoFormularioOrcamento>;
 };
 
 function paraNumero(texto: string): number {
@@ -68,6 +69,10 @@ export function FormularioOrcamentoChurrasco({
   cardapiosModelo,
   action,
 }: FormularioOrcamentoChurrascoProps) {
+  // Em erro, a ação devolve o que foi digitado (D4). Os campos com estado
+  // próprio (convidados, cardápio, preço) já se mantêm; o nome do cliente
+  // volta pelo defaultValue.
+  const [estado, formAction] = useActionState(action, {});
   const [qtdAdultos, setQtdAdultos] = useState("0");
   const [qtdCriancasAte5, setQtdCriancasAte5] = useState("0");
   const [qtdCriancas5a10, setQtdCriancas5a10] = useState("0");
@@ -215,7 +220,7 @@ export function FormularioOrcamentoChurrasco({
           </a>
         ))}
       </nav>
-    <form action={action} className="flex min-w-0 flex-col gap-4">
+    <form action={formAction} className="flex min-w-0 flex-col gap-4">
       <input type="hidden" name="empresaId" value={empresaId} />
       <input type="hidden" name="usarPrecoFixoModelo" value={String(precoFixoSelecionado != null)} />
       <input type="hidden" name="regiaoMetropolitanaCuritiba" value={String(regiaoMetropolitana)} />
@@ -224,7 +229,7 @@ export function FormularioOrcamentoChurrasco({
         <h2 className={tituloBloco}>Dados do cliente</h2>
         <Campo rotulo="Cliente">
           {(p) => (
-            <input {...p} name="clienteNome" type="text" required />
+            <input {...p} name="clienteNome" type="text" required defaultValue={estado.valores?.clienteNome} />
           )}
         </Campo>
       </Painel>
@@ -404,6 +409,12 @@ export function FormularioOrcamentoChurrasco({
           </div>
         </div>
       </Painel>
+
+      {estado.erro && (
+        <div role="alert">
+          <Alerta tipo="perigo">{estado.erro}</Alerta>
+        </div>
+      )}
 
       {/* Barra de salvar: fixa no rodapé do formulário; só Cancelar e o envio, sem total ao vivo. */}
       <div className="barra-salvar sticky bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-20 flex justify-end gap-3 rounded-cartao border border-borda-forte bg-elevada p-3 shadow-barra rail:bottom-4">

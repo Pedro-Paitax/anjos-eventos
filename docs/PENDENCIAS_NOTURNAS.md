@@ -2824,3 +2824,10 @@ Valores do Pedro em 2026-11-23. Script `scripts/dados-0015-embalagens-compra-2.s
 - **Embalagens gravadas:** Pão De Alho Tradicional em bandeja de 5 baguetes e Ovo em bandeja de 30. Agora são 16 insumos com embalagem; o hash das demais colunas de `insumos` ficou igual.
 - **Sem embalagem, por decisão do Pedro:** Pão de Baguete e Pão Francês. Não é pendência.
 - **Falta o cadastro:** o Pedro informou "Pão de Alho Zinho" em bandeja de 12 bolinhas, mas esse insumo não existe no banco em 2026-11-23. Ao cadastrá-lo, a embalagem pode ser preenchida na tela do insumo.
+
+## 2026-11-24 — Correções D4, D5, D6 e hora da confirmação (branch, sem deploy)
+
+Branch `fix/erros-preco-exclusao`. Nada aplicado em produção.
+- **Validado localmente** (Postgres 16 descartável com migrações 0000–0016 e seed de auditoria): `tsc`, `eslint` nos arquivos alterados, `vitest` com TZ=UTC e TZ=America/Sao_Paulo e `next build`. Também 13 cenários no navegador: erro preserva campos, preço sem cardápio, hora gravada, exclusão com e sem bloqueio.
+- **Pendente (Pedro):** conferir em produção, só leitura, os eventos criados pela confirmação de orçamento antes do deploy. Podem estar com a hora +3h. Corrigir só com aprovação.
+- **Pendente (baixa):** a edição de evento ainda depende do fuso do servidor. Em São Paulo está certa; se o servidor mudar para UTC, ela desloca a hora.

@@ -20,7 +20,10 @@ export function BotaoExcluirEvento({
     setErro(null);
     setExcluindo(true);
     try {
-      await excluirEventoAction(eventoId);
+      const resultado = await excluirEventoAction(eventoId);
+      // Só chega aqui quando a exclusão foi recusada (sucesso redireciona).
+      setExcluindo(false);
+      setErro(resultado.erro);
     } catch (erro) {
       // redirect() do Server Action lança um erro especial do Next.js
       // (digest começando com "NEXT_REDIRECT") pra disparar a navegação —

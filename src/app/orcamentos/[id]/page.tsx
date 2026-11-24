@@ -1,4 +1,5 @@
 import { notFound, redirect } from "next/navigation";
+import { ehEmpresaSenhorChurrasco } from "@/lib/empresa-buffet";
 import { obterUsuarioAtual } from "@/lib/usuario-atual";
 import { obterOrcamento } from "@/lib/orcamentos";
 import { aprovarConfirmarEventoAction } from "@/app/actions/orcamento";
@@ -37,7 +38,7 @@ export default async function OrcamentoPage({ params }: PaginaOrcamentoProps) {
   // Mesma função pura usada de verdade na confirmação (src/lib/orcamentos.ts,
   // montarValoresEvento) — sem I/O, já que o preço vem pronto do Orçamento
   // (itens=[] porque precoPorPessoaEscolhido substitui o cálculo de custo).
-  const ehChurrasco = orcamento.itens.length > 0;
+  const ehChurrasco = ehEmpresaSenhorChurrasco(orcamento.empresaNome);
   const precificacaoChurrasco =
     ehChurrasco && orcamento.precoPessoa != null
       ? (() => {

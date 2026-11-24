@@ -1491,3 +1491,14 @@ Decisões do Pedro em 21/11/2026 (C1 a C24, spec `docs/specs/SPEC_CHECKLIST_CARR
 - Lasanhas e batata gratinada levam "Formas".
 - As embalagens de compra da 0015 foram aplicadas.
 - Detalhes em `docs/PENDENCIAS_NOTURNAS.md`.
+
+---
+
+## Correções na criação e exclusão de eventos (2026-11-24)
+
+Aprovado pelo Pedro em 2026-11-24, a partir da auditoria e do redesign da criação de eventos. Branch `fix/erros-preco-exclusao`.
+
+- **Erros sem perder o formulário (D4).** Criar orçamento e confirmar evento agora devolvem a mensagem na própria tela, com os campos já preenchidos. Antes, em produção, qualquer erro virava a página genérica do Next e o usuário perdia tudo.
+- **Preço sem cardápio (D5).** O dimensionamento só roda para o Buffet Senhor Churrasco com cardápio. Antes, confirmar sem cardápio zerava o valor negociado. A regra "é Senhor Churrasco" ficou num lugar só (`src/lib/empresa-buffet.ts`).
+- **Exclusão (D6).** Transacional e bloqueada depois de lista de compras ou Ordem de Ação enviada. Ver `docs/REGRAS_NEGOCIO.md` §6.
+- **Hora do evento ao confirmar.** Com o servidor em São Paulo, a confirmação gravava a hora 3h adiantada (12:00 digitado virava 15:00). Agora grava o horário digitado, do mesmo jeito que a edição já fazia (`src/lib/data-evento.ts`). Eventos de produção criados pela confirmação de orçamento antes desta correção podem estar com +3h e precisam ser conferidos.

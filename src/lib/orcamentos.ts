@@ -1,4 +1,6 @@
 import "server-only";
+import { ehEmpresaSenhorChurrasco } from "@/lib/empresa-buffet";
+import { dataEventoParaGravar } from "@/lib/data-evento";
 import { db } from "@/db/client";
 import { and, eq } from "drizzle-orm";
 import { empresas, eventos } from "@/db/schema/nucleo-existente";
@@ -269,7 +271,7 @@ export function montarValoresEvento(
     contato: operacionais.contato,
     telefone: operacionais.telefone,
     enderecoEvento: operacionais.enderecoEvento,
-    dataEvento: new Date(operacionais.dataEvento),
+    dataEvento: dataEventoParaGravar(operacionais.dataEvento) ?? new Date(NaN),
     tipoEvento: operacionais.tipoEvento,
     horaChegadaEquipe: operacionais.horaChegadaEquipe,
     horaAperitivo: operacionais.horaAperitivo,
@@ -359,7 +361,7 @@ export async function aprovarEConfirmarEvento(
   const erroStatus = erroTransicaoOrcamento(orcamento.status, "confirmar");
   if (erroStatus) return { erro: erroStatus };
 
-  const ehChurrasco = orcamento.itens.length > 0;
+  const ehChurrasco = ehEmpresaSenhorChurrasco(orcamento.empresaNome);
   if (ehChurrasco && orcamento.precoPessoa == null) {
     return { erro: "Orçamento de Senhor Churrasco sem preço por pessoa definido — não é possível confirmar." };
   }
@@ -378,7 +380,9 @@ export async function aprovarEConfirmarEvento(
   }[] = [];
   const avisos: string[] = [];
 
-  if (ehChurrasco) {
+  // Sem itens de cardápio não há o que dimensionar: o evento nasce sem
+  // snapshot (lista de compras e fichas vazias), mas com preço e valor.
+  if (ehChurrasco && orcamento.itens.length > 0) {
     const dimensionamento = await calcularDimensionamentoOrcamento(orcamentoId);
     if ("erro" in dimensionamento) return { erro: dimensionamento.erro };
 

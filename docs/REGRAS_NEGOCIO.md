@@ -131,11 +131,13 @@ Esses valores são snapshots históricos. Alterações futuras nos preços das f
 
 # 6. Exclusão de Evento
 
-A exclusão de evento (`src/lib/eventos.ts`, acionada por `botao-excluir-evento.tsx`) é um **hard delete incondicional** — sem restrição por status (`orcado`, `confirmado`, `realizado` e `cancelado` são todos excludíveis da mesma forma).
+A exclusão de evento (`src/lib/eventos.ts`, acionada por `botao-excluir-evento.tsx`) é um hard delete **transacional**: apaga o evento, o snapshot (`itens_evento_confirmados`) e o orçamento de origem com seus itens numa única transação. Se qualquer passo falhar, nada é apagado e a tela mostra o erro.
 
-**Isso é intencional**, confirmado nesta auditoria (2026-09-22) — não é um gap de processo.
+**Bloqueio (decisão do Pedro, 2026-11-24, redesign "decisão 4"):** o evento **não pode ser excluído** depois que a lista de compras foi enviada (`decisoes_operacionais_evento.lista_compras_enviada_em`) ou a Ordem de Ação foi disparada (`ordens_disparadas_em`). A tela explica o motivo e orienta a mudar o status para **Cancelado** em Editar.
 
-**Melhoria futura (não é requisito atual)**: considerar restringir ou exigir confirmação adicional para exclusão de eventos já `confirmado`/`realizado`, para reduzir risco de perda acidental de histórico. Não implementar sem nova decisão explícita.
+Fora desses dois casos, qualquer status continua excludível.
+
+_Histórico: até 2026-11-24 a regra era hard delete incondicional (auditoria de 2026-09-22), e na prática falhava sem aviso quando havia orçamento ou snapshot ligados ao evento._
 
 ---
 
