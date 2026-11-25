@@ -2903,3 +2903,13 @@ typegen, `tsc`, `eslint` e `vitest` (467 passaram, 34 ignorados; TZ=UTC e Americ
 
 ### 2026-11-25 — Reteste dos envios com o worker REAL (só para o número do Pedro)
 Cópia local nova de produção, telefones trocados pelo do Pedro, túnel SSH ao worker do Oracle com proxy local que bloqueia qualquer destino diferente (nada foi bloqueado). Evento 19. O worker respondeu 200 a todos: lembrete (botão), lista de compras (PDF + texto), checklist (PDF), Ordem de Ação (botão, 2 PDFs), resumo de preços (PDF), lembrete de 7 dias (cron, texto) e Ordem de Ação (cron, 2 PDFs) — 11 mensagens no total. Efeitos colaterais gravados na cópia como antes. **"Chegou no aparelho" depende de o Pedro conferir o WhatsApp** (o worker só confirma que aceitou). Cópia, dump, túnel e proxy removidos.
+
+## 2026-11-25 — Deploy do PR #20 (Novo insumo, botões de Ordem de Ação e lembrete, cotação)
+
+Commit `300140b` em produção. Sem migração (diff de `drizzle/` e `src/db/schema/` vazio). O SQL de preços `scripts/dados-precos-2026-11-24.sql` **não foi aplicado**.
+- **Verificador:** typegen, `tsc`, `eslint`, `vitest` (467 passaram, 34 ignorados) verdes.
+- **Dump pré-deploy:** `~/backups-anjos-eventos/pre-deploy/pre-deploy-300140b-20261125-080833.dump`. Backup do bundle no Oracle: `/home/opc/anjos-eventos-app-backup-20261125-081130.tgz`.
+- **Contagens:** antes e depois iguais — eventos=4, orcamentos=5, itens_evento_confirmados=26.
+- **Checagem mínima:** `/login` 200 por localhost e IP Tailscale, `HOSTNAME=0.0.0.0`, socket em `0.0.0.0:3001`. Smoke completo não executado. Sem rollback.
+- **Ender:** de novo sem acesso ao GitHub; o commit foi enviado desta máquina para `refs/remotes/origin/master` do clone, sem tocar na working tree.
+- **Pendente (Pedro):** testar "Enviar lista de compras" em produção conferindo os 4 últimos dígitos do destino.
