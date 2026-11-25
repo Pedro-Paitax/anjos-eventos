@@ -2900,3 +2900,6 @@ typegen, `tsc`, `eslint` e `vitest` (467 passaram, 34 ignorados; TZ=UTC e Americ
 
 ### Resumo para o WhatsApp do Pedro (NÃO enviado)
 "Noite 24/11: 1) /insumos/novo pronto, com aviso de nome parecido. 2) Botões de Ordem de Ação e lembrete na tela do evento; os 5 envios testados contra worker simulado (PDF/texto ok); o worker real ficou fora porque o SSH pediu verificação do Tailscale. 3) Cotação e SQL (não aplicado) em docs/cotacoes e scripts. Branch: noite-2026-11-24. Nada em produção."
+
+### 2026-11-25 — Reteste dos envios com o worker REAL (só para o número do Pedro)
+Cópia local nova de produção, telefones trocados pelo do Pedro, túnel SSH ao worker do Oracle com proxy local que bloqueia qualquer destino diferente (nada foi bloqueado). Evento 19. O worker respondeu 200 a todos: lembrete (botão), lista de compras (PDF + texto), checklist (PDF), Ordem de Ação (botão, 2 PDFs), resumo de preços (PDF), lembrete de 7 dias (cron, texto) e Ordem de Ação (cron, 2 PDFs) — 11 mensagens no total. Efeitos colaterais gravados na cópia como antes. **"Chegou no aparelho" depende de o Pedro conferir o WhatsApp** (o worker só confirma que aceitou). Cópia, dump, túnel e proxy removidos.
