@@ -2913,3 +2913,10 @@ Commit `300140b` em produção. Sem migração (diff de `drizzle/` e `src/db/sch
 - **Checagem mínima:** `/login` 200 por localhost e IP Tailscale, `HOSTNAME=0.0.0.0`, socket em `0.0.0.0:3001`. Smoke completo não executado. Sem rollback.
 - **Ender:** de novo sem acesso ao GitHub; o commit foi enviado desta máquina para `refs/remotes/origin/master` do clone, sem tocar na working tree.
 - **Pendente (Pedro):** testar "Enviar lista de compras" em produção conferindo os 4 últimos dígitos do destino.
+
+## 2026-11-25 — SQL de preços da cotação de 24/11 aplicado em produção
+
+`scripts/dados-precos-2026-11-24.sql`, aprovado pelo Pedro. Dump antes: `~/backups-anjos-eventos/pre-precos-20261125.dump` (36 tabelas com dados).
+- **Aplicado:** transação única, conferência prévia e final OK; 19 insumos atualizados (variação até 15%) e 19 linhas novas em `historico_precos` (82 → 101). Fonte `pesquisa_web`, data 24/11/2026; `fornecedor_principal_id` e `canal` intactos.
+- **Não aplicado:** as 28 propostas com variação acima de 15% (comentadas no SQL; carnes do atacado, hortifrúti suspeito). Continuam pendentes.
+- As mudanças de preço entram no próximo resumo de preços (gatilho `alteracoes_preco_insumo`).
