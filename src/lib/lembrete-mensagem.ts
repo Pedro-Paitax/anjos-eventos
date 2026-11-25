@@ -17,3 +17,12 @@ export function montarMensagemLembrete(eventos: EventoComPendencia[]): string {
     ...itens,
   ].join("\n");
 }
+
+/** Lembrete de um único evento (botão manual): sem a frase "próximos 7 dias", que pode não valer. */
+export function montarMensagemLembreteEvento(e: EventoComPendencia): string {
+  return [
+    `Lembrete Anjos Eventos — ${e.cliente} (${e.data}), decisões pendentes:`,
+    "",
+    ...e.pendencias.map((p) => `• ${p}`),
+  ].join("\n");
+}

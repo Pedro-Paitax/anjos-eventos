@@ -22,6 +22,7 @@ import { FormularioDecisoesOperacionais } from "@/components/formulario-decisoes
 import { CabecalhoPagina } from "@/components/cabecalho-pagina";
 import { FormularioEventoChurrasco } from "@/components/formulario-evento-churrasco";
 import { FormularioEventoGenerico } from "@/components/formulario-evento-generico";
+import { BotoesEnvioEvento } from "@/components/botoes-envio-evento";
 import { BotaoExcluirEvento } from "@/components/botao-excluir-evento";
 import { BotaoEnviarListaCompras } from "@/components/botao-enviar-lista-compras";
 import { botaoClasse } from "@/components/botao";
@@ -192,6 +193,15 @@ export default async function EventoPage({ params }: PaginaEventoProps) {
               />
             </Alerta>
           )}
+          <BotoesEnvioEvento
+            eventoId={evento.id}
+            temPendencias={pendencias.length > 0}
+            qtdDestinatariosOrdem={
+              colaboradoresAtivos.filter((c) => equipeIds.includes(c.id) && c.telefone_whatsapp).length
+            }
+            qtdNumerosFamilia={numerosFamilia().length}
+            ordemEnviadaEm={decisoes?.ordens_disparadas_em ? String(decisoes.ordens_disparadas_em) : null}
+          />
           <FormularioDecisoesOperacionais
             colaboradoresAtivos={colaboradoresAtivos}
             equipeIds={equipeIds}
