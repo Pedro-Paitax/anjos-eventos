@@ -2858,3 +2858,48 @@ Commit `19732f8` (merge do PR #19) em produção. Sem migração (`git diff 4bb7
 - **Checagem mínima:** `/login` 200 por localhost e IP Tailscale, `HOSTNAME=0.0.0.0`, socket em `0.0.0.0:3001`. Smoke completo não executado. Sem rollback.
 - **Script de deploy:** havia uma alteração local sem commit em `scripts/deploy-oracle.sh` (`cd` para a raiz e checagem do `.env`/`DATABASE_URL`). Descartada por ordem do Pedro; cópia do diff no scratchpad da sessão.
 - **Fuso (só leitura):** `eventos.data_evento` é `timestamp without time zone`; `SHOW timezone` do Postgres = `GMT`; o processo do app no pm2 não define `TZ` e o sistema do Oracle está em GMT. Evento 19: `data_evento` = `2026-11-28 04:30:00`, `created_at` = `2026-11-24 12:15:01.242939`.
+
+## 2026-11-24 (noite) — Novo insumo, envios pelo WhatsApp e cotação (branch `noite-2026-11-24`, sem deploy)
+
+Nada foi gravado em produção (só `pg_dump` e leitura em transação READ ONLY). Nenhuma migração nova. Nenhuma mensagem real foi enviada.
+**Ambiente:** dump novo de produção (`pg_dump -Fc`, validado) restaurado num Postgres 18 local descartável (porta 55432); telefones de colaboradores, eventos, fornecedores e leads trocados pelo do Pedro **só na cópia**; app local com `FAMILIA_WHATSAPP_NUMEROS` e `LISTA_COMPRAS_WHATSAPP` = número do Pedro.
+
+### Limitação importante: o worker real do WhatsApp NÃO foi usado
+O SSH ao Oracle (Tailscale SSH) pediu uma **verificação extra no navegador** (`login.tailscale.com`), que é um passo humano. Não aprovei. Sem túnel, o worker (`127.0.0.1:3100` no Oracle) ficou inacessível. Os envios foram testados contra um **worker simulado local** (mesma API: `/status`, `/send-message`, `/send-document`, token Bearer) que grava o que receberia. Logo, **"chegou no aparelho" não foi verificado**; PDF e texto foram. O resumo da noite **não foi enviado** ao WhatsApp do Pedro (mesmo motivo); está abaixo.
+
+### Tarefa 1 — Novo insumo (`/insumos/novo`)
+- Botão "Novo insumo" em `/insumos` (só com `DATA_SOURCE=oracle`). Mesmos campos e validações da edição: nome, unidade, preço, fator de correção, embalagem de compra, fornecedor principal e canal (estes dois e a embalagem só aparecem se as migrações 0011/0015 existem). Fonte do preço = manual, de hoje.
+- **Categoria:** a tabela `insumos` não tem coluna de categoria; não inventei. Se quiser, é uma decisão/migração à parte.
+- **Nome parecido:** antes de gravar, avisa (mesmas palavras em outra ordem/plural, um nome dentro do outro, erro de digitação) e só cadastra com "Cadastrar mesmo assim". Nome igual (ignorando caixa/acento) é bloqueado. `src/lib/insumos-parecidos.ts` (9 testes).
+- Testado no navegador contra a cópia: aviso "Tomates" × "Tomate", cadastro gravado (KG, 9,90, fator 0,9, fonte manual).
+- Nota: um insumo novo entra no resumo de preços como "novo" (comportamento já existente do gatilho).
+
+### Tarefa 2 — Envios pelo WhatsApp
+Envios que existem no código: (1) lista de compras (botão), (2) checklist de carregamento (botão), (3) resumo de preços (botão em `/insumos` e `/api/cron/precos-resumo`), (4) Ordem de Ação (só cron `/api/cron/ordem-acao`, janela de 2h10), (5) lembrete de 7 dias (só cron `/api/cron/lembrete-7-dias`), (6) prospecção (`prospeccao-envio-auto`, envia aos leads: **não toquei nem testei**).
+- **Novo:** botões "Enviar Ordem de Ação" e "Enviar lembrete de pendências" na tela do evento (painel Decisões operacionais), com confirmação. Ordem: mesmas travas do cron (confirmado, Senhor Churrasco, sem pendência, `ordens_disparadas_em` evita duplicar; reenviar pede confirmação), sem a janela de 2h10. Lembrete: só as pendências daquele evento, para os números da família. Refatoração: o laço de envio da Ordem virou `dispararOrdens`, usado pelo cron e pelo botão.
+
+| Envio | Teste (worker simulado, evento 19) | PDF | Texto | Efeito colateral (cópia) |
+|---|---|---|---|---|
+| Lista de compras | PDF + texto aceitos | ok, 1 página, itens e embalagens | ok | `lista_compras_enviada_em` gravado |
+| Checklist | PDF aceito | ok | (sem texto, só legenda) | nenhum |
+| Resumo de preços | PDF aceito | ok (3 mudanças + 147 insumos) | — | 3 linhas de `alteracoes_preco_insumo` marcadas enviadas |
+| Ordem de Ação (botão) | 2 PDFs (copeira e assador) | ok | — | `ordens_disparadas_em` gravado; 2º clique pede confirmação de reenvio |
+| Ordem de Ação (cron) | 2 PDFs, evento com início em 90 min | ok | — | mesma marca |
+| Lembrete (botão) | texto com 5 pendências | — | ok | nenhum |
+| Lembrete 7 dias (cron) | 1 mensagem, evento a 1 dia | — | ok | nenhum |
+Chegada ao aparelho: **não testada** (ver limitação). Nada falhou; nada precisou de correção além do desenvolvimento acima.
+- **Achado (já conhecido):** a Ordem do evento 19 mostra "Início do evento 04:30" e "Chegada da equipe 09:30" — a hora de `data_evento` do evento 19 está com a diferença de 3 h anotada na entrada do PR #19. Decisão do Pedro.
+- Os crons seguem **não instalados** (decisão de 05/11); só os botões disparam.
+
+### Tarefa 3 — Cotação
+`docs/cotacoes/COTACAO_2026-11-24.md` (tabela, ⚠ nas variações > 15%, rascunho ao Aroma da Carne, não enviado) e `scripts/dados-precos-2026-11-24.sql` (id, transação única, histórico se a tabela existir, conferências prévia e final). Ensaiado só na cópia local: 19 insumos atualizados e OK. 28 propostas com variação > 15% estão **comentadas**. Fonte: catálogo público do Super Muffato (24/11). Condor (sem API pública), Assaí (403) e Atacadão (só embalados) não renderam preço; nada inventado.
+**Espera o Pedro:** aprovar/ajustar o SQL (carnes: atacado do Aroma × varejo do Muffato), enviar o pedido de cotação ao Aroma se quiser.
+
+### Validação
+typegen, `tsc`, `eslint` e `vitest` (467 passaram, 34 ignorados; TZ=UTC e America/Sao_Paulo) e `next build` verdes.
+
+### Resumo para o WhatsApp do Pedro (NÃO enviado)
+"Noite 24/11: 1) /insumos/novo pronto, com aviso de nome parecido. 2) Botões de Ordem de Ação e lembrete na tela do evento; os 5 envios testados contra worker simulado (PDF/texto ok); o worker real ficou fora porque o SSH pediu verificação do Tailscale. 3) Cotação e SQL (não aplicado) em docs/cotacoes e scripts. Branch: noite-2026-11-24. Nada em produção."
+
+### 2026-11-25 — Reteste dos envios com o worker REAL (só para o número do Pedro)
+Cópia local nova de produção, telefones trocados pelo do Pedro, túnel SSH ao worker do Oracle com proxy local que bloqueia qualquer destino diferente (nada foi bloqueado). Evento 19. O worker respondeu 200 a todos: lembrete (botão), lista de compras (PDF + texto), checklist (PDF), Ordem de Ação (botão, 2 PDFs), resumo de preços (PDF), lembrete de 7 dias (cron, texto) e Ordem de Ação (cron, 2 PDFs) — 11 mensagens no total. Efeitos colaterais gravados na cópia como antes. **"Chegou no aparelho" depende de o Pedro conferir o WhatsApp** (o worker só confirma que aceitou). Cópia, dump, túnel e proxy removidos.
