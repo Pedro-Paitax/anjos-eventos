@@ -1513,3 +1513,17 @@ O contrato gerado pelo botão "Gerar Contrato" (commit `561cd0b`) parecia uma re
 - As regras aprovadas estão em `docs/REGRAS_NEGOCIO.md`, seção 21.
 - Mudou em relação ao Word: rescisão (antes, 50% do contrato para o cliente e 50% de multa para o buffet; agora, 50% do sinal até 2 dias antes e devolução integral pelo buffet), sinal (10% → 25%), quebras (R$ 26/22/16 → R$ 28/24/16, como já estava no sistema), tempo de serviço (estava em branco; agora 4 horas, contadas do início do serviço) e a nova cláusula de remarcação.
 - Antes de usar com clientes, vale a revisão de um advogado.
+
+---
+
+## WhatsApp: Baileys 7 e envio só com confirmação (2026-11-25)
+
+**Problema.** Em 25/11 as mensagens chegavam ao destinatário como "Aguardando mensagem": o worker dizia `connected`, os envios ficavam no status 1 (pendente) sem confirmação e o log tinha vários "Bad MAC". Trocar a sessão do contato e reiniciar o worker não resolveu.
+
+**Decisões (Pedro, 2026-11-25).** Branch `fix/whatsapp-worker-lid`.
+- **Baileys 6.7.24 → 7.0.0-rc14** (fixada; é a tag `latest` do npm, ainda sem 7.x estável). A 6.x é a linha legada, sem o sistema de LID. O worker já era ESM, então a migração de módulo não pesou.
+- **`getMessage`** passou a existir, com cache em memória das mensagens enviadas (1000, 24 h). Sem ele o reenvio pedido pelo destinatário falhava.
+- **Envio só conta quando o servidor confirma** (status >= 2) em até 30 s (`WORKER_ACK_TIMEOUT_MS`). Sem confirmação o worker responde 504 e registra no log; o app já trata resposta de erro do worker como falha. Efeito colateral aceito: celular do destinatário desligado pode dar 504 mesmo com a mensagem chegando depois.
+- **Número resolvido por `onWhatsApp`** antes de cada envio (cache de 1 h); número sem WhatsApp dá 422. A troca PN → LID é feita pelo próprio Baileys 7.
+- **A sessão da v6 não serve na v7:** novo QR. Backup da sessão antes da troca: `~/baileys_auth-backup-20261125-v6.tgz` (modo 600) no Oracle.
+- **Não usa mais `fetchLatestBaileysVersion`:** a versão do WhatsApp Web é a embutida na biblioteca (a documentação do Baileys desaconselha buscar a mais recente a cada conexão).

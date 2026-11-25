@@ -4,6 +4,8 @@ export type Config = {
   token: string;
   authDir: string;
   sendDelayMs: number;
+  /** Tempo máximo esperando a confirmação do servidor do WhatsApp por mensagem. */
+  ackTimeoutMs: number;
 };
 
 /** Lê a configuração do ambiente. Falha cedo se o token faltar ou for fraco. */
@@ -14,6 +16,10 @@ export function carregarConfig(env: NodeJS.ProcessEnv = process.env): Config {
   }
   const port = Number(env.WORKER_PORT ?? 3100);
   const sendDelayMs = Number(env.WORKER_SEND_DELAY_MS ?? 3000);
+  const ackTimeoutMs = Number(env.WORKER_ACK_TIMEOUT_MS ?? 30000);
+  if (!Number.isFinite(ackTimeoutMs) || ackTimeoutMs < 1000) {
+    throw new Error("WORKER_ACK_TIMEOUT_MS inválido (mínimo 1000).");
+  }
   if (!Number.isInteger(port) || port <= 0 || port > 65535) {
     throw new Error("WORKER_PORT inválida.");
   }
@@ -27,5 +33,6 @@ export function carregarConfig(env: NodeJS.ProcessEnv = process.env): Config {
     token,
     authDir: env.WORKER_AUTH_DIR ?? "./auth",
     sendDelayMs,
+    ackTimeoutMs,
   };
 }

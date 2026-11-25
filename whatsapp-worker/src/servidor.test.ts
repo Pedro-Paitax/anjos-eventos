@@ -1,6 +1,7 @@
 import type { AddressInfo } from "node:net";
 import type http from "node:http";
 import { afterEach, describe, expect, it } from "vitest";
+import { EntregaFalhouError, SemConfirmacaoError } from "./entrega.js";
 import { FilaEnvio } from "./fila-envio.js";
 import { criarServidor } from "./servidor.js";
 import { NumeroSemWhatsappError } from "./telefone.js";
@@ -107,6 +108,36 @@ describe("API do worker", () => {
     });
     expect(r.status).toBe(422);
     expect(await r.json()).toEqual({ ok: false, error: "Número sem WhatsApp." });
+  });
+
+  it("devolve 504 (e não ok) quando o servidor do WhatsApp não confirma o envio", async () => {
+    const { cliente } = clienteFalso();
+    cliente.enviarTexto = async () => {
+      throw new SemConfirmacaoError();
+    };
+    const url = await subir(cliente);
+    const r = await fetch(`${url}/send-message`, {
+      method: "POST",
+      headers: auth,
+      body: JSON.stringify({ to: "5500900000000", text: "oi" }),
+    });
+    expect(r.status).toBe(504);
+    expect((await r.json()).ok).toBe(false);
+  });
+
+  it("devolve 502 quando o WhatsApp recusa o envio", async () => {
+    const { cliente } = clienteFalso();
+    cliente.enviarDocumento = async () => {
+      throw new EntregaFalhouError();
+    };
+    const url = await subir(cliente);
+    const pdf = Buffer.from("%PDF-1.4 teste").toString("base64");
+    const r = await fetch(`${url}/send-document`, {
+      method: "POST",
+      headers: auth,
+      body: JSON.stringify({ to: "5500900000000", filename: "a.pdf", pdf_base64: pdf }),
+    });
+    expect(r.status).toBe(502);
   });
 
   it("/send-document aceita PDF em base64 e rejeita não-PDF", async () => {

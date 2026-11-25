@@ -4,7 +4,7 @@ import { criarServidor } from "./servidor.js";
 import { GerenciadorWhatsapp } from "./whatsapp.js";
 
 const config = carregarConfig();
-const whatsapp = new GerenciadorWhatsapp(config.authDir);
+const whatsapp = new GerenciadorWhatsapp(config.authDir, config.ackTimeoutMs);
 const fila = new FilaEnvio(config.sendDelayMs);
 const servidor = criarServidor({ token: config.token, cliente: whatsapp, fila });
 

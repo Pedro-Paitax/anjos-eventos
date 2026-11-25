@@ -1,5 +1,6 @@
 import { timingSafeEqual } from "node:crypto";
 import http from "node:http";
+import { EntregaFalhouError, SemConfirmacaoError } from "./entrega.js";
 import { FilaEnvio } from "./fila-envio.js";
 import { NumeroSemWhatsappError, paraJid } from "./telefone.js";
 import { NaoConectadoError, type ClienteWhatsapp } from "./whatsapp.js";
@@ -133,6 +134,13 @@ export function criarServidor({ token, cliente, fila }: OpcoesServidor): http.Se
       }
       if (erro instanceof NaoConectadoError) {
         return responder(res, 503, { ok: false, error: erro.message });
+      }
+      if (erro instanceof SemConfirmacaoError) {
+        // Saiu do socket, mas o servidor não confirmou: NÃO é "enviado".
+        return responder(res, 504, { ok: false, error: erro.message });
+      }
+      if (erro instanceof EntregaFalhouError) {
+        return responder(res, 502, { ok: false, error: erro.message });
       }
       if (erro instanceof NumeroSemWhatsappError) {
         return responder(res, 422, { ok: false, error: erro.message });

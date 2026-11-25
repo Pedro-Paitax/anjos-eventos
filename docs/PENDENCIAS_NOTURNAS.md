@@ -2920,3 +2920,12 @@ Commit `300140b` em produção. Sem migração (diff de `drizzle/` e `src/db/sch
 - **Aplicado:** transação única, conferência prévia e final OK; 19 insumos atualizados (variação até 15%) e 19 linhas novas em `historico_precos` (82 → 101). Fonte `pesquisa_web`, data 24/11/2026; `fornecedor_principal_id` e `canal` intactos.
 - **Não aplicado:** as 28 propostas com variação acima de 15% (comentadas no SQL; carnes do atacado, hortifrúti suspeito). Continuam pendentes.
 - As mudanças de preço entram no próximo resumo de preços (gatilho `alteracoes_preco_insumo`).
+
+## 2026-11-25 — WhatsApp worker: Baileys 7 e envio com confirmação (branch `fix/whatsapp-worker-lid`, sem deploy)
+
+Código pronto na branch; **nada foi trocado no Oracle**. Sessão atual (v6) intacta; backup feito: `~/baileys_auth-backup-20261125-v6.tgz`.
+- **Feito:** Baileys 7.0.0-rc14; `getMessage` com cache; resolução do número por `onWhatsApp`; `/send-*` só responde ok com status >= 2 em 30 s (504 sem confirmação, 502 recusado); log sem número nem texto.
+- **Validado:** `tsc`, `eslint`, `vitest` (30 testes) e `npm run build` do worker verdes.
+- **Não testado:** envio real. Exige a v7 conectada, logo novo QR (a sessão v6 não migra).
+- **Plano de troca (espera o Pedro avisar):** 1) parar `anjos-whatsapp-worker` no pm2; 2) `scripts/deploy-whatsapp-worker.sh` com a branch; 3) o worker sobe sem sessão e mostra o QR em `/status`; 4) o Pedro lê o QR; 5) teste só para +55 41 9646-2661; 6) o Pedro confirma que chegou legível. Rollback: restaurar o `.tgz` e a versão anterior do worker (a sessão v6 só volta a servir com o Baileys 6.7.24).
+- **Risco a observar:** o status 3 (entregue) depende do celular do destinatário; se der 504 demais, subir `WORKER_ACK_TIMEOUT_MS` ou aceitar status 2 só.
