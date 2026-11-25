@@ -51,14 +51,21 @@ export default async function InsumosPage() {
         subtitulo="Preço, unidade e fator de correção de cada insumo."
         voltarPara={{ href: "/senhor-churrasco", rotulo: "← Senhor Churrasco" }}
         acao={
-          origens ? (
-            <div className="flex flex-wrap gap-3 self-start sm:self-auto">
-              <BotaoEnviarResumoPrecos destinos={destinos} pendentes={pendentes} />
-              <Link href="/fornecedores" className={botaoClasse("secundario")}>
-                Fornecedores
+          <div className="flex flex-wrap gap-3 self-start sm:self-auto">
+            {oracle && (
+              <Link href="/insumos/novo" className={botaoClasse("primario")}>
+                Novo insumo
               </Link>
-            </div>
-          ) : undefined
+            )}
+            {origens && (
+              <>
+                <BotaoEnviarResumoPrecos destinos={destinos} pendentes={pendentes} />
+                <Link href="/fornecedores" className={botaoClasse("secundario")}>
+                  Fornecedores
+                </Link>
+              </>
+            )}
+          </div>
         }
       />
 

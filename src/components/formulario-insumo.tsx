@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import type { InsumoResumo } from "@/lib/insumos";
 import { UNIDADES_INSUMO } from "@/lib/preparos-opcoes";
 import { secaoTituloClasse } from "@/components/formulario-evento";
@@ -34,6 +34,8 @@ type FormularioInsumoProps = {
   origem?: OrigemFormularioInsumo;
   /** Embalagem de compra atual (null = sem). `undefined` = migração 0015 pendente: os campos não aparecem. */
   embalagem?: EmbalagemCompra | null;
+  /** Cadastro de insumo novo: sem valores prévios, unidade sem padrão e aviso de nome parecido. */
+  novo?: boolean;
 };
 
 export function FormularioInsumo({
@@ -42,8 +44,12 @@ export function FormularioInsumo({
   rotuloEnvio,
   origem,
   embalagem,
+  novo = false,
 }: FormularioInsumoProps) {
   const [estado, formAction] = useActionState(action, {});
+  // Controlado: o React zera os campos não controlados depois da action, e o aviso de nome parecido
+  // devolve o formulário na tela (a unidade escolhida não pode se perder).
+  const [udm, setUdm] = useState(valoresIniciais.udm);
 
   return (
     <form action={formAction} className="flex flex-col gap-6">
@@ -64,7 +70,10 @@ export function FormularioInsumo({
           {(p) => (
             <Seletor {...p}
               name="udm"
-              defaultValue={estado.valores?.udm ?? valoresIniciais.udm}
+              value={udm}
+              onChange={setUdm}
+              required={novo}
+              placeholder={novo ? "Selecione" : undefined}
               opcoes={UNIDADES_INSUMO.map((u) => ({ valor: u, rotulo: u }))}
             />
           )}
@@ -172,7 +181,20 @@ export function FormularioInsumo({
 
       {estado.erro && <Alerta tipo="perigo">{estado.erro}</Alerta>}
 
-      <BotaoEnviar rotulo={rotuloEnvio} className="w-full sm:w-auto sm:self-start" />
+      {estado.parecidos && estado.parecidos.length > 0 && (
+        <Alerta tipo="aviso">
+          <p className="font-medium">Já existe insumo com nome parecido:</p>
+          <ul className="list-disc pl-4">
+            {estado.parecidos.map((p) => (
+              <li key={p.id}>{p.nome}</li>
+            ))}
+          </ul>
+          <p className="mt-1">Se for o mesmo item, edite o existente. Se for outro, cadastre mesmo assim.</p>
+          <input type="hidden" name="confirmarParecido" value="1" />
+        </Alerta>
+      )}
+
+      <BotaoEnviar rotulo={estado.parecidos && estado.parecidos.length > 0 ? "Cadastrar mesmo assim" : rotuloEnvio} className="w-full sm:w-auto sm:self-start" />
     </form>
   );
 }
